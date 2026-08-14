@@ -1,0 +1,22 @@
+{
+    "python.defaultInterpreterPath": ".\\venv\\Scripts\\python.exe",
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/venv/**": true,
+        "**/.venv/**": true,
+        "**/.pytest_cache/**": true,
+        "**/infra/terraform/.terraform/**": true
+    },
+    "search.exclude": {
+        "**/venv": true,
+        "**/.venv": true,
+        "**/.pytest_cache": true,
+        "**/infra/terraform/.terraform": true
+    },
+    "files.exclude": {
+        "**/venv": true,
+        "**/.pytest_cache": true,
+        "**/infra/terraform/.terraform": true
+    }
+}

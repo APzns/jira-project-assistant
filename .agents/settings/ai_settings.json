@@ -1,0 +1,12 @@
+{
+  "stakeholder": "program_manager",
+  "focus_teams": [],
+  "focus_epics": [],
+  "risk_categories": [
+    "dependency",
+    "velocity",
+    "overcommitment"
+  ],
+  "min_risk_severity": "medium",
+  "summary_verbosity": "detailed"
+}

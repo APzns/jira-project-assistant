@@ -1,0 +1,22 @@
+# Antigravity AI Context Exclusion Rules
+# Prevents IDE context scanner from indexing massive dependency/binary trees
+
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyd
+*.so
+*.dll
+*.exe
+
+.pytest_cache/
+.coverage/
+htmlcov/
+
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+
+.git/
+.vscode/
