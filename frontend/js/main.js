@@ -6,42 +6,69 @@ import { renderStatusTab } from "./views/status.js";
 import { renderDeliveryTab } from "./views/delivery.js";
 import { renderQualityTab } from "./views/quality.js";
 import {
-  analyzeStatus, proposeNextSteps,
-  renderAnalyzeStatus, renderProposeNextSteps,
-  renderAnalyzeStatusInTab, renderNextStepsInTab,
+  analyzeStatus, proposeNextSteps, generateReport,
+  renderAnalyzeStatus, renderProposeNextSteps, renderGenerateReport,
+  renderAnalyzeStatusInTab, renderNextStepsInTab, renderGenerateReportInTab,
   openSettingsDrawer, closeSettingsDrawer,
   saveSettings, readSettingsForm,
-  populatePaSettings, readPaSettingsForm,
+  populatePaSettings, readPaSettingsForm, saveComposerTemplate
 } from "./skills.js";
 
-/* ---------- Main Sidebar Navigation ---------- */
+/* ---------- Main Navigation Router ---------- */
+function navigate(hash) {
+  if (!hash || hash === "#") hash = "#main";
+  const parts = hash.replace("#", "").split("/");
+  const navKey = parts[0];
+  const subRoute = parts[1];
+
+  const btn = document.querySelector(`.sidebar-nav .nav-btn[data-nav="${navKey}"]`);
+  if (!btn) return;
+
+  document.querySelectorAll(".sidebar-nav .nav-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".nav-page").forEach(p => p.classList.remove("active"));
+
+  btn.classList.add("active");
+  const targetPage = $("page-" + navKey);
+  if (targetPage) targetPage.classList.add("active");
+
+  const subTabs = $("sub-tabs");
+  if (subTabs) {
+    if (navKey === "dashboards") {
+      subTabs.style.display = "flex";
+      const activeTab = document.querySelector(".tab.active");
+      if (activeTab) {
+        if (activeTab.dataset.tab === "delivery" && state.teamPointsChart) state.teamPointsChart.resize();
+        if (activeTab.dataset.tab === "assessment" && state.monteCarloChart) state.monteCarloChart.resize();
+        if (activeTab.dataset.tab === "quality" && state.qualityByTeamChart) state.qualityByTeamChart.resize();
+        if (activeTab.dataset.tab === "assistant") populatePaSettings();
+      }
+    } else {
+      subTabs.style.display = "none";
+    }
+  }
+
+  // Projects sub-routing
+  if (navKey === "projects") {
+    const pList = $("projects-list-view");
+    const pDetail = $("project-detail-view");
+    if (subRoute && pList && pDetail) {
+      const card = document.querySelector(`.project-card[data-key="${subRoute}"]`);
+      if (card) openProjectDetail(card);
+    } else if (pList && pDetail) {
+      pDetail.style.display = "none";
+      pList.style.display = "block";
+    }
+  }
+}
+
 document.querySelectorAll(".sidebar-nav .nav-btn").forEach(btn => {
   btn.addEventListener("click", () => {
-    const navKey = btn.dataset.nav;
-    document.querySelectorAll(".sidebar-nav .nav-btn").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".nav-page").forEach(p => p.classList.remove("active"));
-
-    btn.classList.add("active");
-    const targetPage = $("page-" + navKey);
-    if (targetPage) targetPage.classList.add("active");
-
-    const subTabs = $("sub-tabs");
-    if (subTabs) {
-      if (navKey === "dashboards") {
-        subTabs.style.display = "flex";
-        const activeTab = document.querySelector(".tab.active");
-        if (activeTab) {
-          if (activeTab.dataset.tab === "delivery" && state.teamPointsChart) state.teamPointsChart.resize();
-          if (activeTab.dataset.tab === "assessment" && state.monteCarloChart) state.monteCarloChart.resize();
-          if (activeTab.dataset.tab === "quality" && state.qualityByTeamChart) state.qualityByTeamChart.resize();
-          if (activeTab.dataset.tab === "assistant") populatePaSettings();
-        }
-      } else {
-        subTabs.style.display = "none";
-      }
-    }
+    window.location.hash = btn.dataset.nav;
   });
 });
+
+window.addEventListener("hashchange", () => navigate(window.location.hash));
+document.addEventListener("DOMContentLoaded", () => navigate(window.location.hash));
 
 /* ---------- Tab switching (inside Dashboards) ---------- */
 document.querySelectorAll(".tab").forEach(tab => {
@@ -572,5 +599,100 @@ if (paSaveBtn) {
       paSaveBtn.disabled = false;
       paSaveBtn.textContent = "Save settings";
     }
+  });
+}
+// — Generate Report from settings panel
+const paBtnGenerateReport = $("pa-btn-generate-report");
+if (paBtnGenerateReport) {
+  paBtnGenerateReport.addEventListener("click", async () => {
+    paBtnGenerateReport.disabled = true;
+    paBtnGenerateReport.textContent = "Generating...";
+    try {
+      const payload = readPaSettingsForm();
+      const apiPayload = {
+          profile_id: payload.template_id === "__composer__" ? undefined : payload.template_id,
+          settings_override: {
+              stakeholder_notes: payload.stakeholder_notes,
+              blocks: payload.blocks
+          }
+      };
+      const data = await generateReport(apiPayload);
+      renderGenerateReportInTab(data);
+    } catch (e) {
+      console.error(e);
+      alert("Error generating report: " + e.message);
+    } finally {
+      paBtnGenerateReport.disabled = false;
+      paBtnGenerateReport.textContent = "🚀 Generate Report";
+    }
+  });
+}
+
+// — PA Composer Save
+const paBtnComposerSave = $("pa-btn-composer-save");
+if (paBtnComposerSave) {
+  paBtnComposerSave.addEventListener("click", async () => {
+    const msgEl = $("pa-composer-msg");
+    paBtnComposerSave.disabled = true;
+    paBtnComposerSave.textContent = "Saving...";
+    if (msgEl) msgEl.textContent = "";
+    try {
+      await saveComposerTemplate();
+      if (msgEl) { msgEl.textContent = "✓ Saved."; msgEl.className = "settings-save-msg settings-save-msg--ok"; }
+      setTimeout(() => { if (msgEl) msgEl.textContent = ""; }, 2000);
+    } catch (e) {
+      if (msgEl) { msgEl.textContent = "Error saving"; msgEl.className = "settings-save-msg settings-save-msg--err"; }
+    } finally {
+      paBtnComposerSave.disabled = false;
+      paBtnComposerSave.textContent = "💾 Save";
+    }
+  });
+}
+
+// — Project Detail View Logic
+const projectsListView = $("projects-list-view");
+const projectDetailView = $("project-detail-view");
+const btnBackProjects = $("btn-back-projects");
+
+function openProjectDetail(card) {
+  // Extract data
+  const title = card.querySelector(".p-title")?.textContent || "Project Detail";
+  const desc = card.querySelector(".p-desc")?.textContent || "";
+  const statusBadge = card.querySelector(".p-status-tag")?.outerHTML || "";
+  const keyBadge = card.querySelector(".p-key-badge")?.textContent || "";
+  const progressWrap = card.querySelector(".p-progress-wrap")?.outerHTML || "";
+  const metaGrid = card.querySelector(".p-meta-grid")?.innerHTML || "";
+  const tags = card.querySelector(".p-tags")?.innerHTML || "";
+
+  // Populate Detail View
+  $("pd-title").textContent = title;
+  $("pd-desc").textContent = desc;
+  $("pd-badge").textContent = keyBadge;
+  $("pd-status").innerHTML = statusBadge;
+  $("pd-progress-container").innerHTML = progressWrap;
+  $("pd-meta-container").innerHTML = metaGrid;
+  $("pd-tags").innerHTML = tags;
+
+  // Toggle Views
+  projectsListView.style.display = "none";
+  projectDetailView.style.display = "block";
+  
+  // Scroll to top
+  window.scrollTo(0,0);
+}
+
+if (projectsListView && projectDetailView && btnBackProjects) {
+  // Bind all Project Cards to update hash
+  document.querySelectorAll(".project-card").forEach(card => {
+    card.style.cursor = "pointer";
+    card.addEventListener("click", () => {
+      const keyBadge = card.dataset.key;
+      if (keyBadge) window.location.hash = `projects/${keyBadge}`;
+    });
+  });
+
+  // Bind Back Button to update hash
+  btnBackProjects.addEventListener("click", () => {
+    window.location.hash = "projects";
   });
 }

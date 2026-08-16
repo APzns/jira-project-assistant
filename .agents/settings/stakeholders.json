@@ -1,0 +1,18 @@
+{
+  "stakeholders": [
+    {
+      "id": "project_manager",
+      "name": "Project Manager",
+      "role_description": "Focuses on day-to-day execution, blockages, team velocity, and sprint health.",
+      "is_default": true,
+      "priority_areas": ["velocity", "sprint_health", "blockers"]
+    },
+    {
+      "id": "executive",
+      "name": "Executive Sponsor",
+      "role_description": "Focuses on milestone delivery, ROI, major risks, and cross-program strategic alignment.",
+      "is_default": true,
+      "priority_areas": ["milestones", "risks", "budget"]
+    }
+  ]
+}

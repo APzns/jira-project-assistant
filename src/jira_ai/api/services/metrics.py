@@ -11,6 +11,7 @@ Data source is selectable via `mode`:
 """
 
 from datetime import datetime, UTC
+from collections import defaultdict
 import os
 from sqlalchemy import func, case
 from sqlalchemy.orm import Session
@@ -269,17 +270,11 @@ def last_ingested(db: Session) -> str | None:
 def _synthetic_dashboard_summary() -> dict:
     """Build the dashboard summary from the synthetic generator, matching the
     real payload shape exactly so the frontend needs no branching.
-
-    The synthetic generator exposes compute_metrics() (the eight assess keys)
-    and burnup() (committed vs completed points per sprint). We derive the
-    dashboard-shaped fields from those.
     """
-    m = synthetic_metrics.compute_metrics()
-    burn = synthetic_metrics.burnup()
+    data = synthetic_metrics.build_synthetic_dataset()
+    m = synthetic_metrics.compute_metrics(data)
+    burn = synthetic_metrics.burnup(data)
 
-    # velocity_by_sprint: one row per synthetic sprint. burnup() gives us
-    # committed (~= story points) and completed points; use committed as the
-    # velocity basis to match the real "sum of story_points" semantics.
     velocity = []
     for b in burn:
         velocity.append({
@@ -292,7 +287,6 @@ def _synthetic_dashboard_summary() -> dict:
             "end_date": b.get("end_date"),
         })
 
-    # sprint_progress: done vs committed points per sprint.
     progress = []
     for b in burn:
         committed = b.get("committed_points", b.get("committed", 0)) or 0
@@ -307,14 +301,8 @@ def _synthetic_dashboard_summary() -> dict:
             "percent_done": round(100 * completed / committed, 1) if committed else 0.0,
             "total_points": committed,
             "done_points": completed,
-            "sprint_progress": sprint_progress(db),
-            "points_by_sprint_team": points_by_sprint_team(db),   # <-- new
-            "milestone_progress": milestone_progress(db),
-
         })
 
-    # milestone_progress: reshape compute_metrics()'s milestone_completion
-    # (a dict keyed by milestone name) into the list the dashboard expects.
     mc = m.get("milestone_completion", {})
     milestones = []
     for name, info in mc.items():
@@ -330,17 +318,66 @@ def _synthetic_dashboard_summary() -> dict:
                                      round(100 * done / total, 1) if total else 0.0),
         })
 
+    sprints = [s["name"] for s in data.get("sprints", [])]
+    teams = []
+    committed_grid: dict[str, dict[str, int]] = {}
+    completed_grid: dict[str, dict[str, int]] = {}
+    for i in data.get("issues", []):
+        if i.get("issue_type") == "Epic":
+            continue
+        s = i.get("sprint")
+        t = i.get("team")
+        sp = i.get("story_points") or 0
+        if not s or not t:
+            continue
+        if t not in teams:
+            teams.append(t)
+        committed_grid.setdefault(t, {})[s] = committed_grid.get(t, {}).get(s, 0) + sp
+        if i.get("status_category") == "Done":
+            completed_grid.setdefault(t, {})[s] = completed_grid.get(t, {}).get(s, 0) + sp
+
+    points_by_st = {
+        "sprints": sprints,
+        "teams": teams,
+        "committed": {t: [committed_grid.get(t, {}).get(s, 0) for s in sprints] for t in teams},
+        "completed": {t: [completed_grid.get(t, {}).get(s, 0) for s in sprints] for t in teams},
+    }
+
+    by_status = defaultdict(int)
+    by_type = defaultdict(int)
+    by_priority = defaultdict(int)
+    by_epic = defaultdict(int)
+    for i in data.get("issues", []):
+        by_status[i.get("status") or "None"] += 1
+        by_type[i.get("issue_type") or "None"] += 1
+        by_priority[i.get("priority") or "None"] += 1
+        by_epic[i.get("epic_key") or "None"] += 1
+
+    delivery_issues = [
+        {
+            "key": i["key"], "summary": i["summary"], "sprint": i.get("sprint"),
+            "team": i.get("team"), "story_points": i.get("story_points"),
+            "status": i.get("status"), "status_category": i.get("status_category"), 
+            "milestone": i.get("fix_version"),
+        }
+        for i in data.get("issues", [])
+        if i.get("issue_type") not in ("Epic", "Sub-task")
+    ]
+
     return {
+        "jira_base": os.getenv("JIRA_BASE_URL", ""),
         "total_issues": m.get("total_issues", 0),
-        "by_status": m.get("by_status", {}),
-        "by_type": m.get("by_type", {}),
-        "by_priority": m.get("by_priority", {}),
-        "by_epic": m.get("by_epic", {}),
+        "by_status": dict(by_status),
+        "by_type": dict(by_type),
+        "by_priority": dict(by_priority),
+        "by_epic": dict(by_epic),
         "velocity_by_sprint": velocity,
         "sprint_progress": progress,
+        "points_by_sprint_team": points_by_st,
         "milestone_progress": milestones,
         "overdue_count": m.get("overdue_count", 0),
         "last_ingested": None,  # synthetic data isn't ingested
+        "delivery_issues": delivery_issues,
     }
 
 
@@ -373,6 +410,7 @@ def dashboard_summary(db: Session, mode: str = "real") -> dict:  # NEW: mode par
         "by_epic": by_epic(db),
         "velocity_by_sprint": velocity_by_sprint(db),
         "sprint_progress": sprint_progress(db),
+        "points_by_sprint_team": points_by_sprint_team(db),
         "milestone_progress": milestone_progress(db),
         "overdue_count": overdue_count(db),
         "last_ingested": last_ingested(db),

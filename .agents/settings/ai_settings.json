@@ -1,12 +1,102 @@
 {
-  "stakeholder": "program_manager",
-  "focus_teams": [],
-  "focus_epics": [],
-  "risk_categories": [
-    "dependency",
-    "velocity",
-    "overcommitment"
+  "active_profile_id": "my-custom-test-profile",
+  "profiles": [
+    {
+      "id": "default-exec",
+      "name": "Executive Briefing (Default)",
+      "is_default": true,
+      "stakeholder": "executive",
+      "focus_teams": [],
+      "focus_epics": [],
+      "risk_categories": [
+        "dependency",
+        "velocity",
+        "overcommitment"
+      ],
+      "min_risk_severity": "medium",
+      "summary_verbosity": "brief",
+      "custom_instructions": "Provide a high-level executive briefing focusing on milestone delivery dates, major schedule risks, and key strategic decisions required from leadership."
+    },
+    {
+      "id": "tpm-delivery",
+      "name": "TPM Delivery Health",
+      "is_default": false,
+      "stakeholder": "program_manager",
+      "focus_teams": [],
+      "focus_epics": [],
+      "risk_categories": [
+        "dependency",
+        "velocity",
+        "overcommitment"
+      ],
+      "min_risk_severity": "low",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on cross-team dependency blockers, sprint pacing, Monte Carlo completion projections, and squad owner assignments for each mitigation."
+    },
+    {
+      "id": "eng-squad-deepdive",
+      "name": "Engineering & Squad Deep-Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [],
+      "focus_epics": [],
+      "risk_categories": [
+        "dependency",
+        "velocity",
+        "overcommitment"
+      ],
+      "min_risk_severity": "medium",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Analyze ticket-level blockers, defect ratios, carryover velocity gaps, and sprint commitment balance across feature squads."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    }
   ],
-  "min_risk_severity": "medium",
-  "summary_verbosity": "detailed"
+  "stakeholder": "engineer",
+  "focus_teams": [
+    "Checkout Squad"
+  ],
+  "focus_epics": [
+    "Mobile Parity"
+  ],
+  "risk_categories": [
+    "dependency"
+  ],
+  "min_risk_severity": "high",
+  "summary_verbosity": "detailed",
+  "custom_instructions": "Focus on high-severity unassigned bugs."
 }

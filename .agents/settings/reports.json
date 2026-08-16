@@ -1,0 +1,195 @@
+{
+  "templates": [
+    {
+      "id": "tpl_default",
+      "name": "Default Executive Report",
+      "description": "Standard status report focusing on milestone delivery dates, major schedule risks, and key strategic decisions required.",
+      "is_default": true,
+      "stakeholder_ids": [
+        "executive"
+      ],
+      "stakeholder_notes": "Focus on high-level milestones and blocking risks.",
+      "blocks": [
+        {
+          "id": "exec_summary_def",
+          "block_type": "executive_summary",
+          "title": "Executive AI Summary",
+          "enabled": true,
+          "order": 1,
+          "pm_commentary": "",
+          "chart_prompt": "",
+          "config": {}
+        },
+        {
+          "id": "burndown_def",
+          "block_type": "burndown",
+          "title": "Burndown & Velocity",
+          "enabled": true,
+          "order": 2,
+          "pm_commentary": "",
+          "chart_prompt": "",
+          "config": {}
+        },
+        {
+          "id": "action_plan_def",
+          "block_type": "action_plan",
+          "title": "P1-P3 Action Plan",
+          "enabled": true,
+          "order": 3,
+          "pm_commentary": "",
+          "chart_prompt": "",
+          "config": {}
+        }
+      ],
+      "updated_at": "2026-08-15T10:57:17.211105Z"
+    },
+    {
+      "id": "report-4f6adb28",
+      "name": "my report",
+      "description": "short overview",
+      "is_default": false,
+      "stakeholder_ids": [
+        "executive"
+      ],
+      "stakeholder_notes": "Focus on high-level milestones and blocking risks.",
+      "blocks": [
+        {
+          "id": "exec_summary_1786790982798",
+          "block_type": "executive_summary",
+          "title": "Executive AI Summary",
+          "enabled": true,
+          "order": 1,
+          "pm_commentary": "",
+          "chart_prompt": "",
+          "config": {}
+        },
+        {
+          "id": "health_kpis_1786790982798",
+          "block_type": "health_kpis",
+          "title": "KPI Health",
+          "enabled": true,
+          "order": 2,
+          "pm_commentary": "",
+          "chart_prompt": "",
+          "config": {}
+        },
+        {
+          "id": "burndown_1786790982798",
+          "block_type": "burndown",
+          "title": "Burndown & Velocity",
+          "enabled": true,
+          "order": 3,
+          "pm_commentary": "",
+          "chart_prompt": "",
+          "config": {}
+        },
+        {
+          "id": "monte_carlo_1786790982799",
+          "block_type": "monte_carlo",
+          "title": "Monte Carlo Throughput Forecast",
+          "enabled": true,
+          "order": 4,
+          "pm_commentary": "",
+          "chart_prompt": "",
+          "config": {}
+        },
+        {
+          "id": "dependency_matrix_1786790982799",
+          "block_type": "dependency_matrix",
+          "title": "Team Dependencies Matrix",
+          "enabled": true,
+          "order": 5,
+          "pm_commentary": "",
+          "chart_prompt": "",
+          "config": {}
+        },
+        {
+          "id": "quality_defects_1786790982799",
+          "block_type": "quality_defects",
+          "title": "Defect Ratio by Team",
+          "enabled": true,
+          "order": 6,
+          "pm_commentary": "",
+          "chart_prompt": "tylko 1 zespół",
+          "config": {}
+        },
+        {
+          "id": "action_plan_1786790982799",
+          "block_type": "action_plan",
+          "title": "P1-P3 Action Plan",
+          "enabled": true,
+          "order": 7,
+          "pm_commentary": "",
+          "chart_prompt": "",
+          "config": {}
+        }
+      ],
+      "created_at": "2026-08-15T10:50:21.419459Z",
+      "updated_at": "2026-08-15T10:57:17.211105Z"
+    },
+    {
+      "name": "my report (Copy)",
+      "description": "short overview",
+      "is_default": false,
+      "stakeholder_ids": [
+        "executive"
+      ],
+      "stakeholder_notes": "Focus on high-level milestones and blocking risks.",
+      "blocks": [
+        {
+          "id": "exec_summary_1786791382237",
+          "block_type": "executive_summary",
+          "title": "Executive AI Summary",
+          "enabled": true,
+          "order": 1,
+          "pm_commentary": "Report generated today",
+          "chart_prompt": "add information where are issues",
+          "config": {}
+        },
+        {
+          "id": "health_kpis_1786791382237",
+          "block_type": "health_kpis",
+          "title": "KPI Health",
+          "enabled": true,
+          "order": 2,
+          "pm_commentary": "",
+          "chart_prompt": "",
+          "config": {}
+        },
+        {
+          "id": "monte_carlo_1786791382238",
+          "block_type": "monte_carlo",
+          "title": "Monte Carlo Throughput Forecast",
+          "enabled": true,
+          "order": 4,
+          "pm_commentary": "",
+          "chart_prompt": "",
+          "config": {}
+        },
+        {
+          "id": "dependency_matrix_1786791382238",
+          "block_type": "dependency_matrix",
+          "title": "Team Dependencies Matrix",
+          "enabled": true,
+          "order": 5,
+          "pm_commentary": "",
+          "chart_prompt": "",
+          "config": {}
+        },
+        {
+          "id": "quality_defects_1786791382238",
+          "block_type": "quality_defects",
+          "title": "Defect Ratio by Team",
+          "enabled": true,
+          "order": 6,
+          "pm_commentary": "",
+          "chart_prompt": "",
+          "config": {}
+        }
+      ],
+      "id": "report-56aa7d76",
+      "created_at": "2026-08-15T10:57:17.211105Z",
+      "updated_at": "2026-08-15T10:57:17.211105Z"
+    }
+  ]
+}

@@ -9,14 +9,13 @@ locally (Docker Postgres) and in production (Cloud SQL) unchanged.
 
 import os
 from datetime import datetime, timezone
+from pathlib import Path
+import time
 
 from dotenv import load_dotenv
-from sqlalchemy import String, Integer, DateTime, Text, create_engine
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
-import time
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, create_engine
 from sqlalchemy.exc import OperationalError
-from sqlalchemy import Integer, String, DateTime, Text, Boolean
-
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 
 def run_with_retry(fn, retries: int = 4, base_delay: float = 1.0):
@@ -36,7 +35,12 @@ def run_with_retry(fn, retries: int = 4, base_delay: float = 1.0):
     raise last_exc
 
 
-load_dotenv()
+# Load environment variables explicitly from project root if available
+_env_path = Path(__file__).resolve().parents[3] / ".env"
+if _env_path.exists():
+    load_dotenv(dotenv_path=_env_path)
+else:
+    load_dotenv()
 
 
 class Base(DeclarativeBase):
@@ -102,13 +106,13 @@ class AssessmentCache(Base):
         DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)
     )
 
+
 class MetricsSnapshot(Base):
     __tablename__ = "metrics_snapshots"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     captured_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     metrics_json: Mapped[str] = mapped_column(Text, nullable=False)
-
 
 
 class IssueLink(Base):
@@ -124,7 +128,6 @@ class IssueLink(Base):
     link_type: Mapped[str] = mapped_column(String, nullable=False, default="Blocks")
 
 
-
 class FixVersion(Base):
     __tablename__ = "fix_versions"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -134,7 +137,6 @@ class FixVersion(Base):
     released: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     overdue: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-
 
 
 class Sprint(Base):
@@ -154,9 +156,6 @@ class Sprint(Base):
     goal: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
-
-# Read the database URL from the environment so the same code works locally
-# (Docker Postgres) and in production (Neon serverless Postgres) with no code changes.
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
 if DATABASE_URL:
@@ -167,12 +166,20 @@ if DATABASE_URL:
                               # transparently reconnects if Neon suspended the DB
         pool_recycle=300,     # drop connections older than 5 min so they don't go stale
     )
-    SessionLocal = sessionmaker(bind=engine)
 else:
-    engine = None
-    SessionLocal = sessionmaker()
+    _db_path = Path(__file__).resolve().parents[3] / "project_data" / "jira_ai.db"
+    _db_path.parent.mkdir(parents=True, exist_ok=True)
+    DATABASE_URL = f"sqlite:///{_db_path}"
+    engine = create_engine(
+        DATABASE_URL,
+        echo=False,
+        connect_args={"check_same_thread": False},
+    )
+
+SessionLocal = sessionmaker(bind=engine)
 
 
 def init_db() -> None:
     """Create all tables if they do not exist yet."""
-    Base.metadata.create_all(engine)
+    if engine is not None:
+        Base.metadata.create_all(engine)
