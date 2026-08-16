@@ -14,7 +14,36 @@ import {
   populatePaSettings, readPaSettingsForm,
 } from "./skills.js";
 
-/* ---------- Tab switching ---------- */
+/* ---------- Main Sidebar Navigation ---------- */
+document.querySelectorAll(".sidebar-nav .nav-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const navKey = btn.dataset.nav;
+    document.querySelectorAll(".sidebar-nav .nav-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".nav-page").forEach(p => p.classList.remove("active"));
+
+    btn.classList.add("active");
+    const targetPage = $("page-" + navKey);
+    if (targetPage) targetPage.classList.add("active");
+
+    const subTabs = $("sub-tabs");
+    if (subTabs) {
+      if (navKey === "dashboards") {
+        subTabs.style.display = "flex";
+        const activeTab = document.querySelector(".tab.active");
+        if (activeTab) {
+          if (activeTab.dataset.tab === "delivery" && state.teamPointsChart) state.teamPointsChart.resize();
+          if (activeTab.dataset.tab === "assessment" && state.monteCarloChart) state.monteCarloChart.resize();
+          if (activeTab.dataset.tab === "quality" && state.qualityByTeamChart) state.qualityByTeamChart.resize();
+          if (activeTab.dataset.tab === "assistant") populatePaSettings();
+        }
+      } else {
+        subTabs.style.display = "none";
+      }
+    }
+  });
+});
+
+/* ---------- Tab switching (inside Dashboards) ---------- */
 document.querySelectorAll(".tab").forEach(tab => {
   tab.addEventListener("click", () => {
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
@@ -30,6 +59,47 @@ document.querySelectorAll(".tab").forEach(tab => {
     if (tab.dataset.tab === "assistant") populatePaSettings();
   });
 });
+
+/* ---------- Projects Filter & Search ---------- */
+function initProjectsFilter() {
+  const searchInput = $("project-search-input");
+  const filterPills = document.querySelectorAll("#project-filter-pills .filter-pill");
+  const cards = document.querySelectorAll(".project-card");
+
+  let activeFilter = "all";
+  let searchQuery = "";
+
+  function applyFilters() {
+    cards.forEach(card => {
+      const status = card.dataset.status;
+      const tags = (card.dataset.tags || "").toLowerCase();
+      const name = (card.dataset.name || "").toLowerCase();
+      const text = (card.textContent || "").toLowerCase();
+
+      const matchesStatus = activeFilter === "all" || status === activeFilter;
+      const matchesSearch = !searchQuery || name.includes(searchQuery) || tags.includes(searchQuery) || text.includes(searchQuery);
+
+      card.style.display = (matchesStatus && matchesSearch) ? "flex" : "none";
+    });
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      searchQuery = e.target.value.trim().toLowerCase();
+      applyFilters();
+    });
+  }
+
+  filterPills.forEach(pill => {
+    pill.addEventListener("click", () => {
+      filterPills.forEach(p => p.classList.remove("active"));
+      pill.classList.add("active");
+      activeFilter = pill.dataset.filter;
+      applyFilters();
+    });
+  });
+}
+initProjectsFilter();
 
 /* ---------- Master Render ---------- */
 function renderAll(d) {

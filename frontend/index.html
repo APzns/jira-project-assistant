@@ -4,444 +4,755 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Project Horizon — Program Intelligence</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=3" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">Program Horizon</div>
-    <div class="topbar-right">
-        <button id="chat-toggle-btn" class="btn-chat-toggle"><span class="sparkle">✨</span> Ask AI</button>
-        <span class="data-freshness" id="data-freshness">Data as of –</span>
-        <span class="data-freshness" id="assess-generated"></span>
-    </div>
-  </header>
-
-  <nav class="tabs">
-    <button class="tab active" data-tab="assessment">Assessment</button>
-    <button class="tab" data-tab="status">Delivery</button>
-    <button class="tab" data-tab="delivery">Predictability</button>
-    <button class="tab" data-tab="quality">Quality</button>
-    <button class="tab tab--assistant" data-tab="assistant">✨ Project Assistant</button>
-  </nav>
-
-  <div class="app-layout">
-    <main>
-      <!-- ============ ASSESSMENT TAB ============ -->
-      <section id="tab-assessment" class="tab-panel active">
-        <div class="panel-head">
-          <div class="program-summary">
-            <h2>Program Horizon - Status summary</h2>
-            <p class="program-desc">
-              A program to modernize the commerce platform: redesigning checkout,
-              achieving mobile parity, hardening security, compliance, and performance,
-              and standing up a unified analytics foundation, culminating in a phased
-              go-live in Q4 2026.
-            </p>
+  <div class="app-container">
+    <!-- Left Navigation Sidebar -->
+    <aside class="sidebar" id="main-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="sidebar-logo">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#60a5fa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
           </div>
-          <div class="panel-head-actions">
-            <button id="assess-button" class="btn-primary">Refresh report</button>
-          </div>
+          <span class="sidebar-brand-text">Project Assistant</span>
         </div>
-
-        <p id="assess-empty" class="muted" style="display:none">
-          No report yet. Click “Refresh report” to generate one.
-        </p>
-        <p id="assess-error" class="error-text" style="display:none"></p>
-        <div id="assess-notice" class="info-banner" style="display:none"></div>
-
-        <div id="assess-result" style="display:none">
-          <!-- HEALTH: first box — own boxed card, 4 KPI boxes -->
-          <section class="section-card">
-            <h3>Health</h3>
-            <div class="health-card">
-              <div class="kpi-strip kpi-strip-4">
-                <div class="kpi">
-                  <div class="kpi-label">Status</div>
-                  <div class="kpi-value"><span id="c-badge" class="badge">–</span></div>
-                  <div class="kpi-sub">overall program status assessment</div>
-                </div>
-                <div class="kpi">
-                  <div class="kpi-label">Milestones On Track</div>
-                  <div class="kpi-value" id="c-milestones">–</div>
-                </div>
-                <div class="kpi">
-                  <div class="kpi-label">Overdue</div>
-                  <div class="kpi-value warn" id="c-overdue">–</div>
-                  <div class="kpi-sub">% of delayed work (story points in completed versions)</div>
-                </div>
-                <div class="kpi">
-                  <div class="kpi-label">Completion forecast</div>
-                  <div class="kpi-value warn" id="c-delay">–</div>
-                  <div class="kpi-sub">projected delay vs. target (days), Monte Carlo P50</div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- MILESTONE PROGRESS TIMELINE -->
-          <section class="section-card">
-            <h3>Milestone Timeline</h3>
-            <div class="milestone-timeline" id="a-milestone-timeline"></div>
-          </section>
-
-          <!-- MONTE CARLO FORECAST -->
-          <section class="section-card">
-            <h3>Monte Carlo Forecast <span class="sub-header">cumulative throughput vs. projection</span></h3>
-            <div class="chart-box"><canvas id="monteCarloChart"></canvas></div>
-            <p id="mc-note" class="chart-note muted"></p>
-
-            <div class="ai-summary forecast" id="a-forecast"><p class="muted">–</p></div>
-          </section>
-
-          <!-- MILESTONES status by AI -->
-          <section class="section-card">
-            <h3><span class="sparkle">✨</span> Milestones status by AI</h3>
-            <div id="a-milestones"></div>
-          </section>
-
-          <!-- RISKS -->
-          <section class="section-card">
-            <h3><span class="sparkle">✨</span> Risks by AI</h3>
-            <div id="a-risks"></div>
-          </section>
-
-          <!-- AI SUMMARY -->
-          <section class="section-card ai-block">
-            <h3><span class="sparkle">✨</span> AI Summary</h3>
-            <div class="ai-summary" id="a-ai-summary"><p class="muted">–</p></div>
-          </section>
-
-          <!-- AI RECOMMENDED ACTIONS -->
-          <section class="section-card ai-block">
-            <h3><span class="sparkle">✨</span> Actions recommended by AI</h3>
-            <div class="ai-summary">
-              <ul class="actions" style="margin: 0" id="a-actions"></ul>
-            </div>
-          </section>
-        </div>
-      </section>
-
-      <!-- ============ DELIVERY TAB (new) ============ -->
-      <section id="tab-status" class="tab-panel">
-        <h2>Delivery</h2>
-
-        <!-- 1. Delivery status -->
-        <section class="section-card">
-          <h3>Health <span id="s-badge" class="badge">–</span></h3>
-          <div class="health-card">
-            <div class="kpi-strip kpi-strip-4">
-              <div class="kpi">
-                <div class="kpi-label">Current progress</div>
-                <div class="kpi-value" id="s-current-progress">–</div>
-                <div class="kpi-sub">based on release date of a fixversion with an earliest release date with not closed artifacts</div>
-              </div>
-              <div class="kpi">
-                <div class="kpi-label">Completion forecast</div>
-                <div class="kpi-value" id="s-completion-forecast">–</div>
-                <div class="kpi-sub">projected delay vs. target (days), Monte Carlo P50</div>
-              </div>
-              <div class="kpi">
-                <div class="kpi-label">Next sprint commitment</div>
-                <div class="kpi-value" id="s-overcommit">–</div>
-                <div class="kpi-sub">committed vs. average closed-sprint velocity</div>
-              </div>
-              <div class="kpi">
-                <div class="kpi-label">Unresolved blockers</div>
-                <div class="kpi-value" id="s-unresolved-blockers">–</div>
-                <div class="kpi-sub">active blockers from dependency conflicts / blocked issues</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- 2. FixVersions progress -->
-        <section class="section-card">
-          <h3>FixVersions progress</h3>
-          <div id="delivery-team-filter"></div>
-          <div id="status-breakdown-table"></div>
-        </section>
-
-        <!-- 3. Blockers -->
-        <section class="section-card">
-          <h3>Blockers</h3>
-          <div id="status-dep-alerts" class="dep-alerts"></div>
-        </section>
-
-        <!-- 4. Program Outlook (Elevated AI Insights) -->
-        <section class="section-card">
-          <h3><span class="sparkle">✨</span> Program Outlook</h3>
-          <div class="ai-block">
-            <h4><span class="sparkle">✨</span> Status summary by AI</h4>
-            <div class="ai-summary" id="status-ai-summary"><p class="muted">–</p></div>
-          </div>
-          <div class="ai-block">
-            <h4><span class="sparkle">✨</span> Forecast</h4>
-            <div id="status-forecast" class="ai-summary"><p class="muted">–</p></div>
-          </div>
-          <div class="ai-block">
-            <h4><span class="sparkle">✨</span> Risks by AI</h4>
-            <div id="status-ai-risks" class="ai-summary"><p class="muted">–</p></div>
-          </div>
-          <div class="ai-block">
-            <h4><span class="sparkle">✨</span> Actions recommended by AI</h4>
-            <div id="status-ai-actions" class="ai-summary"><p class="muted">–</p></div>
-          </div>
-        </section>
-      </section>
-
-      <!-- ============ PREDICTABILITY TAB ============ -->
-      <section id="tab-delivery" class="tab-panel">
-        <h2>Predictability</h2>
-
-        <section class="section-card">
-          <h3>Health <span id="p-badge" class="badge">–</span></h3>
-          <div class="health-card">
-            <div class="kpi-strip kpi-strip-4">
-              <div class="kpi">
-                <div class="kpi-label">Past predictability</div>
-                <div class="kpi-value" id="p-predictability">–</div>
-                <div class="kpi-sub">average points completed vs. committed in closed sprints</div>
-              </div>
-              <div class="kpi">
-                <div class="kpi-label">Next sprint commitment</div>
-                <div class="kpi-value warn" id="p-overcommit">–</div>
-                <div class="kpi-sub">committed vs. average closed-sprint velocity</div>
-              </div>
-              <div class="kpi">
-                <div class="kpi-label">Defects ratio</div>
-                <div class="kpi-value warn" id="p-defects">–</div>
-                <div class="kpi-sub">Defects SP / Total SP (closed sprints)</div>
-              </div>
-              <div class="kpi">
-                <div class="kpi-label">Unresolved blockers</div>
-                <div class="kpi-value warn" id="p-depconflicts">–</div>
-                <div class="kpi-sub">active blockers from dependency conflicts / blocked issues</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="section-card">
-          <h3>Predictability statistics</h3>
-          <div id="pred-team-filter" class="team-filter"></div>
-          <div class="charts-row-2">
-            <div>
-              <h4 class="chart-subtitle">Committed vs completed</h4>
-              <div class="chart-box"><canvas id="teamPointsChart"></canvas></div>
-            </div>
-            <div>
-              <h4 class="chart-subtitle">Predictability by team</h4>
-              <div class="chart-box"><canvas id="predByTeamChart"></canvas></div>
-            </div>
-          </div>
-          <table class="data-table" id="delivery-table">
-            <thead>
-              <tr><th>Sprint</th><th>Committed SP</th><th>Completed SP</th><th>Predictability</th><th></th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </section>
-
-        <section class="section-card ai-block">
-          <h3><span class="sparkle">✨</span> AI Summary</h3>
-          <div class="ai-summary" id="delivery-ai-summary"><p class="muted">–</p></div>
-        </section>
-
-        <section class="section-card ai-block">
-          <h3><span class="sparkle">✨</span> Recommended Actions by AI</h3>
-          <div class="ai-summary">
-            <ul class="actions" style="margin: 0" id="delivery-ai-actions"></ul>
-          </div>
-        </section>
-      </section>
-
-      <!-- ============ QUALITY TAB ============ -->
-      <section id="tab-quality" class="tab-panel">
-        <h2>Quality</h2>
-        
-        <section class="section-card">
-          <h3>Quality statistics</h3>
-          <div id="q-team-filter" class="team-filter"></div>
-          <div id="q-defects-summary" style="font-weight: 500; font-size: 15px; margin-bottom: 16px;"></div>
-          <div id="q-defects-table" style="margin-bottom: 16px;"></div>
-        </section>
-
-        <section class="section-card ai-block">
-          <h3><span class="sparkle">✨</span> AI Summary</h3>
-          <div class="ai-summary" id="quality-ai-summary"><p class="muted">–</p></div>
-        </section>
-
-        <section class="section-card ai-block">
-          <h3><span class="sparkle">✨</span> Next Steps Suggestions by AI</h3>
-          <div class="ai-summary">
-            <ul class="actions" style="margin: 0" id="quality-ai-actions"></ul>
-          </div>
-        </section>
-      </section>
-
-      <!-- ============ DOCS TAB ============ -->
-
-      <!-- ============ PROJECT ASSISTANT TAB ============ -->
-      <section id="tab-assistant" class="tab-panel">
-
-        <!-- ── Header ─────────────────────────────────────────── -->
-        <div class="pa-header">
-          <div>
-            <h2 class="pa-title">Project Assistant</h2>
-            <p class="pa-subtitle">AI-powered skills that analyze your program, surface risks, and propose actions — grounded in live Jira data.</p>
-          </div>
-          <button id="pa-settings-toggle" class="pa-settings-toggle" title="Toggle AI Settings">
-            <span>⚙️</span> AI Settings
-          </button>
-        </div>
-
-        <!-- ── Main two-column layout ──────────────────────────── -->
-        <div class="pa-layout">
-
-          <!-- Left: Skill Cards + Results -->
-          <div class="pa-main">
-
-            <!-- Skill action cards -->
-            <div class="pa-skill-cards">
-
-              <div class="pa-skill-card" id="pa-card-analyze">
-                <div class="pa-card-icon">🔍</div>
-                <div class="pa-card-content">
-                  <div class="pa-card-title">Analyze Status</div>
-                  <div class="pa-card-desc">Find delays, surface risks at program and project level, and get concrete mitigation actions — all in one pass.</div>
-                </div>
-                <button id="pa-btn-analyze" class="pa-card-btn">
-                  <span class="pa-btn-label">Run</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                </button>
-              </div>
-
-              <div class="pa-skill-card" id="pa-card-nextsteps">
-                <div class="pa-card-icon">▶</div>
-                <div class="pa-card-content">
-                  <div class="pa-card-title">Propose Next Steps</div>
-                  <div class="pa-card-desc">Generate a prioritized P1/P2/P3 action plan based on sprint state, velocity, and open risks — with specific owners.</div>
-                </div>
-                <button id="pa-btn-nextsteps" class="pa-card-btn">
-                  <span class="pa-btn-label">Run</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                </button>
-              </div>
-
-            </div>
-
-            <!-- Results area -->
-            <div id="pa-results" class="pa-results pa-results--empty">
-              <div class="pa-results-placeholder" id="pa-placeholder">
-                <div class="pa-placeholder-icon">✨</div>
-                <p class="pa-placeholder-text">Run a skill above to see results here.</p>
-              </div>
-              <div id="pa-results-content" class="pa-results-content" style="display:none"></div>
-            </div>
-
-          </div>
-
-          <!-- Right: AI Settings panel (embedded, always visible on desktop) -->
-          <aside class="pa-settings-panel" id="pa-settings-panel">
-            <div class="pa-settings-header">⚙️ AI Settings</div>
-            <p class="settings-description">Configure what the AI focuses on. Saved as a file on the server.</p>
-
-            <div class="settings-group">
-              <label class="settings-label" for="pa-stakeholder">Stakeholder perspective</label>
-              <select id="pa-stakeholder" class="settings-select">
-                <option value="program_manager">Program Manager</option>
-                <option value="executive">Executive</option>
-                <option value="engineer">Engineer</option>
-              </select>
-            </div>
-
-            <div class="settings-group">
-              <label class="settings-label" for="pa-focus-teams">Focus teams <span class="settings-hint">(comma-separated)</span></label>
-              <input id="pa-focus-teams" class="settings-input" type="text" placeholder="All teams" />
-            </div>
-
-            <div class="settings-group">
-              <label class="settings-label" for="pa-focus-epics">Focus epics <span class="settings-hint">(comma-separated)</span></label>
-              <input id="pa-focus-epics" class="settings-input" type="text" placeholder="All epics" />
-            </div>
-
-            <div class="settings-group">
-              <label class="settings-label">Risk categories</label>
-              <div class="settings-checkboxes">
-                <label class="settings-check"><input type="checkbox" id="pa-risk-dependency" checked /> Dependency blocks</label>
-                <label class="settings-check"><input type="checkbox" id="pa-risk-velocity" checked /> Velocity gaps</label>
-                <label class="settings-check"><input type="checkbox" id="pa-risk-overcommitment" checked /> Overcommitment</label>
-              </div>
-            </div>
-
-            <div class="settings-group">
-              <label class="settings-label" for="pa-min-severity">Minimum risk severity</label>
-              <select id="pa-min-severity" class="settings-select">
-                <option value="low">Low — show all</option>
-                <option value="medium" selected>Medium</option>
-                <option value="high">High only</option>
-              </select>
-            </div>
-
-            <div class="settings-group">
-              <label class="settings-label" for="pa-verbosity">Summary verbosity</label>
-              <select id="pa-verbosity" class="settings-select">
-                <option value="brief" selected>Brief</option>
-                <option value="detailed">Detailed</option>
-              </select>
-            </div>
-
-            <div class="pa-settings-footer">
-              <p id="pa-save-msg" class="settings-save-msg"></p>
-              <button id="pa-save-btn" class="btn-primary pa-save-btn">Save settings</button>
-            </div>
-          </aside>
-
-        </div>
-      </section>
-
-    </main>
-
-    <!-- Side-by-Side AI Assistant Sidebar Panel -->
-    <aside id="chat-drawer" class="chat-drawer chat-sidebar closed">
-      <!-- Visible strip when sidebar is collapsed -->
-      <div id="chat-collapsed-rail" class="chat-collapsed-rail" title="Expand AI Assistant">
-        <button id="chat-expand-btn" class="chat-rail-btn" aria-label="Expand AI Assistant">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-btn active" data-nav="main-view">
+          <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+          </svg>
+          <span class="nav-label">Main View</span>
         </button>
-        <div class="chat-rail-label"><span class="sparkle">✨</span> AI Assistant</div>
-      </div>
-
-      <!-- Main expanded sidebar content container -->
-      <div class="chat-sidebar-inner">
-        <div class="chat-drawer-header">
-          <div class="chat-drawer-title">
-            <span class="chat-icon">✨</span>
-            <h3>AI Assistant</h3>
-          </div>
-          <div class="chat-header-actions">
-            <button id="chat-collapse-btn" class="chat-header-btn" title="Collapse sidebar" aria-label="Collapse Sidebar">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>
-            </button>
-            <button id="chat-close-btn" class="chat-header-btn" title="Close Chat" aria-label="Close Chat">&times;</button>
-          </div>
-        </div>
-        <div id="ask-history" class="chat-drawer-body">
-          <!-- Q&A history will render here -->
-        </div>
-        <div id="ask-error" class="error-text" style="display:none; margin: 8px 16px; font-size: 0.9em; padding: 8px 12px; background: rgba(220, 38, 38, 0.1); border-radius: 6px; border: 1px solid rgba(220, 38, 38, 0.2);"></div>
-        <div class="chat-drawer-footer">
-          <div class="ask-row">
-            <input type="text" id="ask-input" placeholder="e.g. Which milestone is most at risk?" maxlength="500" />
-            <button id="ask-button" class="btn-primary">Ask</button>
-          </div>
-        </div>
-      </div>
+        <button class="nav-btn" data-nav="dashboards">
+          <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v4M4.93 4.93l2.83 2.83M2 12h4M19.07 4.93l-2.83 2.83M22 12h-4M12 12l3.5-3.5"></path>
+            <circle cx="12" cy="12" r="9"></circle>
+          </svg>
+          <span class="nav-label">Dashboards</span>
+        </button>
+        <button class="nav-btn" data-nav="projects">
+          <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span class="nav-label">Projects</span>
+        </button>
+        <button class="nav-btn" data-nav="reports">
+          <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <span class="nav-label">Reports</span>
+        </button>
+        <button class="nav-btn" data-nav="stakeholders">
+          <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span class="nav-label">Stakeholders</span>
+        </button>
+        <button class="nav-btn" data-nav="settings">
+          <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span class="nav-label">Settings</span>
+        </button>
+      </nav>
     </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-content-wrapper">
+      <header class="topbar">
+        <div class="brand">Project Assistant</div>
+        <div class="topbar-right">
+            <button id="chat-toggle-btn" class="btn-chat-toggle"><span class="sparkle">✨</span> Ask AI</button>
+            <span class="data-freshness" id="data-freshness">Data as of –</span>
+        </div>
+      </header>
+
+      <nav class="tabs" id="sub-tabs" style="display: none;">
+        <button class="tab active" data-tab="assessment">Assessment</button>
+        <button class="tab" data-tab="status">Delivery</button>
+        <button class="tab" data-tab="delivery">Predictability</button>
+        <button class="tab" data-tab="quality">Quality</button>
+        <button class="tab tab--assistant" data-tab="assistant">✨ Project Assistant</button>
+      </nav>
+
+      <div class="app-layout">
+        <main>
+          <!-- ============ 1. MAIN VIEW PAGE ============ -->
+          <section id="page-main-view" class="nav-page active">
+            <div class="blank-page">
+              <h2>Main View</h2>
+            </div>
+          </section>
+
+          <!-- ============ 2. DASHBOARDS PAGE ============ -->
+          <section id="page-dashboards" class="nav-page">
+            <!-- ============ ASSESSMENT TAB ============ -->
+            <section id="tab-assessment" class="tab-panel active">
+              <div class="panel-head">
+                <div class="program-summary">
+                  <h2>Program Horizon - Status summary</h2>
+                  <p class="program-desc">
+                    A program to modernize the commerce platform: redesigning checkout,
+                    achieving mobile parity, hardening security, compliance, and performance,
+                    and standing up a unified analytics foundation, culminating in a phased
+                    go-live in Q4 2026.
+                  </p>
+                </div>
+                <div class="panel-head-actions">
+                  <button id="assess-button" class="btn-primary">Refresh report</button>
+                </div>
+              </div>
+
+              <p id="assess-empty" class="muted" style="display:none">
+                No report yet. Click “Refresh report” to generate one.
+              </p>
+              <p id="assess-error" class="error-text" style="display:none"></p>
+              <div id="assess-notice" class="info-banner" style="display:none"></div>
+
+              <div id="assess-result" style="display:none">
+                <!-- HEALTH: first box — own boxed card, 4 KPI boxes -->
+                <section class="section-card">
+                  <h3>Health</h3>
+                  <div class="health-card">
+                    <div class="kpi-strip kpi-strip-4">
+                      <div class="kpi">
+                        <div class="kpi-label">Status</div>
+                        <div class="kpi-value"><span id="c-badge" class="badge">–</span></div>
+                        <div class="kpi-sub">overall program status assessment</div>
+                      </div>
+                      <div class="kpi">
+                        <div class="kpi-label">Milestones On Track</div>
+                        <div class="kpi-value" id="c-milestones">–</div>
+                      </div>
+                      <div class="kpi">
+                        <div class="kpi-label">Overdue</div>
+                        <div class="kpi-value warn" id="c-overdue">–</div>
+                        <div class="kpi-sub">% of delayed work (story points in completed versions)</div>
+                      </div>
+                      <div class="kpi">
+                        <div class="kpi-label">Completion forecast</div>
+                        <div class="kpi-value warn" id="c-delay">–</div>
+                        <div class="kpi-sub">projected delay vs. target (days), Monte Carlo P50</div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- MILESTONE PROGRESS TIMELINE -->
+                <section class="section-card">
+                  <h3>Milestone Timeline</h3>
+                  <div class="milestone-timeline" id="a-milestone-timeline"></div>
+                </section>
+
+                <!-- MONTE CARLO FORECAST -->
+                <section class="section-card">
+                  <h3>Monte Carlo Forecast <span class="sub-header">cumulative throughput vs. projection</span></h3>
+                  <div class="chart-box"><canvas id="monteCarloChart"></canvas></div>
+                  <p id="mc-note" class="chart-note muted"></p>
+
+                  <div class="ai-summary forecast" id="a-forecast"><p class="muted">–</p></div>
+                </section>
+
+                <!-- MILESTONES status by AI -->
+                <section class="section-card">
+                  <h3><span class="sparkle">✨</span> Milestones status by AI</h3>
+                  <div id="a-milestones"></div>
+                </section>
+
+                <!-- RISKS -->
+                <section class="section-card">
+                  <h3><span class="sparkle">✨</span> Risks by AI</h3>
+                  <div id="a-risks"></div>
+                </section>
+
+                <!-- AI SUMMARY -->
+                <section class="section-card ai-block">
+                  <h3><span class="sparkle">✨</span> AI Summary</h3>
+                  <div class="ai-summary" id="a-ai-summary"><p class="muted">–</p></div>
+                </section>
+
+                <!-- AI RECOMMENDED ACTIONS -->
+                <section class="section-card ai-block">
+                  <h3><span class="sparkle">✨</span> Actions recommended by AI</h3>
+                  <div class="ai-summary">
+                    <ul class="actions" style="margin: 0" id="a-actions"></ul>
+                  </div>
+                </section>
+              </div>
+            </section>
+
+            <!-- ============ DELIVERY TAB (new) ============ -->
+            <section id="tab-status" class="tab-panel">
+              <h2>Delivery</h2>
+
+              <!-- 1. Delivery status -->
+              <section class="section-card">
+                <h3>Health <span id="s-badge" class="badge">–</span></h3>
+                <div class="health-card">
+                  <div class="kpi-strip kpi-strip-4">
+                    <div class="kpi">
+                      <div class="kpi-label">Current progress</div>
+                      <div class="kpi-value" id="s-current-progress">–</div>
+                      <div class="kpi-sub">based on release date of a fixversion with an earliest release date with not closed artifacts</div>
+                    </div>
+                    <div class="kpi">
+                      <div class="kpi-label">Completion forecast</div>
+                      <div class="kpi-value" id="s-completion-forecast">–</div>
+                      <div class="kpi-sub">projected delay vs. target (days), Monte Carlo P50</div>
+                    </div>
+                    <div class="kpi">
+                      <div class="kpi-label">Next sprint commitment</div>
+                      <div class="kpi-value" id="s-overcommit">–</div>
+                      <div class="kpi-sub">committed vs. average closed-sprint velocity</div>
+                    </div>
+                    <div class="kpi">
+                      <div class="kpi-label">Unresolved blockers</div>
+                      <div class="kpi-value" id="s-unresolved-blockers">–</div>
+                      <div class="kpi-sub">active blockers from dependency conflicts / blocked issues</div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 2. FixVersions progress -->
+              <section class="section-card">
+                <h3>FixVersions progress</h3>
+                <div id="delivery-team-filter"></div>
+                <div id="status-breakdown-table"></div>
+              </section>
+
+              <!-- 3. Blockers -->
+              <section class="section-card">
+                <h3>Blockers</h3>
+                <div id="status-dep-alerts" class="dep-alerts"></div>
+              </section>
+
+              <!-- 4. Program Outlook (Elevated AI Insights) -->
+              <section class="section-card">
+                <h3><span class="sparkle">✨</span> Program Outlook</h3>
+                <div class="ai-block">
+                  <h4><span class="sparkle">✨</span> Status summary by AI</h4>
+                  <div class="ai-summary" id="status-ai-summary"><p class="muted">–</p></div>
+                </div>
+                <div class="ai-block">
+                  <h4><span class="sparkle">✨</span> Forecast</h4>
+                  <div id="status-forecast" class="ai-summary"><p class="muted">–</p></div>
+                </div>
+                <div class="ai-block">
+                  <h4><span class="sparkle">✨</span> Risks by AI</h4>
+                  <div id="status-ai-risks" class="ai-summary"><p class="muted">–</p></div>
+                </div>
+                <div class="ai-block">
+                  <h4><span class="sparkle">✨</span> Actions recommended by AI</h4>
+                  <div id="status-ai-actions" class="ai-summary"><p class="muted">–</p></div>
+                </div>
+              </section>
+            </section>
+
+            <!-- ============ PREDICTABILITY TAB ============ -->
+            <section id="tab-delivery" class="tab-panel">
+              <h2>Predictability</h2>
+
+              <section class="section-card">
+                <h3>Health <span id="p-badge" class="badge">–</span></h3>
+                <div class="health-card">
+                  <div class="kpi-strip kpi-strip-4">
+                    <div class="kpi">
+                      <div class="kpi-label">Past predictability</div>
+                      <div class="kpi-value" id="p-predictability">–</div>
+                      <div class="kpi-sub">average points completed vs. committed in closed sprints</div>
+                    </div>
+                    <div class="kpi">
+                      <div class="kpi-label">Next sprint commitment</div>
+                      <div class="kpi-value warn" id="p-overcommit">–</div>
+                      <div class="kpi-sub">committed vs. average closed-sprint velocity</div>
+                    </div>
+                    <div class="kpi">
+                      <div class="kpi-label">Defects ratio</div>
+                      <div class="kpi-value warn" id="p-defects">–</div>
+                      <div class="kpi-sub">Defects SP / Total SP (closed sprints)</div>
+                    </div>
+                    <div class="kpi">
+                      <div class="kpi-label">Unresolved blockers</div>
+                      <div class="kpi-value warn" id="p-depconflicts">–</div>
+                      <div class="kpi-sub">active blockers from dependency conflicts / blocked issues</div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="section-card">
+                <h3>Predictability statistics</h3>
+                <div id="pred-team-filter" class="team-filter"></div>
+                <div class="charts-row-2">
+                  <div>
+                    <h4 class="chart-subtitle">Committed vs completed</h4>
+                    <div class="chart-box"><canvas id="teamPointsChart"></canvas></div>
+                  </div>
+                  <div>
+                    <h4 class="chart-subtitle">Predictability by team</h4>
+                    <div class="chart-box"><canvas id="predByTeamChart"></canvas></div>
+                  </div>
+                </div>
+                <table class="data-table" id="delivery-table">
+                  <thead>
+                    <tr><th>Sprint</th><th>Committed SP</th><th>Completed SP</th><th>Predictability</th><th></th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </section>
+
+              <section class="section-card ai-block">
+                <h3><span class="sparkle">✨</span> AI Summary</h3>
+                <div class="ai-summary" id="delivery-ai-summary"><p class="muted">–</p></div>
+              </section>
+
+              <section class="section-card ai-block">
+                <h3><span class="sparkle">✨</span> Recommended Actions by AI</h3>
+                <div class="ai-summary">
+                  <ul class="actions" style="margin: 0" id="delivery-ai-actions"></ul>
+                </div>
+              </section>
+            </section>
+
+            <!-- ============ QUALITY TAB ============ -->
+            <section id="tab-quality" class="tab-panel">
+              <h2>Quality</h2>
+              
+              <section class="section-card">
+                <h3>Quality statistics</h3>
+                <div id="q-team-filter" class="team-filter"></div>
+                <div id="q-defects-summary" style="font-weight: 500; font-size: 15px; margin-bottom: 16px;"></div>
+                <div id="q-defects-table" style="margin-bottom: 16px;"></div>
+              </section>
+
+              <section class="section-card ai-block">
+                <h3><span class="sparkle">✨</span> AI Summary</h3>
+                <div class="ai-summary" id="quality-ai-summary"><p class="muted">–</p></div>
+              </section>
+
+              <section class="section-card ai-block">
+                <h3><span class="sparkle">✨</span> Next Steps Suggestions by AI</h3>
+                <div class="ai-summary">
+                  <ul class="actions" style="margin: 0" id="quality-ai-actions"></ul>
+                </div>
+              </section>
+            </section>
+
+            <!-- ============ PROJECT ASSISTANT TAB ============ -->
+            <section id="tab-assistant" class="tab-panel">
+
+              <!-- ── Header ─────────────────────────────────────────── -->
+              <div class="pa-header">
+                <div>
+                  <h2 class="pa-title">Project Assistant</h2>
+                  <p class="pa-subtitle">AI-powered skills that analyze your program, surface risks, and propose actions — grounded in live Jira data.</p>
+                </div>
+                <button id="pa-settings-toggle" class="pa-settings-toggle" title="Toggle AI Settings">
+                  <span>⚙️</span> AI Settings
+                </button>
+              </div>
+
+              <!-- ── Main two-column layout ──────────────────────────── -->
+              <div class="pa-layout">
+
+                <!-- Left: Skill Cards + Results -->
+                <div class="pa-main">
+
+                  <!-- Skill action cards -->
+                  <div class="pa-skill-cards">
+
+                    <div class="pa-skill-card" id="pa-card-analyze">
+                      <div class="pa-card-icon">🔍</div>
+                      <div class="pa-card-content">
+                        <div class="pa-card-title">Analyze Status</div>
+                        <div class="pa-card-desc">Find delays, surface risks at program and project level, and get concrete mitigation actions — all in one pass.</div>
+                      </div>
+                      <button id="pa-btn-analyze" class="pa-card-btn">
+                        <span class="pa-btn-label">Run</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      </button>
+                    </div>
+
+                    <div class="pa-skill-card" id="pa-card-nextsteps">
+                      <div class="pa-card-icon">▶</div>
+                      <div class="pa-card-content">
+                        <div class="pa-card-title">Propose Next Steps</div>
+                        <div class="pa-card-desc">Generate a prioritized P1/P2/P3 action plan based on sprint state, velocity, and open risks — with specific owners.</div>
+                      </div>
+                      <button id="pa-btn-nextsteps" class="pa-card-btn">
+                        <span class="pa-btn-label">Run</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      </button>
+                    </div>
+
+                  </div>
+
+                  <!-- Results area -->
+                  <div id="pa-results" class="pa-results pa-results--empty">
+                    <div class="pa-results-placeholder" id="pa-placeholder">
+                      <div class="pa-placeholder-icon">✨</div>
+                      <p class="pa-placeholder-text">Run a skill above to see results here.</p>
+                    </div>
+                    <div id="pa-results-content" class="pa-results-content" style="display:none"></div>
+                  </div>
+
+                </div>
+
+                <!-- Right: AI Settings panel (embedded, always visible on desktop) -->
+                <aside class="pa-settings-panel" id="pa-settings-panel">
+                  <div class="pa-settings-header">⚙️ AI Settings</div>
+                  <p class="settings-description">Configure what the AI focuses on. Saved as a file on the server.</p>
+
+                  <div class="settings-group">
+                    <label class="settings-label" for="pa-stakeholder">Stakeholder perspective</label>
+                    <select id="pa-stakeholder" class="settings-select">
+                      <option value="program_manager">Program Manager</option>
+                      <option value="executive">Executive</option>
+                      <option value="engineer">Engineer</option>
+                    </select>
+                  </div>
+
+                  <div class="settings-group">
+                    <label class="settings-label" for="pa-focus-teams">Focus teams <span class="settings-hint">(comma-separated)</span></label>
+                    <input id="pa-focus-teams" class="settings-input" type="text" placeholder="All teams" />
+                  </div>
+
+                  <div class="settings-group">
+                    <label class="settings-label" for="pa-focus-epics">Focus epics <span class="settings-hint">(comma-separated)</span></label>
+                    <input id="pa-focus-epics" class="settings-input" type="text" placeholder="All epics" />
+                  </div>
+
+                  <div class="settings-group">
+                    <label class="settings-label">Risk categories</label>
+                    <div class="settings-checkboxes">
+                      <label class="settings-check"><input type="checkbox" id="pa-risk-dependency" checked /> Dependency blocks</label>
+                      <label class="settings-check"><input type="checkbox" id="pa-risk-velocity" checked /> Velocity gaps</label>
+                      <label class="settings-check"><input type="checkbox" id="pa-risk-overcommitment" checked /> Overcommitment</label>
+                    </div>
+                  </div>
+
+                  <div class="settings-group">
+                    <label class="settings-label" for="pa-min-severity">Minimum risk severity</label>
+                    <select id="pa-min-severity" class="settings-select">
+                      <option value="low">Low — show all</option>
+                      <option value="medium" selected>Medium</option>
+                      <option value="high">High only</option>
+                    </select>
+                  </div>
+
+                  <div class="settings-group">
+                    <label class="settings-label" for="pa-verbosity">Summary verbosity</label>
+                    <select id="pa-verbosity" class="settings-select">
+                      <option value="brief" selected>Brief</option>
+                      <option value="detailed">Detailed</option>
+                    </select>
+                  </div>
+
+                  <div class="pa-settings-footer">
+                    <p id="pa-save-msg" class="settings-save-msg"></p>
+                    <button id="pa-save-btn" class="btn-primary pa-save-btn">Save settings</button>
+                  </div>
+                </aside>
+
+              </div>
+            </section>
+          </section>
+
+          <!-- ============ 3. PROJECTS PAGE ============ -->
+          <section id="page-projects" class="nav-page">
+            <div class="projects-page-container">
+              <!-- Page Header -->
+              <div class="projects-header">
+                <div>
+                  <h2 class="projects-title">Projects</h2>
+                  <p class="projects-subtitle">Active enterprise software delivery projects under Program Horizon.</p>
+                </div>
+                <div class="projects-stats-strip">
+                  <div class="p-stat-box">
+                    <span class="p-stat-val">3</span>
+                    <span class="p-stat-lbl">Active Projects</span>
+                  </div>
+                  <div class="p-stat-box">
+                    <span class="p-stat-val text-green">2</span>
+                    <span class="p-stat-lbl">On Track</span>
+                  </div>
+                  <div class="p-stat-box">
+                    <span class="p-stat-val text-warn">1</span>
+                    <span class="p-stat-lbl">At Risk</span>
+                  </div>
+                  <div class="p-stat-box">
+                    <span class="p-stat-val">14</span>
+                    <span class="p-stat-lbl">Total Epics</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Filter and Search Bar -->
+              <div class="projects-toolbar">
+                <div class="projects-search-box">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input type="text" id="project-search-input" placeholder="Search projects by name, lead, or tag..." />
+                </div>
+                <div class="projects-filter-pills" id="project-filter-pills">
+                  <button class="filter-pill active" data-filter="all">All (3)</button>
+                  <button class="filter-pill" data-filter="on-track">On Track (2)</button>
+                  <button class="filter-pill" data-filter="at-risk">At Risk (1)</button>
+                </div>
+              </div>
+
+              <!-- Projects Grid with 3 Projects -->
+              <div class="projects-grid" id="projects-grid">
+
+                <!-- Project 1: Checkout & Commerce Flow -->
+                <div class="project-card" data-status="at-risk" data-tags="payments checkout frontend api" data-name="checkout & commerce flow">
+                  <div class="p-card-top">
+                    <div class="p-key-badge">CHK</div>
+                    <div class="p-status-tag p-status-warn">
+                      <span class="p-status-dot"></span> At Risk
+                    </div>
+                  </div>
+                  <h3 class="p-title">Checkout & Commerce Flow</h3>
+                  <p class="p-desc">Redesigning the global checkout flow with one-click purchase, localized currencies, and multi-gateway failover resilience.</p>
+                  
+                  <!-- Progress Bar -->
+                  <div class="p-progress-wrap">
+                    <div class="p-progress-header">
+                      <span>Delivery Progress</span>
+                      <strong>68% (340 / 500 SP)</strong>
+                    </div>
+                    <div class="p-progress-bar">
+                      <div class="p-progress-fill p-fill-warn" style="width: 68%;"></div>
+                    </div>
+                  </div>
+
+                  <!-- Meta Info Grid -->
+                  <div class="p-meta-grid">
+                    <div class="p-meta-item">
+                      <span class="p-meta-label">Lead</span>
+                      <span class="p-meta-value">Alex Morgan</span>
+                    </div>
+                    <div class="p-meta-item">
+                      <span class="p-meta-label">Team</span>
+                      <span class="p-meta-value">Checkout Squad</span>
+                    </div>
+                    <div class="p-meta-item">
+                      <span class="p-meta-label">Target Release</span>
+                      <span class="p-meta-value">Q4 2026 (v2.4)</span>
+                    </div>
+                    <div class="p-meta-item">
+                      <span class="p-meta-label">Blockers</span>
+                      <span class="p-meta-value text-warn">2 Active</span>
+                    </div>
+                  </div>
+
+                  <!-- Tags and Actions -->
+                  <div class="p-card-footer">
+                    <div class="p-tags">
+                      <span class="p-tag">Payments</span>
+                      <span class="p-tag">Checkout</span>
+                      <span class="p-tag">API</span>
+                    </div>
+                    <button class="btn-p-action" onclick="document.querySelector('[data-nav=dashboards]').click();">
+                      View Metrics →
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Project 2: Platform Core & Analytics -->
+                <div class="project-card" data-status="on-track" data-tags="infrastructure analytics postgresql kafka" data-name="platform core & analytics foundation">
+                  <div class="p-card-top">
+                    <div class="p-key-badge">CORE</div>
+                    <div class="p-status-tag p-status-ok">
+                      <span class="p-status-dot"></span> On Track
+                    </div>
+                  </div>
+                  <h3 class="p-title">Platform Core & Analytics Foundation</h3>
+                  <p class="p-desc">Microservices migration, database horizontal partitioning, real-time Kafka event streaming, and unified program telemetry.</p>
+                  
+                  <!-- Progress Bar -->
+                  <div class="p-progress-wrap">
+                    <div class="p-progress-header">
+                      <span>Delivery Progress</span>
+                      <strong>82% (490 / 600 SP)</strong>
+                    </div>
+                    <div class="p-progress-bar">
+                      <div class="p-progress-fill p-fill-ok" style="width: 82%;"></div>
+                    </div>
+                  </div>
+
+                  <!-- Meta Info Grid -->
+                  <div class="p-meta-grid">
+                    <div class="p-meta-item">
+                      <span class="p-meta-label">Lead</span>
+                      <span class="p-meta-value">Elena Rostova</span>
+                    </div>
+                    <div class="p-meta-item">
+                      <span class="p-meta-label">Team</span>
+                      <span class="p-meta-value">Platform Core</span>
+                    </div>
+                    <div class="p-meta-item">
+                      <span class="p-meta-label">Target Release</span>
+                      <span class="p-meta-value">Q3 2026 (v3.0)</span>
+                    </div>
+                    <div class="p-meta-item">
+                      <span class="p-meta-label">Blockers</span>
+                      <span class="p-meta-value text-green">0 Active</span>
+                    </div>
+                  </div>
+
+                  <!-- Tags and Actions -->
+                  <div class="p-card-footer">
+                    <div class="p-tags">
+                      <span class="p-tag">Infrastructure</span>
+                      <span class="p-tag">Kafka</span>
+                      <span class="p-tag">PostgreSQL</span>
+                    </div>
+                    <button class="btn-p-action" onclick="document.querySelector('[data-nav=dashboards]').click();">
+                      View Metrics →
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Project 3: Mobile Parity & Security Guild -->
+                <div class="project-card" data-status="on-track" data-tags="mobile ios android security zero-trust auth0" data-name="mobile parity & security guild">
+                  <div class="p-card-top">
+                    <div class="p-key-badge">MOB</div>
+                    <div class="p-status-tag p-status-ok">
+                      <span class="p-status-dot"></span> On Track
+                    </div>
+                  </div>
+                  <h3 class="p-title">Mobile Parity & Security Guild</h3>
+                  <p class="p-desc">Achieving full iOS & Android feature parity while hardening SOC2, PCI-DSS compliance, and zero-trust SSO authentication.</p>
+                  
+                  <!-- Progress Bar -->
+                  <div class="p-progress-wrap">
+                    <div class="p-progress-header">
+                      <span>Delivery Progress</span>
+                      <strong>54% (215 / 400 SP)</strong>
+                    </div>
+                    <div class="p-progress-bar">
+                      <div class="p-progress-fill p-fill-ok" style="width: 54%;"></div>
+                    </div>
+                  </div>
+
+                  <!-- Meta Info Grid -->
+                  <div class="p-meta-grid">
+                    <div class="p-meta-item">
+                      <span class="p-meta-label">Lead</span>
+                      <span class="p-meta-value">Marcus Vance</span>
+                    </div>
+                    <div class="p-meta-item">
+                      <span class="p-meta-label">Team</span>
+                      <span class="p-meta-value">Mobile & Security</span>
+                    </div>
+                    <div class="p-meta-item">
+                      <span class="p-meta-label">Target Release</span>
+                      <span class="p-meta-value">Q4 2026 (v1.8)</span>
+                    </div>
+                    <div class="p-meta-item">
+                      <span class="p-meta-label">Blockers</span>
+                      <span class="p-meta-value text-warn">1 Active</span>
+                    </div>
+                  </div>
+
+                  <!-- Tags and Actions -->
+                  <div class="p-card-footer">
+                    <div class="p-tags">
+                      <span class="p-tag">Mobile</span>
+                      <span class="p-tag">Security</span>
+                      <span class="p-tag">Zero-Trust</span>
+                    </div>
+                    <button class="btn-p-action" onclick="document.querySelector('[data-nav=dashboards]').click();">
+                      View Metrics →
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ 4. REPORTS PAGE ============ -->
+          <section id="page-reports" class="nav-page">
+            <div class="blank-page">
+              <h2>Reports</h2>
+            </div>
+          </section>
+
+          <!-- ============ 5. STAKEHOLDERS PAGE ============ -->
+          <section id="page-stakeholders" class="nav-page">
+            <div class="blank-page">
+              <h2>Stakeholders</h2>
+            </div>
+          </section>
+
+          <!-- ============ 6. SETTINGS PAGE ============ -->
+          <section id="page-settings" class="nav-page">
+            <div class="blank-page">
+              <h2>Settings</h2>
+            </div>
+          </section>
+        </main>
+
+        <!-- Side-by-Side AI Assistant Sidebar Panel -->
+        <aside id="chat-drawer" class="chat-drawer chat-sidebar closed">
+          <!-- Visible strip when sidebar is collapsed -->
+          <div id="chat-collapsed-rail" class="chat-collapsed-rail" title="Expand AI Assistant">
+            <button id="chat-expand-btn" class="chat-rail-btn" aria-label="Expand AI Assistant">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>
+            </button>
+            <div class="chat-rail-label"><span class="sparkle">✨</span> AI Assistant</div>
+          </div>
+
+          <!-- Main expanded sidebar content container -->
+          <div class="chat-sidebar-inner">
+            <div class="chat-drawer-header">
+              <div class="chat-drawer-title">
+                <span class="chat-icon">✨</span>
+                <h3>AI Assistant</h3>
+              </div>
+              <div class="chat-header-actions">
+                <button id="chat-collapse-btn" class="chat-header-btn" title="Collapse sidebar" aria-label="Collapse Sidebar">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>
+                </button>
+                <button id="chat-close-btn" class="chat-header-btn" title="Close Chat" aria-label="Close Chat">&times;</button>
+              </div>
+            </div>
+            <div id="ask-history" class="chat-drawer-body">
+              <!-- Q&A history will render here -->
+            </div>
+            <div id="ask-error" class="error-text" style="display:none; margin: 8px 16px; font-size: 0.9em; padding: 8px 12px; background: rgba(220, 38, 38, 0.1); border-radius: 6px; border: 1px solid rgba(220, 38, 38, 0.2);"></div>
+            <div class="chat-drawer-footer">
+              <div class="ask-row">
+                <input type="text" id="ask-input" placeholder="e.g. Which milestone is most at risk?" maxlength="500" />
+                <button id="ask-button" class="btn-primary">Ask</button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
   </div>
 
   <!-- Floating Action Button for AI Assistant (shown when sidebar is closed) -->
