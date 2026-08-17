@@ -5,6 +5,8 @@ import { renderAssessmentTab } from "./views/assessment.js";
 import { renderStatusTab } from "./views/status.js";
 import { renderDeliveryTab } from "./views/delivery.js";
 import { renderQualityTab } from "./views/quality.js";
+import { renderStakeholdersPage, initStakeholdersEvents, showStakeholdersList, showStakeholderDetail, showStakeholderForm } from "./views/stakeholders.js";
+import { loadProjectStakeholders, initProjectStakeholdersEvents } from "./views/projects.js";
 import {
   analyzeStatus, proposeNextSteps, generateReport,
   renderAnalyzeStatus, renderProposeNextSteps, renderGenerateReport,
@@ -47,6 +49,19 @@ function navigate(hash) {
     }
   }
 
+  // Stakeholders sub-routing (dedicated pages)
+  if (navKey === "stakeholders") {
+    if (subRoute === "new") {
+      renderStakeholdersPage().then(() => showStakeholderForm(null));
+    } else if (subRoute === "edit" && parts[2]) {
+      renderStakeholdersPage().then(() => showStakeholderForm(parts[2]));
+    } else if (subRoute) {
+      renderStakeholdersPage().then(() => showStakeholderDetail(subRoute));
+    } else {
+      renderStakeholdersPage().then(() => showStakeholdersList());
+    }
+  }
+
   // Projects sub-routing
   if (navKey === "projects") {
     const pList = $("projects-list-view");
@@ -68,7 +83,11 @@ document.querySelectorAll(".sidebar-nav .nav-btn").forEach(btn => {
 });
 
 window.addEventListener("hashchange", () => navigate(window.location.hash));
-document.addEventListener("DOMContentLoaded", () => navigate(window.location.hash));
+document.addEventListener("DOMContentLoaded", () => {
+  initStakeholdersEvents();
+  initProjectStakeholdersEvents();
+  navigate(window.location.hash);
+});
 
 /* ---------- Tab switching (inside Dashboards) ---------- */
 document.querySelectorAll(".tab").forEach(tab => {
@@ -672,6 +691,12 @@ function openProjectDetail(card) {
   $("pd-progress-container").innerHTML = progressWrap;
   $("pd-meta-container").innerHTML = metaGrid;
   $("pd-tags").innerHTML = tags;
+
+  // Load project stakeholders and RACI matrix
+  const projectKey = card.dataset.key || keyBadge;
+  if (projectKey) {
+    loadProjectStakeholders(projectKey);
+  }
 
   // Toggle Views
   projectsListView.style.display = "none";

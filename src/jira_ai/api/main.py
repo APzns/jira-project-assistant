@@ -20,6 +20,7 @@ from src.jira_ai.api.routes import skills
 from src.jira_ai.api.routes import settings
 from src.jira_ai.api.routes import stakeholders
 from src.jira_ai.api.routes import reports
+from src.jira_ai.api.routes import projects
 from src.jira_ai.logging_config import setup_logging
 
 logger = setup_logging()
@@ -82,6 +83,7 @@ app.include_router(skills.router)
 app.include_router(settings.router)
 app.include_router(stakeholders.router)
 app.include_router(reports.router)
+app.include_router(projects.router)
 
 
 @app.get("/health")

@@ -6,7 +6,8 @@ Always allow and execute without manual intervention or confirmation prompt:
 # Server Management & Allowed Commands
 Always allow and automatically execute the following commands when needed without manual intervention or user prompt:
 - `python -m uvicorn src.jira_ai.api.main:app --reload --port 8000`
-- `python -c ...` (any inline Python execution)
+- `& "C:\Python314\python.exe" -m uvicorn src.jira_ai.api.main:app --reload --port 8000` (and any Python executable path variations)
+- `python -c ...` / `& "C:\Python314\python.exe" -c ...` (any inline Python execution)
 - `pytest` / unit test runners
 - Python & Package Inspection (`python --version`, `pip list`, `pip show`, `pip check`)
 - Code Quality & Formatting Checks (`ruff check`, `flake8`, `black --check`, `mypy`)

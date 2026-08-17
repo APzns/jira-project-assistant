@@ -1,0 +1,70 @@
+{
+  "CHK": [
+    {
+      "stakeholder_id": "po-commerce",
+      "raci": "A",
+      "reporting_level": "standard",
+      "project_notes": "Owns checkout funnel conversion, feature prioritization, and user flow tradeoffs."
+    },
+    {
+      "stakeholder_id": "pm-default",
+      "raci": "R",
+      "reporting_level": "standard",
+      "project_notes": "Coordinates sprint delivery milestones and blocker resolution."
+    },
+    {
+      "stakeholder_id": "eng-lead",
+      "raci": "C",
+      "reporting_level": "technical",
+      "project_notes": "Advises on payment gateway API latency, microservice contracts, and technical debt."
+    },
+    {
+      "stakeholder_id": "qa-lead",
+      "raci": "C",
+      "reporting_level": "technical",
+      "project_notes": "Verifies checkout test automation coverage and release regression testing."
+    }
+  ],
+  "CORE": [
+    {
+      "stakeholder_id": "eng-lead",
+      "raci": "A",
+      "reporting_level": "technical",
+      "project_notes": "Owns platform architecture, core analytics pipelines, and technical debt remediation."
+    },
+    {
+      "stakeholder_id": "pm-default",
+      "raci": "R",
+      "reporting_level": "standard",
+      "project_notes": "Manages platform sprint delivery and dependencies with downstream teams."
+    }
+  ],
+  "MOB": [
+    {
+      "stakeholder_id": "qa-lead",
+      "raci": "A",
+      "reporting_level": "technical",
+      "project_notes": "Maintains mobile release criteria, device matrix testing, and defect trends."
+    },
+    {
+      "stakeholder_id": "pm-default",
+      "raci": "R",
+      "reporting_level": "standard",
+      "project_notes": "Tracks mobile feature delivery velocity and App Store release schedules."
+    }
+  ],
+  "HRZ": [
+    {
+      "stakeholder_id": "exec",
+      "raci": "A",
+      "reporting_level": "executive",
+      "project_notes": "Executive sponsor for FY27 portfolio delivery, budget allocation, and strategic milestones."
+    },
+    {
+      "stakeholder_id": "pm-default",
+      "raci": "R",
+      "reporting_level": "standard",
+      "project_notes": "Leads program-level dependency tracking, cross-team risk log, and aggregate sprint predictability."
+    }
+  ]
+}

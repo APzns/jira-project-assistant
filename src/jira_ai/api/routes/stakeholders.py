@@ -1,12 +1,14 @@
-"""stakeholders.py — /stakeholders endpoint: read, write, and manage stakeholder profiles."""
+"""stakeholders.py — /stakeholders endpoint: read, write, and manage stakeholder profiles with user ownership & permissions."""
 
+import os
+import base64
 import json
 import uuid
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/stakeholders", tags=["stakeholders"])
 
@@ -15,41 +17,135 @@ _STAKEHOLDERS_FILE = Path(__file__).resolve().parents[4] / ".agents" / "settings
 DEFAULT_STAKEHOLDERS = [
     {
         "id": "pm-default",
-        "name": "Project Manager (Default)",
+        "role": "Project Manager",
         "role_type": "project_manager",
+        "owner": "system",
         "is_builtin": True,
-        "description": "Focuses on delivery schedules, cross-team dependencies, and overall program health."
+        "description": "Focuses on delivery schedules, sprint health, cross-team dependencies, and team velocity.",
+        "projects": ["HRZ", "CHK", "CORE", "MOB"],
+        "priority_areas": ["velocity", "sprint_health", "blockers"],
+        "people": [
+            {
+                "name": "Alex Mercer",
+                "email": "alex.mercer@company.internal"
+            },
+            {
+                "name": "Samantha Reed",
+                "email": "samantha.reed@company.internal"
+            }
+        ]
     },
     {
         "id": "exec",
-        "name": "Executive",
+        "role": "Executive Sponsor",
         "role_type": "executive",
+        "owner": "system",
         "is_builtin": True,
-        "description": "Focuses on high-level strategic alignment, budget, and major risks affecting milestones."
+        "description": "Focuses on high-level strategic milestones, budget, ROI, and major business risks.",
+        "projects": ["HRZ"],
+        "priority_areas": ["milestones", "risks", "budget"],
+        "people": [
+            {
+                "name": "Elena Rostova",
+                "email": "elena.rostova@company.internal"
+            },
+            {
+                "name": "David Sterling",
+                "email": "david.sterling@company.internal"
+            }
+        ]
     },
     {
         "id": "eng-lead",
-        "name": "Engineering Lead",
+        "role": "Engineering Lead",
         "role_type": "engineering_lead",
+        "owner": "system",
         "is_builtin": True,
-        "description": "Focuses on technical debt, defect ratios, engineering capacity, and architecture."
+        "description": "Focuses on technical debt, architecture, engineering capacity, and defect ratios.",
+        "projects": ["CORE", "CHK"],
+        "priority_areas": ["technical_debt", "defect_ratios", "architecture"],
+        "people": [
+            {
+                "name": "Marcus Vance",
+                "email": "marcus.vance@company.internal"
+            },
+            {
+                "name": "Priya Sharma",
+                "email": "priya.sharma@company.internal"
+            }
+        ]
     },
     {
         "id": "qa-lead",
-        "name": "QA Lead",
+        "role": "QA & Release Lead",
         "role_type": "qa_lead",
+        "owner": "system",
         "is_builtin": True,
-        "description": "Focuses on software quality, defect trends, and testing coverage."
+        "description": "Focuses on software quality, defect trends, test automation coverage, and release criteria.",
+        "projects": ["MOB", "CHK"],
+        "priority_areas": ["quality", "defect_trends", "test_coverage"],
+        "people": [
+            {
+                "name": "Dr. Aris Thorne",
+                "email": "aris.thorne@company.internal"
+            }
+        ]
+    },
+    {
+        "id": "po-commerce",
+        "role": "Product Owner",
+        "role_type": "product_owner",
+        "owner": "system",
+        "is_builtin": False,
+        "description": "Drives checkout user experience, payment gateway conversion, and feature prioritization.",
+        "projects": ["CHK"],
+        "priority_areas": ["scope", "user_experience", "conversion"],
+        "people": [
+            {
+                "name": "Chloe Lin",
+                "email": "chloe.lin@company.internal"
+            },
+            {
+                "name": "Lucas Meyer",
+                "email": "lucas.meyer@company.internal"
+            }
+        ]
     }
 ]
 
 
+def _get_current_username(request: Request) -> str:
+    """Extract username from Basic Auth header, defaulting to 'demo'."""
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Basic "):
+        try:
+            decoded = base64.b64decode(auth_header[6:]).decode("utf-8")
+            username, _, _ = decoded.partition(":")
+            if username:
+                return username.strip()
+        except Exception:
+            pass
+    return os.environ.get("BASIC_AUTH_USER", "demo").strip()
+
+
+class IndividualPerson(BaseModel):
+    name: str
+    email: Optional[str] = ""
+
+
 class StakeholderProfile(BaseModel):
     id: Optional[str] = None
-    name: str
+    role: str = "Stakeholder"
     role_type: str = "custom"
+    owner: Optional[str] = None
+    name: Optional[str] = None
+    email: Optional[str] = ""
+    people: List[IndividualPerson] = Field(default_factory=list)
     is_builtin: bool = False
-    description: str
+    description: Optional[str] = ""
+    other_notes: Optional[str] = Field(default="", max_length=500)
+    projects: List[str] = Field(default_factory=list)
+    priority_areas: List[str] = Field(default_factory=list)
     project_override: Optional[str] = None
 
 
@@ -60,63 +156,211 @@ class StakeholdersData(BaseModel):
 def _read_stakeholders_from_disk() -> dict:
     """Read stakeholders.json or construct a fully-populated default document."""
     try:
-        raw = _STAKEHOLDERS_FILE.read_text(encoding="utf-8")
-        data = json.loads(raw)
+        if _STAKEHOLDERS_FILE.exists():
+            raw = _STAKEHOLDERS_FILE.read_text(encoding="utf-8")
+            data = json.loads(raw)
+        else:
+            data = {}
     except (FileNotFoundError, json.JSONDecodeError):
         data = {}
 
     stakeholders = data.get("stakeholders")
-    if not stakeholders or not isinstance(stakeholders, list):
+    if not stakeholders or not isinstance(stakeholders, list) or len(stakeholders) == 0:
         stakeholders = [dict(s) for s in DEFAULT_STAKEHOLDERS]
         data["stakeholders"] = stakeholders
+        _write_stakeholders_to_disk(data)
+    else:
+        # Normalize fields for backward compatibility
+        for s in stakeholders:
+            if "role" not in s or not s["role"]:
+                s["role"] = s.get("role_type", "Stakeholder").replace("_", " ").title()
+            if "projects" not in s:
+                s["projects"] = ["HRZ"]
+            if "priority_areas" not in s:
+                s["priority_areas"] = []
+            if "description" not in s:
+                s["description"] = s.get("role_description", "")
+            if "other_notes" not in s:
+                s["other_notes"] = ""
+            
+            # Ensure owner is set
+            if "owner" not in s or not s["owner"]:
+                s["owner"] = "system" if s.get("is_builtin") else "demo"
+
+            # Ensure `people` list is populated
+            if "people" not in s or not isinstance(s["people"], list) or len(s["people"]) == 0:
+                if s.get("name"):
+                    s["people"] = [{"name": s["name"], "email": s.get("email", "")}]
+                else:
+                    s["people"] = []
+
+            # Set top-level name if needed for legacy code
+            if not s.get("name") and s.get("role"):
+                s["name"] = s["role"]
 
     return data
 
 
+def _write_stakeholders_to_disk(doc: dict) -> None:
+    _STAKEHOLDERS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _STAKEHOLDERS_FILE.write_text(
+        json.dumps(doc, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+
 @router.get("")
-def get_stakeholders() -> dict:
-    """Return the current stakeholders.json contents."""
-    return _read_stakeholders_from_disk()
+def get_stakeholders(request: Request) -> dict:
+    """Return the current stakeholders.json contents along with the current username."""
+    data = _read_stakeholders_from_disk()
+    current_user = _get_current_username(request)
+    return {
+        "stakeholders": data.get("stakeholders", []),
+        "current_user": current_user,
+    }
+
+
+@router.get("/{stakeholder_id}")
+def get_stakeholder(stakeholder_id: str, request: Request) -> dict:
+    """Get a single stakeholder role by id."""
+    data = _read_stakeholders_from_disk()
+    current_user = _get_current_username(request)
+    for s in data.get("stakeholders", []):
+        if s.get("id") == stakeholder_id:
+            return {"stakeholder": s, "current_user": current_user}
+    raise HTTPException(status_code=404, detail=f"Stakeholder '{stakeholder_id}' not found")
 
 
 @router.post("")
-def save_stakeholders(payload: StakeholdersData) -> dict:
-    """Validate and write stakeholders.json to disk."""
+def save_stakeholders(payload: StakeholdersData, request: Request) -> dict:
+    """Validate and write all stakeholders to disk."""
     try:
-        data = payload.model_dump(exclude_unset=True)
+        current_user = _get_current_username(request)
+        data = payload.model_dump(exclude_unset=False)
         stakeholders = data.get("stakeholders", [])
 
-        # Ensure every profile has an id
         for s in stakeholders:
             if not s.get("id"):
-                s["id"] = f"stakeholder-{uuid.uuid4().hex[:8]}"
+                s["id"] = f"sh-{uuid.uuid4().hex[:8]}"
+            if not s.get("owner"):
+                s["owner"] = current_user
 
-        result_doc = {
-            "stakeholders": stakeholders,
-        }
-
-        _STAKEHOLDERS_FILE.parent.mkdir(parents=True, exist_ok=True)
-        _STAKEHOLDERS_FILE.write_text(
-            json.dumps(result_doc, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
-        return {"saved": True, "data": result_doc}
+        result_doc = {"stakeholders": stakeholders}
+        _write_stakeholders_to_disk(result_doc)
+        return {"saved": True, "data": result_doc, "current_user": current_user}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Could not write stakeholders file: {exc}")
 
 
+@router.post("/item")
+def create_stakeholder(profile: StakeholderProfile, request: Request) -> dict:
+    """Create a single new stakeholder role owned by the current user."""
+    try:
+        current_user = _get_current_username(request)
+        data = _read_stakeholders_from_disk()
+        stakeholders = data.get("stakeholders", [])
+
+        new_item = profile.model_dump(exclude_unset=False)
+        if not new_item.get("id"):
+            new_item["id"] = f"sh-{uuid.uuid4().hex[:8]}"
+        if not new_item.get("role"):
+            new_item["role"] = new_item.get("role_type", "Stakeholder").replace("_", " ").title()
+        if not new_item.get("name"):
+            new_item["name"] = new_item["role"]
+
+        # Assign ownership to the current user
+        new_item["owner"] = current_user
+        new_item["is_builtin"] = False
+
+        stakeholders.append(new_item)
+        data["stakeholders"] = stakeholders
+        _write_stakeholders_to_disk(data)
+        return {"created": True, "stakeholder": new_item, "current_user": current_user}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Could not create stakeholder: {exc}")
+
+
+@router.put("/{stakeholder_id}")
+def update_stakeholder(stakeholder_id: str, profile: StakeholderProfile, request: Request) -> dict:
+    """Update an existing stakeholder role if owned by the current user."""
+    current_user = _get_current_username(request)
+    data = _read_stakeholders_from_disk()
+    stakeholders = data.get("stakeholders", [])
+
+    found_idx = -1
+    for idx, s in enumerate(stakeholders):
+        if s.get("id") == stakeholder_id:
+            found_idx = idx
+            break
+
+    if found_idx == -1:
+        raise HTTPException(status_code=404, detail=f"Stakeholder '{stakeholder_id}' not found")
+
+    existing = stakeholders[found_idx]
+    owner = existing.get("owner") or ("system" if existing.get("is_builtin") else "demo")
+
+    # Ownership check: users can only edit roles created by them
+    if owner != current_user:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Permission Denied: You can only edit stakeholder roles created by you (Role owner: '{owner}')."
+        )
+
+    updated_item = profile.model_dump(exclude_unset=False)
+    updated_item["id"] = stakeholder_id
+    updated_item["owner"] = owner
+    updated_item["is_builtin"] = existing.get("is_builtin", False)
+
+    if not updated_item.get("role"):
+        updated_item["role"] = updated_item.get("role_type", "Stakeholder").replace("_", " ").title()
+    if not updated_item.get("name"):
+        updated_item["name"] = updated_item["role"]
+
+    stakeholders[found_idx] = updated_item
+    data["stakeholders"] = stakeholders
+    _write_stakeholders_to_disk(data)
+    return {"updated": True, "stakeholder": updated_item, "current_user": current_user}
+
+
+@router.delete("/{stakeholder_id}")
+def delete_stakeholder(stakeholder_id: str, request: Request) -> dict:
+    """Delete a stakeholder role if owned by the current user."""
+    current_user = _get_current_username(request)
+    data = _read_stakeholders_from_disk()
+    stakeholders = data.get("stakeholders", [])
+
+    target_item = None
+    for s in stakeholders:
+        if s.get("id") == stakeholder_id:
+            target_item = s
+            break
+
+    if not target_item:
+        raise HTTPException(status_code=404, detail=f"Stakeholder '{stakeholder_id}' not found")
+
+    owner = target_item.get("owner") or ("system" if target_item.get("is_builtin") else "demo")
+
+    # Ownership check: users can only delete roles created by them
+    if owner != current_user:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Permission Denied: You can only delete stakeholder roles created by you (Role owner: '{owner}')."
+        )
+
+    stakeholders = [s for s in stakeholders if s.get("id") != stakeholder_id]
+    data["stakeholders"] = stakeholders
+    _write_stakeholders_to_disk(data)
+    return {"deleted": True, "id": stakeholder_id, "current_user": current_user}
+
+
 @router.post("/reset")
-def reset_stakeholders() -> dict:
-    """Reset all stakeholders back to factory defaults."""
+def reset_stakeholders(request: Request) -> dict:
+    """Reset all stakeholders back to default template set."""
     try:
         default_doc = {
             "stakeholders": [dict(s) for s in DEFAULT_STAKEHOLDERS],
         }
-        _STAKEHOLDERS_FILE.parent.mkdir(parents=True, exist_ok=True)
-        _STAKEHOLDERS_FILE.write_text(
-            json.dumps(default_doc, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
+        _write_stakeholders_to_disk(default_doc)
         return {"reset": True, "data": default_doc}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Could not reset stakeholders: {exc}")

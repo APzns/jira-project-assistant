@@ -1,18 +1,149 @@
 {
   "stakeholders": [
     {
-      "id": "project_manager",
+      "id": "pm-default",
+      "role": "Project Manager",
+      "role_type": "project_manager",
       "name": "Project Manager",
-      "role_description": "Focuses on day-to-day execution, blockages, team velocity, and sprint health.",
-      "is_default": true,
-      "priority_areas": ["velocity", "sprint_health", "blockers"]
+      "email": "",
+      "people": [
+        {
+          "name": "Alex Mercer",
+          "email": "alex.mercer@company.internal"
+        },
+        {
+          "name": "Samantha Reed",
+          "email": "samantha.reed@company.internal"
+        }
+      ],
+      "is_builtin": true,
+      "description": "detailed level interest",
+      "other_notes": "schedule",
+      "projects": [
+        "HRZ",
+        "CHK",
+        "CORE",
+        "MOB"
+      ],
+      "priority_areas": [
+        "velocity",
+        "sprint_health"
+      ],
+      "project_override": null,
+      "owner": "system"
     },
     {
-      "id": "executive",
+      "id": "exec",
+      "role": "Executive Sponsor",
+      "role_type": "executive",
+      "is_builtin": true,
+      "description": "Focuses on high-level strategic milestones, budget, ROI, and major business risks.",
+      "projects": [
+        "HRZ"
+      ],
+      "priority_areas": [
+        "milestones",
+        "risks",
+        "budget"
+      ],
+      "people": [
+        {
+          "name": "Elena Rostova",
+          "email": "elena.rostova@company.internal"
+        },
+        {
+          "name": "David Sterling",
+          "email": "david.sterling@company.internal"
+        }
+      ],
+      "other_notes": "",
       "name": "Executive Sponsor",
-      "role_description": "Focuses on milestone delivery, ROI, major risks, and cross-program strategic alignment.",
-      "is_default": true,
-      "priority_areas": ["milestones", "risks", "budget"]
+      "owner": "system"
+    },
+    {
+      "id": "eng-lead",
+      "role": "Engineering Lead",
+      "role_type": "engineering_lead",
+      "is_builtin": true,
+      "description": "Focuses on technical debt, architecture, engineering capacity, and defect ratios.",
+      "projects": [
+        "CORE",
+        "CHK"
+      ],
+      "priority_areas": [
+        "technical_debt",
+        "defect_ratios",
+        "architecture"
+      ],
+      "people": [
+        {
+          "name": "Marcus Vance",
+          "email": "marcus.vance@company.internal"
+        },
+        {
+          "name": "Priya Sharma",
+          "email": "priya.sharma@company.internal"
+        }
+      ],
+      "other_notes": "",
+      "name": "Engineering Lead",
+      "owner": "system"
+    },
+    {
+      "id": "qa-lead",
+      "role": "QA & Release Lead",
+      "role_type": "qa_lead",
+      "is_builtin": true,
+      "description": "Focuses on software quality, defect trends, test automation coverage, and release criteria.",
+      "projects": [
+        "MOB",
+        "CHK"
+      ],
+      "priority_areas": [
+        "quality",
+        "defect_trends",
+        "test_coverage"
+      ],
+      "people": [
+        {
+          "name": "Dr. Aris Thorne",
+          "email": "aris.thorne@company.internal"
+        }
+      ],
+      "other_notes": "",
+      "name": "QA & Release Lead",
+      "owner": "system"
+    },
+    {
+      "id": "po-commerce",
+      "role": "Product Owner",
+      "role_type": "custom",
+      "owner": "demo",
+      "name": "Product Owner",
+      "email": "",
+      "people": [
+        {
+          "name": "Chloe Lin",
+          "email": "chloe.lin@company.internal"
+        },
+        {
+          "name": "Lucas Meyer",
+          "email": "lucas.meyer@company.internal"
+        }
+      ],
+      "is_builtin": false,
+      "description": "Drives checkout user experience, payment gateway conversion, and feature prioritization.",
+      "other_notes": "",
+      "projects": [
+        "CHK"
+      ],
+      "priority_areas": [
+        "Scope",
+        "User Experience",
+        "Conversion",
+        "Sprint Health"
+      ],
+      "project_override": null
     }
   ]
 }

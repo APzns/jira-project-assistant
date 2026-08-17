@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Project Horizon — Program Intelligence</title>
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=6" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
@@ -757,22 +757,63 @@
                   </div>
                 </div>
                 
-                <!-- Future Metrics Tabs -->
-                <div class="tabs-container" style="margin-bottom: 24px; border-bottom: 1px solid var(--border);">
-                  <div class="tabs" style="border: none; padding-left: 0; margin-bottom: -1px;">
-                    <div class="tab active">Overview</div>
-                    <div class="tab">Metrics</div>
-                    <div class="tab">Risks</div>
+                <!-- Project Stakeholders & RACI Section -->
+                <div class="pd-stakeholders-section" id="pd-stakeholders-section">
+                  <div class="pd-section-header">
+                    <div>
+                      <h3 class="pd-section-title">Project Stakeholders & RACI Matrix</h3>
+                      <p class="pd-section-subtitle">Stakeholders assigned to this project with their customized RACI roles, reporting detail levels, and project-specific focus.</p>
+                    </div>
+                    <div class="pd-section-actions">
+                      <button id="btn-edit-proj-stakeholders" class="btn-primary" type="button">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        Edit Stakeholders & RACI
+                      </button>
+                    </div>
                   </div>
-                </div>
-                
-                <div class="blank-page" style="border: 1px dashed var(--border); border-radius: 12px; padding: 40px; text-align: center;">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.5" style="margin-bottom: 12px;">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="3" y1="9" x2="21" y2="9"></line>
-                    <line x1="9" y1="21" x2="9" y2="9"></line>
-                  </svg>
-                  <p class="muted" style="margin: 0;">Detailed project metrics will appear here.</p>
+
+                  <!-- Read-Only View of Project Stakeholders & RACI Matrix -->
+                  <div id="pd-stakeholders-view-container" class="pd-stakeholders-grid">
+                    <!-- Populated by JS -->
+                  </div>
+
+                  <!-- Edit Mode Container (Hidden by default) -->
+                  <div id="pd-stakeholders-edit-container" class="pd-stakeholders-edit-box" style="display: none;">
+                    <div class="pd-edit-header">
+                      <h4 style="margin: 0; color: var(--text); font-size: 16px;">Customize Stakeholders for <span id="pd-edit-proj-key"></span></h4>
+                      <p class="muted" style="margin: 4px 0 0 0; font-size: 13px;">Assign stakeholder roles and define their RACI responsibility, reporting level, and project-specific directives.</p>
+                    </div>
+
+                    <!-- Searchable Add Stakeholder Row -->
+                    <div class="pd-add-sh-wrap">
+                      <div class="pd-add-sh-row">
+                        <div class="pd-sh-searchable-box">
+                          <input type="text" id="pd-input-search-sh" class="settings-input" placeholder="Search or select role to assign..." autocomplete="off" />
+                          <select id="pd-select-add-sh" class="settings-select" style="display: none;">
+                            <option value="">-- Select a Stakeholder Role to Assign --</option>
+                          </select>
+                          <div id="pd-sh-search-dropdown" class="pd-sh-search-menu" style="display: none;">
+                            <!-- Populated dynamically via projects.js -->
+                          </div>
+                        </div>
+                        <button type="button" id="btn-pd-add-sh-item" class="btn-primary">+ Assign Role</button>
+                      </div>
+                      <div class="pd-add-sh-actions-sub">
+                        <span>Need a role not listed?</span>
+                        <a href="#stakeholders/new" class="inline-link">+ Create New Stakeholder Role</a>
+                      </div>
+                    </div>
+
+                    <!-- List of Assigned Stakeholders Cards to customize RACI & reporting level -->
+                    <div id="pd-assigned-sh-edit-list" class="pd-assigned-edit-list">
+                      <!-- Injected by JS -->
+                    </div>
+
+                    <div class="pd-edit-actions">
+                      <button type="button" id="btn-cancel-proj-sh" class="btn-secondary">Cancel</button>
+                      <button type="button" id="btn-save-proj-sh" class="btn-primary">Save Project Stakeholders</button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -871,8 +912,255 @@
 
           <!-- ============ 5. STAKEHOLDERS PAGE ============ -->
           <section id="page-stakeholders" class="nav-page">
-            <div class="blank-page">
-              <h2>Stakeholders</h2>
+            <div class="stakeholders-page-container">
+              
+              <!-- 1. STAKEHOLDERS LIST VIEW -->
+              <div id="stakeholders-list-view">
+                <!-- Page Header -->
+                <div class="stakeholders-header">
+                  <div>
+                    <h2 class="stakeholders-title">Stakeholders</h2>
+                    <p class="stakeholders-subtitle">Manage stakeholder personas, assigned project scopes, and AI perspective synthesis.</p>
+                  </div>
+                  <div class="stakeholders-header-actions">
+                    <button id="btn-add-stakeholder-main" class="btn-primary" title="Add a new stakeholder role">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                      Add Stakeholder
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Quick Stats Strip -->
+                <div class="stakeholders-stats-strip">
+                  <div class="sh-stat-box">
+                    <span class="sh-stat-val" id="sh-stat-total">0</span>
+                    <span class="sh-stat-lbl">Total Stakeholders</span>
+                  </div>
+                  <div class="sh-stat-box">
+                    <span class="sh-stat-val text-green" id="sh-stat-builtin">0</span>
+                    <span class="sh-stat-lbl">Standard Personas</span>
+                  </div>
+                  <div class="sh-stat-box">
+                    <span class="sh-stat-val text-accent" id="sh-stat-custom">0</span>
+                    <span class="sh-stat-lbl">Custom Personas</span>
+                  </div>
+                  <div class="sh-stat-box">
+                    <span class="sh-stat-val" id="sh-stat-projects">4</span>
+                    <span class="sh-stat-lbl">Projects Covered</span>
+                  </div>
+                </div>
+
+                <!-- Toolbar (Search & Filter Pills) -->
+                <div class="stakeholders-toolbar">
+                  <div class="stakeholders-search-box">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="stakeholder-search-input" placeholder="Search stakeholders by role, member, or project..." />
+                  </div>
+                  <div class="stakeholders-filter-pills" id="stakeholder-filter-pills">
+                    <button class="filter-pill active" data-filter="all">All</button>
+                    <button class="filter-pill" data-filter="project_manager">Project Managers</button>
+                    <button class="filter-pill" data-filter="executive">Executives</button>
+                    <button class="filter-pill" data-filter="engineering_qa">Engineering & QA</button>
+                    <button class="filter-pill" data-filter="custom">Custom</button>
+                  </div>
+                </div>
+
+                <!-- Stakeholder Table Headers -->
+                <div class="stakeholders-table-header">
+                  <div class="sh-th sh-th-role">Role</div>
+                  <div class="sh-th sh-th-projects">Assigned Projects</div>
+                  <div class="sh-th sh-th-actions">Actions</div>
+                </div>
+
+                <!-- Stakeholder List Container -->
+                <div class="stakeholders-list" id="stakeholders-list-container">
+                  <!-- Dynamically populated via stakeholders.js -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="stakeholders-empty-state" class="stakeholders-empty" style="display: none;">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.5" style="margin-bottom: 12px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                  <h4 style="margin: 0 0 6px 0; color: var(--text);">No stakeholders match your filter</h4>
+                  <p class="muted" style="margin: 0; font-size: 13.5px;">Try adjusting your search query or reset your filters.</p>
+                </div>
+              </div>
+
+              <!-- 2. STAKEHOLDER DETAIL VIEW (DEDICATED FULL-PAGE) -->
+              <div id="stakeholder-detail-view" class="sh-subpage-view" style="display: none;">
+                <button id="btn-back-sh-detail" class="btn-secondary btn-back-sh" type="button">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                  Back to Stakeholders
+                </button>
+
+                <div class="sh-view-card">
+                  <div class="sh-detail-header-row">
+                    <div class="sh-detail-header-left">
+                      <div>
+                        <div class="sh-detail-title-row">
+                          <h2 id="sh-detail-title" class="sh-detail-main-title">Project Manager</h2>
+                          <div id="sh-detail-type-badge"></div>
+                        </div>
+                        <div id="sh-detail-people-count" class="sh-detail-role-lbl">2 Individual Stakeholders Assigned</div>
+                      </div>
+                    </div>
+                    <div class="sh-detail-actions-top">
+                      <button id="btn-detail-edit-sh" class="btn-primary">Edit Role</button>
+                      <button id="btn-detail-delete-sh" class="btn-danger-outline">Delete Role</button>
+                    </div>
+                  </div>
+
+                  <!-- Individual Stakeholders Section -->
+                  <div class="sh-detail-section">
+                    <div class="sh-detail-sec-title">Individual Stakeholders (Team Members)</div>
+                    <div id="sh-detail-people" class="sh-detail-people-grid"></div>
+                  </div>
+
+                  <!-- Assigned Delivery Projects -->
+                  <div class="sh-detail-section">
+                    <div class="sh-detail-sec-title">Assigned Delivery Projects</div>
+                    <div id="sh-detail-projects" class="sh-detail-projects-grid"></div>
+                  </div>
+
+                  <!-- Priority Focus Areas -->
+                  <div class="sh-detail-section">
+                    <div class="sh-detail-sec-title">Priority Focus Areas</div>
+                    <div id="sh-detail-priorities" class="sh-detail-tags-row"></div>
+                  </div>
+
+                  <!-- Other Focus & Custom Directives -->
+                  <div class="sh-detail-section" id="sh-detail-other-section" style="display: none;">
+                    <div class="sh-detail-sec-title">Other Focus & Custom Directives</div>
+                    <div class="sh-detail-desc-card">
+                      <p id="sh-detail-other" class="sh-detail-desc-text"></p>
+                    </div>
+                  </div>
+
+                  <!-- AI Persona & Guidance -->
+                  <div class="sh-detail-section">
+                    <div class="sh-detail-sec-title">AI Persona & Synthesis Guidance</div>
+                    <div class="sh-detail-desc-card">
+                      <p id="sh-detail-desc" class="sh-detail-desc-text"></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. STAKEHOLDER FORM VIEW (DEDICATED FULL-PAGE) -->
+              <div id="stakeholder-form-view" class="sh-subpage-view" style="display: none;">
+                <button id="btn-back-sh-form" class="btn-secondary btn-back-sh" type="button">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                  Back to Stakeholders
+                </button>
+
+                <div class="sh-view-card">
+                  <div class="sh-view-header">
+                    <h3 id="sh-form-view-title" class="sh-view-title">Add Stakeholder Role</h3>
+                    <p class="sh-view-subtitle">Define stakeholder persona properties, assigned delivery projects, and individual team members.</p>
+                  </div>
+
+                  <form id="form-stakeholder">
+                    <div id="sh-form-error" class="error-text" style="display: none; margin-bottom: 16px;"></div>
+
+                    <!-- Role & Category Row -->
+                    <div class="form-row form-row-2">
+                      <div class="form-group">
+                        <label class="settings-label" for="sh-form-role">Role Title <span class="required-star">*</span></label>
+                        <input type="text" id="sh-form-role" class="settings-input" placeholder="e.g. Engineering Lead" required maxlength="80" />
+                      </div>
+                      <div class="form-group">
+                        <label class="settings-label" for="sh-form-role-type">Role Category (AI Persona & Perspective Lens)</label>
+                        <select id="sh-form-role-type" class="settings-select">
+                          <option value="project_manager">Project Manager (Delivery schedules, sprint health, cross-team blockers)</option>
+                          <option value="executive">Executive Sponsor (High-level milestones, strategic ROI, executive risks)</option>
+                          <option value="engineering_lead">Engineering Lead (Tech debt ratios, architecture, engineering capacity)</option>
+                          <option value="qa_lead">QA & Release Lead (Test coverage, defect escape trends, release criteria)</option>
+                          <option value="product_owner">Product Owner (Feature scope, user journey conversion, backlog priorities)</option>
+                          <option value="security_lead">Security Lead (SOC2 compliance, audit trails, vuln remediation)</option>
+                          <option value="devops_lead">DevOps Lead (CI/CD pipeline throughput, infra reliability, deployment velocity)</option>
+                          <option value="custom">Custom Persona (Pure custom directives, no predefined AI bias)</option>
+                        </select>
+                        <span class="settings-hint">Defines the perspective lens and domain focus the AI uses when generating reports and answers.</span>
+                      </div>
+                    </div>
+
+                    <!-- Individual Stakeholders (Multiple People) -->
+                    <div class="form-group">
+                      <label class="settings-label">Individual Stakeholders in this Role</label>
+                      <div id="sh-form-people-container" class="sh-form-people-box">
+                        <div id="sh-form-people-list" class="sh-form-people-chips">
+                          <!-- People chips populated via JS -->
+                        </div>
+                        <div class="sh-add-person-row">
+                          <input type="text" id="sh-new-person-name" class="settings-input" placeholder="Person Name (e.g. Alex Mercer)" />
+                          <input type="email" id="sh-new-person-email" class="settings-input" placeholder="Email (e.g. alex@company.internal)" />
+                          <button type="button" id="btn-add-person-item" class="btn-secondary">+ Add Person</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Project Assignment Notice -->
+                    <div class="sh-project-assign-notice">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                      <div>
+                        <strong>Project Assignments & RACI Customization</strong>
+                        <p>Projects are assigned to stakeholders directly in each <a href="#projects" class="inline-link">Project's Settings & RACI Matrix</a>. You can customize RACI responsibility (R/A/C/I) and reporting levels per project after saving.</p>
+                      </div>
+                    </div>
+
+                    <!-- Key Focus & Priority Areas (Dynamic Chip Manager) -->
+                    <div class="form-group">
+                      <label class="settings-label">Key Focus & Priority Areas</label>
+                      <div id="sh-form-prios-container" class="sh-form-prios-box">
+                        <div id="sh-form-prios-list" class="sh-form-prios-chips">
+                          <!-- Focus tags with ✕ remove button populated via JS -->
+                        </div>
+                        <div class="sh-add-prio-row">
+                          <select id="sh-add-prio-select" class="settings-select">
+                            <option value="">-- Choose preset focus area --</option>
+                            <option value="Velocity & Burndown">Velocity & Burndown</option>
+                            <option value="Sprint Health">Sprint Health</option>
+                            <option value="Milestone Forecasts">Milestone Forecasts</option>
+                            <option value="Risks & Blockers">Risks & Blockers</option>
+                            <option value="Technical Debt">Technical Debt</option>
+                            <option value="Quality & Defects">Quality & Defects</option>
+                            <option value="Budget & ROI">Budget & ROI</option>
+                            <option value="Security & Compliance">Security & Compliance</option>
+                            <option value="Release Criteria">Release Criteria</option>
+                            <option value="Scope & User Flow">Scope & User Flow</option>
+                          </select>
+                          <input type="text" id="sh-custom-prio-input" class="settings-input" placeholder="Or custom focus..." maxlength="40" />
+                          <button type="button" id="btn-add-prio-item" class="btn-secondary">+ Add Focus Area</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Other Free Text Focus Area -->
+                    <div class="form-group">
+                      <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <label class="settings-label" for="sh-form-other">Other Focus Areas & Free-Text Directives</label>
+                        <span class="char-counter" id="sh-form-other-counter">0 / 500 characters</span>
+                      </div>
+                      <textarea id="sh-form-other" class="settings-textarea" rows="2" maxlength="500" placeholder="e.g. Highlight SOC2 compliance, API latency SLAs, third-party payment gateway failover..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+                      <span class="settings-hint">Limited to 500 characters to keep AI prompts fast, concise, and cost-efficient.</span>
+                    </div>
+
+                    <!-- Persona Description / AI Notes -->
+                    <div class="form-group">
+                      <label class="settings-label" for="sh-form-desc">Persona Description & General AI Guidance</label>
+                      <textarea id="sh-form-desc" class="settings-textarea" rows="2" placeholder="e.g. Focus on high-level delivery schedules, sprint health, cross-team dependencies, and team velocity weekly." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+                    </div>
+
+                    <div class="sh-form-actions">
+                      <button type="button" id="btn-cancel-sh-form" class="btn-secondary">Cancel</button>
+                      <button type="submit" id="btn-sh-form-submit" class="btn-primary">Save Role</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
             </div>
           </section>
 
@@ -923,11 +1211,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Floating Action Button for AI Assistant (shown when sidebar is closed) -->
-  <button id="chat-fab-btn" class="chat-fab" title="Ask AI Assistant">
-    <span class="sparkle">✨</span> Ask AI
-  </button>
 
   <!-- ============ AI SETTINGS DRAWER ============ -->
   <div id="settings-drawer-overlay" class="settings-overlay"></div>
@@ -993,6 +1276,6 @@
     </div>
   </aside>
 
-  <script type="module" src="js/main.js?v=4"></script>
+  <script type="module" src="js/main.js?v=6"></script>
 </body>
 </html>
