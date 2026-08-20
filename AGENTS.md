@@ -8,13 +8,12 @@ Always allow and automatically execute the following commands when needed withou
 - `python -m uvicorn src.jira_ai.api.main:app --reload --port 8000`
 - `& "C:\Python314\python.exe" -m uvicorn src.jira_ai.api.main:app --reload --port 8000` (and any Python executable path variations)
 - `python -c ...` / `& "C:\Python314\python.exe" -c ...` (any inline Python execution)
-- `pytest` / unit test runners
-- Python & Package Inspection (`python --version`, `pip list`, `pip show`, `pip check`)
+- `pytest` / test runners (`pytest`, `python -m pytest`, `py -3.14 -m pytest`, `& "C:\Python314\python.exe" -m pytest`, `python -m unittest`, `py -3.14 -m unittest`, `& "C:\Python314\python.exe" -m unittest ...`)
+- Python & Package Inspection (`python --version`, `py -3.14 --version`, `pip list`, `py -3.14 -m pip list`, `& "C:\Python314\python.exe" -m pip list`, `pip show`, `& "C:\Python314\python.exe" -m pip show`, `pip check`)
 - Code Quality & Formatting Checks (`ruff check`, `flake8`, `black --check`, `mypy`)
-- Container & Port Inspection (`docker ps`, `docker logs`, `netstat`, `Get-NetTCPConnection`)
-- Node & NPM Environment Inspection (`node -v`, `npm -v`, `npm list`, `npm outdated`)
+- Container & Port Inspection (`docker ps`, `docker logs`, `netstat`, `Get-NetTCPConnection`, `Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue`, `Get-NetTCPConnection -LocalPort ...`)
+- Node & JavaScript Executions (`node`, `node -v`, `node -e ...`, `npm run dev`, `npm run build`, `npm test`, `npm -v`, `npm list`, `npm outdated`)
 - All read-only Git commands (`git status`, `git diff`, `git log`, `git show`, `git branch`, `git tag`, `git blame`, `git reflog`, `git remote`, `git rev-parse`, `git ls-files`, `git ls-remote`, `git ls-tree`, `git cat-file`, `git stash list`, `git worktree list`, `git submodule status`, `git check-ignore`, `git config --get`, etc.)
-- NPM / Node development scripts (`npm run dev`, `npm run build`, `npm test`)
 
 Whenever backend Python code or API data structures are modified, automatically restart/reload the Uvicorn server on port 8000 using `run_command` in background tasks so the user sees changes immediately without manual intervention.
 

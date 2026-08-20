@@ -16,7 +16,7 @@ let _formPeopleList = [];
 let _formProjectsList = [];
 let _formPriosList = [];
 
-const PROJECT_MAP = {
+let PROJECT_MAP = {
   "CHK": { name: "Checkout & Commerce Flow", color: "#4c8dff" },
   "CORE": { name: "Platform Core & Analytics", color: "#2fbf71" },
   "MOB": { name: "Mobile Parity & Security", color: "#9b6bff" },
@@ -35,11 +35,26 @@ const ROLE_ICONS = {
 };
 
 /**
- * Fetch stakeholders from API and render the page.
+ * Fetch stakeholders and project definitions from API and render the page.
  */
 export async function renderStakeholdersPage() {
   try {
-    const res = await fetchWithTimeout(`${API_BASE}/stakeholders`, { credentials: "include" });
+    const [res, projRes] = await Promise.all([
+      fetchWithTimeout(`${API_BASE}/stakeholders`, { credentials: "include" }),
+      fetchWithTimeout(`${API_BASE}/projects?include_archived=true`, { credentials: "include" })
+    ]);
+
+    if (projRes && projRes.ok) {
+      const projJson = await projRes.json();
+      const colors = ["#4c8dff", "#2fbf71", "#9b6bff", "#f5a623", "#ff6b8b", "#00d2d3", "#a29bfe", "#fdcb6e"];
+      (projJson.projects || []).forEach((p, idx) => {
+        PROJECT_MAP[p.key] = {
+          name: p.name || p.key,
+          color: colors[idx % colors.length]
+        };
+      });
+    }
+
     if (res.ok) {
       const json = await res.json();
       _stakeholdersData = (json.stakeholders || []).sort((a, b) => 

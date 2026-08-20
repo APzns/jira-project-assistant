@@ -143,16 +143,18 @@ def _settings_context_block(settings: dict) -> str:
     return "\n".join(lines)
 
 
-def _get_metrics_context(db) -> str:
-    """Pull the cached assessment metrics and format them as a context block."""
+def _get_metrics_context(db, project_key: Optional[str] = None) -> str:
+    """Pull the cached assessment metrics and format them as a context block, optionally scoped by project_key."""
     try:
         from src.jira_ai.api.services.assessment import get_cached_assessment
-        assess = get_cached_assessment(db)
+        assess = get_cached_assessment(db, project_key=project_key)
         if not assess:
-            return "No cached metrics available — base your analysis on the DB schema context."
+            from src.jira_ai.api.services.assessment import _compute_metrics
+            metrics = _compute_metrics(db, project_key=project_key)
+            assess = {"metrics": metrics}
         metrics = assess.get("metrics", {})
         relevant_keys = [
-            "milestone_completion", "project_milestone",
+            "project_key", "milestone_completion", "project_milestone",
             "predictability", "team_predictability",
             "defects_ratio", "team_defects_ratio",
             "overcommit_next", "overcommit_by_team",
@@ -205,6 +207,7 @@ def _call_gemini(system_instruction: str, user_prompt: str, response_schema: dic
 # ---------------------------------------------------------------------------
 
 class SkillRequest(BaseModel):
+    project_key: Optional[str] = None  # target project filter (e.g. 'CHK', 'CORE', 'ALL')
     context: Optional[str] = None   # active UI tab hint
     profile_id: Optional[str] = None
     custom_instructions: Optional[str] = None
@@ -220,6 +223,7 @@ def _resolve_request_settings(payload: SkillRequest) -> dict:
     if payload.custom_instructions is not None:
         settings["custom_instructions"] = payload.custom_instructions.strip()
     return settings
+
 
 
 # ---------------------------------------------------------------------------
@@ -271,7 +275,7 @@ def skill_analyze_status(payload: SkillRequest, db: Session = Depends(get_db)):
     stakeholder_md = _load_stakeholder_persona()
     settings = _resolve_request_settings(payload)
     settings_block = _settings_context_block(settings)
-    metrics_ctx = _get_metrics_context(db)
+    metrics_ctx = _get_metrics_context(db, project_key=payload.project_key)
 
     system_instruction = f"""{skill_md}
 
@@ -285,6 +289,7 @@ def skill_analyze_status(payload: SkillRequest, db: Session = Depends(get_db)):
 """
 
     user_prompt = f"""You are performing a full Analyze Status skill run.
+Project Scope: {payload.project_key or 'ALL (Global Portfolio)'}
 
 ## Program Metrics Snapshot
 <untrusted_data>
@@ -309,7 +314,7 @@ Return a JSON object matching the required schema. Do not invent data not presen
     except json.JSONDecodeError:
         result = {"summary": raw, "delays": [], "risks": []}
 
-    return {"skill": "analyze-status", "settings_applied": settings, **result}
+    return {"skill": "analyze-status", "project_key": payload.project_key or "ALL", "settings_applied": settings, **result}
 
 
 # ---------------------------------------------------------------------------
@@ -345,7 +350,7 @@ def skill_propose_next_steps(payload: SkillRequest, db: Session = Depends(get_db
     stakeholder_md = _load_stakeholder_persona()
     settings = _resolve_request_settings(payload)
     settings_block = _settings_context_block(settings)
-    metrics_ctx = _get_metrics_context(db)
+    metrics_ctx = _get_metrics_context(db, project_key=payload.project_key)
 
     system_instruction = f"""{skill_md}
 
@@ -359,6 +364,7 @@ def skill_propose_next_steps(payload: SkillRequest, db: Session = Depends(get_db
 """
 
     user_prompt = f"""You are performing a Propose Next Steps skill run.
+Project Scope: {payload.project_key or 'ALL (Global Portfolio)'}
 
 ## Program Metrics Snapshot
 <untrusted_data>
@@ -379,7 +385,7 @@ Return a JSON object matching the required schema. Do not invent data not presen
     except json.JSONDecodeError:
         result = {"actions": [], "summary": raw}
 
-    return {"skill": "propose-next-steps", "settings_applied": settings, **result}
+    return {"skill": "propose-next-steps", "project_key": payload.project_key or "ALL", "settings_applied": settings, **result}
 
 
 # ---------------------------------------------------------------------------
@@ -448,16 +454,16 @@ _GENERATE_REPORT_SCHEMA = {
 }
 
 
-def _build_fallback_report(db: Session, settings: dict) -> dict:
+def _build_fallback_report(db: Session, settings: dict, project_key: Optional[str] = None) -> dict:
     """Construct a comprehensive fallback report from cached DB assessment."""
     from src.jira_ai.api.services.assessment import get_cached_assessment
-    assess = get_cached_assessment(db) or {}
+    assess = get_cached_assessment(db, project_key=project_key) or {}
     metrics = assess.get("metrics", {})
 
     status = assess.get("overall_status", "at_risk")
     headline = assess.get("headline") or f"{settings.get('profile_name', 'Project Horizon')} Status Report"
     summary = assess.get("ai_summary") or assess.get("reasoning") or (
-        "Project Horizon demonstrates steady cross-team progression with critical milestones in flight. "
+        "Program demonstrates steady cross-team progression with critical milestones in flight. "
         "Attention is required on downstream dependency coordination and capacity drag in active sprints."
     )
     if settings.get("custom_instructions"):
@@ -543,7 +549,7 @@ def skill_generate_report(payload: SkillRequest, db: Session = Depends(get_db)):
     stakeholder_md = _load_stakeholder_persona()
     settings = _resolve_request_settings(payload)
     settings_block = _settings_context_block(settings)
-    metrics_ctx = _get_metrics_context(db)
+    metrics_ctx = _get_metrics_context(db, project_key=payload.project_key)
 
     system_instruction = f"""{skill_md}
 
@@ -556,7 +562,8 @@ def skill_generate_report(payload: SkillRequest, db: Session = Depends(get_db)):
 {settings_block}
 """
 
-    user_prompt = f"""You are generating a Program Status Report for Project Horizon.
+    user_prompt = f"""You are generating a Program Status Report.
+Project Scope: {payload.project_key or 'ALL (Global Portfolio)'}
 Active Report Configuration: {settings.get('profile_name', 'Executive Briefing')}
 Stakeholder Perspective: {settings.get('stakeholder', 'program_manager')}
 
@@ -580,17 +587,19 @@ Strictly follow all custom instructions and settings provided in the system inst
         try:
             result = json.loads(raw)
         except json.JSONDecodeError:
-            result = _build_fallback_report(db, settings)
+            result = _build_fallback_report(db, settings, project_key=payload.project_key)
     else:
         # Fallback to local DB assessment synthesis
-        result = _build_fallback_report(db, settings)
+        result = _build_fallback_report(db, settings, project_key=payload.project_key)
 
     return {
         "skill": "generate-report",
+        "project_key": payload.project_key or "ALL",
         "settings_applied": settings,
         "profile_used": settings.get("profile_name", "Default"),
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         **result,
     }
+
 
 

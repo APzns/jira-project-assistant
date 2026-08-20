@@ -1,51 +1,143 @@
 import { $, setText, show, hide, escapeHtml, fmtDate } from "./utils.js";
 import { API_BASE, ENV, state } from "./state.js";
-import { fetchWithTimeout, fetchAssessment } from "./api.js";
+import { fetchWithTimeout, fetchAssessment, fetchStatsSummary, fetchProjects } from "./api.js";
 import { renderAssessmentTab } from "./views/assessment.js";
 import { renderStatusTab } from "./views/status.js";
 import { renderDeliveryTab } from "./views/delivery.js";
 import { renderQualityTab } from "./views/quality.js";
 import { renderStakeholdersPage, initStakeholdersEvents, showStakeholdersList, showStakeholderDetail, showStakeholderForm } from "./views/stakeholders.js";
-import { loadProjectStakeholders, initProjectStakeholdersEvents } from "./views/projects.js";
+import { renderProjectsPage, openProjectDetailByKey, initProjectsEvents } from "./views/projects.js";
+import { initAssistantPage, sendAssistantMessage } from "./views/assistant.js";
+import { renderMainPage, initMainPageEvents } from "./views/main_view.js";
+import { initChatEvents, openChatDrawer, closeChatDrawer, collapseChatDrawer, toggleChatSidebar, askAiCopilot, askQuestion } from "./chat.js";
+export { openChatDrawer, closeChatDrawer, collapseChatDrawer, toggleChatSidebar, askAiCopilot, askQuestion };
 import {
   analyzeStatus, proposeNextSteps, generateReport,
   renderAnalyzeStatus, renderProposeNextSteps, renderGenerateReport,
   renderAnalyzeStatusInTab, renderNextStepsInTab, renderGenerateReportInTab,
   openSettingsDrawer, closeSettingsDrawer,
-  saveSettings, readSettingsForm,
-  populatePaSettings, readPaSettingsForm, saveComposerTemplate
+  loadSettings, saveSettings, resetSettings, readSettingsForm,
+  populatePaSettings, readPaAiSettingsForm, readPaSettingsForm, saveComposerTemplate,
+  renderReportsPage, openReportDetail
 } from "./skills.js";
 
 /* ---------- Main Navigation Router ---------- */
 function navigate(hash) {
-  if (!hash || hash === "#") hash = "#main";
-  const parts = hash.replace("#", "").split("/");
-  const navKey = parts[0];
+  if (!hash || hash === "#" || hash === "#main" || hash === "#home" || hash === "#main-view") hash = "#main";
+  const cleanHash = hash.replace(/^#\/?/, "");
+  const parts = cleanHash.split("/");
+  let navKey = parts[0] || "main";
   const subRoute = parts[1];
 
-  const btn = document.querySelector(`.sidebar-nav .nav-btn[data-nav="${navKey}"]`);
-  if (!btn) return;
+  const brandBtn = $("sidebar-brand-btn");
+  let btn = document.querySelector(`.sidebar-nav .nav-btn[data-nav="${navKey}"]`);
+
+  if (navKey === "main") {
+    if (brandBtn) brandBtn.classList.add("active");
+  } else {
+    if (brandBtn) brandBtn.classList.remove("active");
+  }
+
+  if (!btn && navKey !== "main") {
+    navKey = "main";
+    btn = document.querySelector(`.sidebar-nav .nav-btn[data-nav="main"]`);
+    if (brandBtn) brandBtn.classList.add("active");
+  }
 
   document.querySelectorAll(".sidebar-nav .nav-btn").forEach(b => b.classList.remove("active"));
   document.querySelectorAll(".nav-page").forEach(p => p.classList.remove("active"));
 
-  btn.classList.add("active");
+  if (btn) btn.classList.add("active");
   const targetPage = $("page-" + navKey);
   if (targetPage) targetPage.classList.add("active");
 
-  const subTabs = $("sub-tabs");
-  if (subTabs) {
-    if (navKey === "dashboards") {
-      subTabs.style.display = "flex";
+  const headerWrap = $("dashboards-header-wrap");
+  const dirView = $("dashboards-directory-view");
+  const detailView = $("dashboards-detail-view");
+
+  // Dashboards multi-project sub-routing
+  if (navKey === "dashboards") {
+    const DASHBOARD_TABS = new Set(["assessment", "status", "delivery", "quality", "assistant"]);
+
+    if (!subRoute) {
+      // Entry mode: Show Project Dashboards Directory Hub
+      if (headerWrap) headerWrap.style.display = "none";
+      if (detailView) detailView.style.display = "none";
+      if (dirView) dirView.style.display = "block";
+      renderDashboardsDirectory();
+    } else {
+      // Specific Project Dashboard View: Show Toolbar + Tabs + Detail
+      if (dirView) dirView.style.display = "none";
+      if (headerWrap) headerWrap.style.display = "block";
+      if (detailView) detailView.style.display = "block";
+
+      let targetProject = state.currentProject || "CORE";
+      let targetTab = null;
+
+      if (DASHBOARD_TABS.has(subRoute.toLowerCase())) {
+        targetTab = subRoute.toLowerCase();
+      } else {
+        targetProject = subRoute.toUpperCase().trim();
+        if (parts[2] && DASHBOARD_TABS.has(parts[2].toLowerCase())) {
+          targetTab = parts[2].toLowerCase();
+        }
+      }
+
+      if (targetProject === "ALL") {
+        targetProject = "CORE";
+      }
+
+      state.currentProject = targetProject;
+
+      if (targetTab) {
+        const tabBtn = document.querySelector(`.tabs .tab[data-tab="${targetTab}"]`);
+        if (tabBtn) {
+          document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+          document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+          tabBtn.classList.add("active");
+          const panel = $("tab-" + targetTab);
+          if (panel) panel.classList.add("active");
+        }
+      }
+
       const activeTab = document.querySelector(".tab.active");
       if (activeTab) {
         if (activeTab.dataset.tab === "delivery" && state.teamPointsChart) state.teamPointsChart.resize();
         if (activeTab.dataset.tab === "assessment" && state.monteCarloChart) state.monteCarloChart.resize();
         if (activeTab.dataset.tab === "quality" && state.qualityByTeamChart) state.qualityByTeamChart.resize();
-        if (activeTab.dataset.tab === "assistant") populatePaSettings();
       }
+
+      populateDashboardProjectSelector().then(() => {
+        loadDashboardForProject(state.currentProject);
+      });
+    }
+  } else {
+    if (headerWrap) headerWrap.style.display = "none";
+  }
+
+  // Multi-Project Main Page
+  if (navKey === "main") {
+    renderMainPage();
+  }
+
+  // Conversational Assistant
+  if (navKey === "assistant") {
+    initAssistantPage();
+  }
+
+  // Settings Page
+  if (navKey === "settings") {
+    renderSettingsPage();
+  }
+
+  // Reports sub-routing (dedicated list view and detail view)
+  if (navKey === "reports") {
+    if (subRoute === "new") {
+      renderReportsPage().then(() => openReportDetail(null));
+    } else if (subRoute) {
+      renderReportsPage().then(() => openReportDetail(subRoute));
     } else {
-      subTabs.style.display = "none";
+      renderReportsPage();
     }
   }
 
@@ -64,47 +156,370 @@ function navigate(hash) {
 
   // Projects sub-routing
   if (navKey === "projects") {
-    const pList = $("projects-list-view");
-    const pDetail = $("project-detail-view");
-    if (subRoute && pList && pDetail) {
-      const card = document.querySelector(`.project-card[data-key="${subRoute}"]`);
-      if (card) openProjectDetail(card);
-    } else if (pList && pDetail) {
-      pDetail.style.display = "none";
-      pList.style.display = "block";
+    if (subRoute) {
+      openProjectDetailByKey(subRoute);
+    } else {
+      const pList = $("projects-list-view");
+      const pDetail = $("project-detail-view");
+      if (pDetail) pDetail.style.display = "none";
+      if (pList) pList.style.display = "block";
+      renderProjectsPage();
     }
   }
 }
 
-document.querySelectorAll(".sidebar-nav .nav-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    window.location.hash = btn.dataset.nav;
-  });
-});
 
-window.addEventListener("hashchange", () => navigate(window.location.hash));
-document.addEventListener("DOMContentLoaded", () => {
-  initStakeholdersEvents();
-  initProjectStakeholdersEvents();
-  navigate(window.location.hash);
-});
+/* ---------- Sidebar Navigation Events ---------- */
+function initSidebarNav() {
+  const sidebarNav = document.querySelector(".sidebar-nav");
+  if (sidebarNav) {
+    sidebarNav.addEventListener("click", (e) => {
+      const btn = e.target.closest(".nav-btn");
+      if (!btn) return;
+      e.preventDefault();
+      const navKey = btn.dataset.nav;
+      if (!navKey) return;
+
+      const targetHash = `#${navKey}`;
+      if (window.location.hash === targetHash) {
+        navigate(targetHash);
+      } else {
+        window.location.hash = targetHash;
+      }
+    });
+  }
+
+  const brandBtn = $("sidebar-brand-btn");
+  if (brandBtn) {
+    brandBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (window.location.hash === "#main" || window.location.hash === "" || window.location.hash === "#") {
+        navigate("#main");
+      } else {
+        window.location.hash = "#main";
+      }
+    });
+  }
+
+  const topbarBrandBtn = $("topbar-brand-btn");
+  if (topbarBrandBtn) {
+    topbarBrandBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (window.location.hash === "#main" || window.location.hash === "" || window.location.hash === "#") {
+        navigate("#main");
+      } else {
+        window.location.hash = "#main";
+      }
+    });
+    topbarBrandBtn.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        window.location.hash = "#main";
+      }
+    });
+  }
+}
 
 /* ---------- Tab switching (inside Dashboards) ---------- */
-document.querySelectorAll(".tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-    tab.classList.add("active");
-    const panel = $("tab-" + tab.dataset.tab);
-    if (panel) panel.classList.add("active");
+function initTabSwitching() {
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      tab.classList.add("active");
+      const panel = $("tab-" + tab.dataset.tab);
+      if (panel) panel.classList.add("active");
 
-    if (tab.dataset.tab === "delivery" && state.teamPointsChart) state.teamPointsChart.resize();
-    if (tab.dataset.tab === "assessment" && state.monteCarloChart) state.monteCarloChart.resize();
-    if (tab.dataset.tab === "quality" && state.qualityByTeamChart) state.qualityByTeamChart.resize();
-    // Load PA settings into embedded form when the tab is first activated
-    if (tab.dataset.tab === "assistant") populatePaSettings();
+      if (tab.dataset.tab === "delivery" && state.teamPointsChart) state.teamPointsChart.resize();
+      if (tab.dataset.tab === "assessment" && state.monteCarloChart) state.monteCarloChart.resize();
+      if (tab.dataset.tab === "quality" && state.qualityByTeamChart) state.qualityByTeamChart.resize();
+      // Load PA settings into embedded form when the tab is first activated
+      if (tab.dataset.tab === "assistant") populatePaSettings();
+    });
   });
-});
+}
+
+window.addEventListener("hashchange", () => navigate(window.location.hash));
+
+function onReady() {
+  initSidebarNav();
+  initTabSwitching();
+  initMainPageEvents();
+  initStakeholdersEvents();
+  initProjectsEvents();
+  initDashboardsDirectoryEvents();
+
+  $("dashboard-project-select")?.addEventListener("change", (e) => {
+    const newKey = e.target.value;
+    if (newKey) {
+      state.currentProject = newKey;
+      window.location.hash = `dashboards/${newKey}`;
+    }
+  });
+
+  $("dashboard-btn-project-overview")?.addEventListener("click", () => {
+    const pkey = state.currentProject;
+    if (!pkey || pkey === "ALL") {
+      window.location.hash = "#projects";
+    } else {
+      window.location.hash = `#projects/${pkey}`;
+    }
+  });
+
+  $("assess-button")?.addEventListener("click", () => {
+    loadDashboardForProject(state.currentProject || "CORE", true);
+  });
+
+  navigate(window.location.hash || "#main");
+}
+
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", onReady);
+} else {
+  onReady();
+}
+
+/* ---------- Dashboards Directory (Operational Telemetry Hub) ---------- */
+let _telemetryProjectsList = [];
+let _telemetryFilterQuery = "";
+let _telemetrySortMode = "default";
+
+function initDashboardsDirectoryEvents() {
+  const searchInput = $("dashboards-dir-search-input");
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      _telemetryFilterQuery = e.target.value;
+      applyDashboardsDirectoryFilter();
+    });
+  }
+
+  // Sort pills
+  document.querySelectorAll("#telemetry-sort-pills .telemetry-pill").forEach(pill => {
+    pill.addEventListener("click", () => {
+      document.querySelectorAll("#telemetry-sort-pills .telemetry-pill").forEach(p => p.classList.remove("active"));
+      pill.classList.add("active");
+      _telemetrySortMode = pill.dataset.sort || "default";
+      applyDashboardsDirectoryFilter();
+    });
+  });
+
+  $("dashboard-btn-back-dir")?.addEventListener("click", () => {
+    window.location.hash = "dashboards";
+  });
+}
+
+async function renderDashboardsDirectory() {
+  const container = $("dashboards-telemetry-container");
+  if (!container) return;
+
+  try {
+    const res = await fetchWithTimeout(`${API_BASE}/stats/telemetry`, { credentials: "include" });
+    if (res.ok) {
+      const data = await res.json();
+      _telemetryProjectsList = data.telemetry || [];
+    } else {
+      // Fallback to cached projects
+      if (!state.projectsCache || state.projectsCache.length === 0) {
+        const pRes = await fetchProjects(false);
+        state.projectsCache = pRes.projects || [];
+      }
+      _telemetryProjectsList = state.projectsCache || [];
+    }
+  } catch (err) {
+    console.error("Failed to load telemetry for dashboards hub:", err);
+    if (state.projectsCache) _telemetryProjectsList = state.projectsCache;
+  }
+
+  applyDashboardsDirectoryFilter();
+}
+
+function applyDashboardsDirectoryFilter() {
+  const container = $("dashboards-telemetry-container");
+  if (!container) return;
+
+  const query = (_telemetryFilterQuery || "").toLowerCase().trim();
+  let list = [..._telemetryProjectsList];
+
+  // Apply search query
+  if (query) {
+    list = list.filter(p => {
+      const name = (p.name || "").toLowerCase();
+      const key = (p.key || "").toLowerCase();
+      const lead = (p.lead || "").toLowerCase();
+      const tags = (p.tags || []).join(" ").toLowerCase();
+      return name.includes(query) || key.includes(query) || lead.includes(query) || tags.includes(query);
+    });
+  }
+
+  // Apply sorting
+  if (_telemetrySortMode === "delay") {
+    list.sort((a, b) => (b.mc_delay_days || 0) - (a.mc_delay_days || 0));
+  } else if (_telemetrySortMode === "predictability") {
+    list.sort((a, b) => (a.predictability_pct || 0) - (b.predictability_pct || 0));
+  } else if (_telemetrySortMode === "defects") {
+    list.sort((a, b) => (b.unresolved_bugs || 0) - (a.unresolved_bugs || 0));
+  } else if (_telemetrySortMode === "ontrack") {
+    list = list.filter(p => (p.status || "").toLowerCase() === "on-track");
+  }
+
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div class="main-empty-placeholder muted" style="padding: 40px; text-align: center;">
+        No project telemetry found matching your criteria.
+      </div>
+    `;
+    return;
+  }
+
+  const STATUS_MAP = {
+    "on-track": { label: "ON TRACK", badgeClass: "p-status-ok", progressClass: "p-fill-ok" },
+    "at-risk": { label: "AT RISK", badgeClass: "p-status-warn", progressClass: "p-fill-warn" },
+    "delayed": { label: "DELAYED", badgeClass: "p-status-warn", progressClass: "p-fill-warn" },
+    "planning": { label: "IN PLANNING", badgeClass: "p-status-ok", progressClass: "p-fill-ok" },
+    "completed": { label: "COMPLETED", badgeClass: "p-status-ok", progressClass: "p-fill-ok" }
+  };
+
+  let html = `<div class="dashboards-telemetry-grid">`;
+  list.forEach(p => {
+    const statusCfg = STATUS_MAP[p.status] || { label: (p.status || "on-track").toUpperCase(), badgeClass: "p-status-ok", progressClass: "p-fill-ok" };
+    const pct = Math.min(100, Math.max(0, p.progress_pct || 0));
+    const delayDays = p.mc_delay_days || 0;
+    const predPct = (p.predictability_pct !== undefined && p.predictability_pct !== null) ? p.predictability_pct : null;
+    const bugs = p.unresolved_bugs || 0;
+    const blockers = p.blockers_count || 0;
+    const tagsHtml = (p.tags || []).slice(0, 3).map(t => `<span class="proj-mini-tag">${escapeHtml(t)}</span>`).join("");
+
+    // Forecast label
+    let forecastLabel = "On-Time";
+    let forecastClass = "ontrack";
+    if (delayDays > 0) {
+      forecastLabel = `+${delayDays}d Delay`;
+      forecastClass = "delayed";
+    } else if (delayDays < 0) {
+      forecastLabel = `${Math.abs(delayDays)}d Buffer`;
+      forecastClass = "ontrack";
+    }
+
+    // Predictability badge
+    let predClass = "high";
+    let predLabel = "Predictable";
+    let predDisplay = `${predPct}% (${predLabel})`;
+    if (predPct === null) {
+      predClass = "neutral";
+      predLabel = "Pending Sprints";
+      predDisplay = "N/A (No Closed Sprints)";
+    } else if (predPct < 50) {
+      predClass = "low";
+      predLabel = "Volatile";
+      predDisplay = `${predPct}% (${predLabel})`;
+    } else if (predPct < 75) {
+      predClass = "mid";
+      predLabel = "Moderate";
+      predDisplay = `${predPct}% (${predLabel})`;
+    }
+
+    html += `
+      <div class="telemetry-card" data-key="${escapeHtml(p.key)}">
+        <div class="telemetry-card-top">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="p-key-badge">${escapeHtml(p.key)}</span>
+            <span class="muted" style="font-size: 12px; font-weight: 600;">${escapeHtml(p.lead || "Unassigned")}</span>
+          </div>
+          <span class="p-status-tag ${statusCfg.badgeClass}">
+            <span class="p-status-dot"></span>
+            ${statusCfg.label}
+          </span>
+        </div>
+
+        <h3 class="telemetry-card-title">${escapeHtml(p.name)}</h3>
+        <p class="telemetry-card-desc">${escapeHtml(p.description || "Operational telemetry stream.")}</p>
+
+        <!-- 4-Box Telemetry Matrix -->
+        <div class="telemetry-metrics-matrix">
+          <div class="telemetry-metric-box">
+            <span class="telemetry-box-label">Monte Carlo Forecast</span>
+            <span class="mc-delay-tag ${forecastClass}">
+              ${forecastClass === "delayed" ? "⚠️" : "🎯"} ${forecastLabel}
+            </span>
+            <span class="muted" style="font-size: 11px;">P50: ${p.mc_p50_date ? escapeHtml(p.mc_p50_date) : "Target"}</span>
+          </div>
+
+          <div class="telemetry-metric-box">
+            <span class="telemetry-box-label">Predictability</span>
+            <span class="pred-score-tag ${predClass}">
+              📊 ${predDisplay}
+            </span>
+            <span class="muted" style="font-size: 11px;">Commit vs Done</span>
+          </div>
+
+          <div class="telemetry-metric-box">
+            <span class="telemetry-box-label">Quality Defects</span>
+            <span class="telemetry-box-val" style="color: ${bugs > 0 ? 'var(--amber, #f59e0b)' : 'var(--text)'};">
+              🐛 ${bugs} ${bugs === 1 ? 'Open Bug' : 'Open Bugs'}
+            </span>
+            <span class="muted" style="font-size: 11px;">Active issues</span>
+          </div>
+
+          <div class="telemetry-metric-box">
+            <span class="telemetry-box-label">Cross-Team Blockers</span>
+            <span class="telemetry-box-val" style="color: ${blockers > 0 ? '#ef4444' : 'var(--text)'};">
+              🔒 ${blockers} ${blockers === 1 ? 'Blocker' : 'Blockers'}
+            </span>
+            <span class="muted" style="font-size: 11px;">Dependency link</span>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div style="margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px;">
+            <span>Scope Delivery: <strong>${pct}%</strong></span>
+            <span class="muted">${escapeHtml(p.progress_sp || "")}</span>
+          </div>
+          <div class="main-proj-progress-bar" style="height: 6px;">
+            <div class="main-proj-progress-fill ${statusCfg.progressClass}" style="width: ${pct}%;"></div>
+          </div>
+        </div>
+
+        <div class="telemetry-card-footer">
+          <div class="main-proj-tags">${tagsHtml}</div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" class="btn-secondary btn-p-goto-details" data-key="${escapeHtml(p.key)}" title="View Project Charter & RACI">
+              📁 Charter &amp; RACI
+            </button>
+            <button type="button" class="btn-open-project-dashboard" data-key="${escapeHtml(p.key)}" title="Open ${escapeHtml(p.key)} Live Dashboard">
+              📊 Open Dashboard →
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  html += `</div>`;
+
+  container.innerHTML = html;
+
+  // Wire click events
+  container.querySelectorAll(".btn-open-project-dashboard, .telemetry-card").forEach(el => {
+    el.addEventListener("click", (e) => {
+      if (e.target.closest(".btn-p-goto-details")) return;
+      const key = el.dataset.key || el.closest(".telemetry-card")?.dataset.key;
+      if (key) {
+        window.location.hash = `dashboards/${key}`;
+      }
+    });
+  });
+
+  container.querySelectorAll(".btn-p-goto-details").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const key = btn.dataset.key;
+      if (key) {
+        window.location.hash = `projects/${key}`;
+      }
+    });
+  });
+}
 
 /* ---------- Projects Filter & Search ---------- */
 function initProjectsFilter() {
@@ -148,43 +563,133 @@ function initProjectsFilter() {
 initProjectsFilter();
 
 /* ---------- Master Render ---------- */
-function renderAll(d) {
+function renderAll(d, projectKey = "ALL", projectObj = null) {
   if (!d) return;
-  renderAssessmentTab(d);
-  renderStatusTab(d);
-  renderDeliveryTab(d);
-  renderQualityTab(d);
+  renderAssessmentTab(d, projectKey, projectObj);
+  renderStatusTab(d, projectKey, projectObj);
+  renderDeliveryTab(d, projectKey, projectObj);
+  renderQualityTab(d, projectKey, projectObj);
 }
 
-/* ---------- Loaders ---------- */
-async function loadCachedAssessment(mode = "real") {
+/* ---------- Project Dashboard Selector & Loaders ---------- */
+async function populateDashboardProjectSelector() {
+  const select = $("dashboard-project-select");
+  if (!select) return;
+
   try {
-    const d = await fetchAssessment(mode, false);
-    if (d.cached === false) show("assess-empty");
-    else renderAll(d);
+    if (!state.projectsCache || state.projectsCache.length === 0) {
+      const res = await fetchProjects(true);
+      state.projectsCache = res.projects || [];
+    }
   } catch (e) {
-    console.error("Assessment load/render failed:", e);
-    setText("assess-error", "Could not load the assessment: " + e.message);
-    show("assess-error");
+    console.error("Failed to load projects list for dropdown:", e);
   }
+
+  const projects = state.projectsCache || [];
+  let currentVal = state.currentProject;
+  if (!currentVal || currentVal === "ALL" || !projects.some(p => p.key.toUpperCase() === currentVal.toUpperCase())) {
+    currentVal = projects.length > 0 ? projects[0].key : "CORE";
+    state.currentProject = currentVal;
+  }
+
+  let optionsHtml = "";
+  projects.forEach(p => {
+    const isArchived = Boolean(p.archived);
+    optionsHtml += `<option value="${escapeHtml(p.key)}" ${p.key.toUpperCase() === currentVal.toUpperCase() ? "selected" : ""}>
+      ${escapeHtml(p.name)} (${escapeHtml(p.key)})${isArchived ? " [Archived]" : ""}
+    </option>`;
+  });
+
+  select.innerHTML = optionsHtml;
+  select.value = currentVal;
+  updateDashboardProjectMeta(currentVal);
+}
+
+function updateDashboardProjectMeta(projectKey) {
+  const keyPill = $("dashboard-meta-key");
+  const statusPill = $("dashboard-meta-status");
+  const leadEl = $("dashboard-meta-lead");
+  const releaseEl = $("dashboard-meta-release");
+
+  const projectObj = (state.projectsCache || []).find(p => p.key.toUpperCase() === (projectKey || "").toUpperCase());
+
+  if (keyPill) keyPill.textContent = projectKey || "ALL";
+  
+  if (statusPill) {
+    if (!projectObj || projectKey === "ALL") {
+      statusPill.className = "dashboards-meta-pill status-pill on-track";
+      statusPill.textContent = "Portfolio Active";
+    } else {
+      const st = (projectObj.status || "on-track").toLowerCase();
+      statusPill.className = `dashboards-meta-pill status-pill ${st}`;
+      statusPill.textContent = st.replace("-", " ").toUpperCase();
+    }
+  }
+
+  if (leadEl) {
+    leadEl.textContent = (projectObj && projectObj.lead) ? projectObj.lead : (projectKey === "ALL" ? "Portfolio PMO" : "Project Lead");
+  }
+
+  if (releaseEl) {
+    releaseEl.textContent = (projectObj && projectObj.target_release) ? projectObj.target_release : (projectKey === "ALL" ? "Multi-Release" : "Target Release");
+  }
+}
+
+async function loadDashboardForProject(projectKey = "ALL", forceRefresh = false) {
+  state.currentProject = projectKey;
+  updateDashboardProjectMeta(projectKey);
+
+  const btn = $("assess-button");
+  if (forceRefresh && btn) {
+    btn.disabled = true;
+    btn.textContent = "Analyzing…";
+  }
+
+  const mode = ($("mode-toggle") && $("mode-toggle").checked) ? "synthetic" : "real";
+  const cacheKey = `${mode}_${projectKey}`;
+
+  // Check client-side in-memory cache first for instant project switching
+  if (!forceRefresh && state.dashboardDataCache && state.dashboardDataCache[cacheKey]) {
+    const d = state.dashboardDataCache[cacheKey];
+    const projectObj = (state.projectsCache || []).find(p => p.key.toUpperCase() === (projectKey || "").toUpperCase());
+    renderAll(d, projectKey, projectObj);
+    return;
+  }
+
+  try {
+    const d = await fetchAssessment(mode, forceRefresh, projectKey);
+    const projectObj = (state.projectsCache || []).find(p => p.key.toUpperCase() === (projectKey || "").toUpperCase());
+
+    if (d && !d.error) {
+      if (!state.dashboardDataCache) state.dashboardDataCache = {};
+      state.dashboardDataCache[cacheKey] = d;
+      renderAll(d, projectKey, projectObj);
+    } else if (d && d.error) {
+      setText("assess-error", "Error: " + d.error);
+      show("assess-error");
+    } else {
+      show("assess-empty");
+    }
+  } catch (e) {
+    console.error(`Dashboard load failed for project ${projectKey}:`, e);
+    setText("assess-error", `Could not load assessment for project ${projectKey}: ` + e.message);
+    show("assess-error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Refresh report";
+    }
+  }
+}
+
+async function loadCachedAssessment(mode = "real") {
+  return loadDashboardForProject(state.currentProject || "CORE", false);
 }
 
 async function refreshAssessment() {
-  const btn = $("assess-button");
-  if (btn) { btn.disabled = true; btn.textContent = "Analyzing…"; }
-  const mode = ($("mode-toggle") && $("mode-toggle").checked) ? "synthetic" : "real";
-  try {
-    const d = await fetchAssessment(mode, true);
-    if (d.error) { setText("assess-error", "Error: " + d.error); show("assess-error"); }
-    else renderAll(d);
-  } catch (e) {
-    console.error("Assessment refresh failed:", e);
-    setText("assess-error", "Could not reach the API: " + e.message);
-    show("assess-error");
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = "Refresh report"; }
-  }
+  return loadDashboardForProject(state.currentProject || "CORE", true);
 }
+
 
 async function loadFreshness() {
   try {
@@ -195,213 +700,7 @@ async function loadFreshness() {
   } catch (e) { /* leave default */ }
 }
 
-/* ---------- Chat Sidebar ---------- */
-export function openChatDrawer() {
-  const drawer = $("chat-drawer");
-  const fab = $("chat-fab-btn");
-  if (drawer) {
-    drawer.classList.add("open");
-    drawer.classList.remove("collapsed", "closed");
-  }
-  if (fab) fab.classList.add("hidden");
-  setTimeout(() => {
-    const input = $("ask-input");
-    if (input) input.focus();
-    window.dispatchEvent(new Event("resize"));
-  }, 150);
-}
-
-export function collapseChatDrawer() {
-  const drawer = $("chat-drawer");
-  const fab = $("chat-fab-btn");
-  if (drawer) {
-    drawer.classList.add("collapsed");
-    drawer.classList.remove("open", "closed");
-  }
-  if (fab) fab.classList.add("hidden");
-  setTimeout(() => {
-    window.dispatchEvent(new Event("resize"));
-  }, 150);
-}
-
-export function closeChatDrawer() {
-  const drawer = $("chat-drawer");
-  const fab = $("chat-fab-btn");
-  if (drawer) {
-    drawer.classList.add("closed");
-    drawer.classList.remove("open", "collapsed");
-  }
-  if (fab) fab.classList.remove("hidden");
-  setTimeout(() => {
-    window.dispatchEvent(new Event("resize"));
-  }, 150);
-}
-
-export function toggleChatSidebar() {
-  const drawer = $("chat-drawer");
-  if (drawer && drawer.classList.contains("open") && !drawer.classList.contains("collapsed") && !drawer.classList.contains("closed")) {
-    closeChatDrawer();
-  } else {
-    openChatDrawer();
-  }
-}
-
-function _getActiveTab() {
-  const active = document.querySelector(".tab.active");
-  return active ? (active.dataset.tab || null) : null;
-}
-
-async function askQuestion(inputId, buttonId) {
-  const errorDiv = $("ask-error");
-  if (errorDiv) hide("ask-error");
-
-  const input = $(inputId);
-  const btn = $(buttonId);
-  if (!input || !btn) return;
-  const q = input.value.trim();
-  if (!q) return;
-
-  if (q.length > 500) {
-    if (errorDiv) {
-      errorDiv.textContent = "Error: Input exceeds maximum length of 500 characters.";
-      show("ask-error");
-    }
-    return;
-  }
-
-  const blockedKeywords = /ignore\s*(all)?\s*previous\s*instructions|forget\s*your\s*instructions|system\s*prompt|you\s*are\s*now\s*a/i;
-  if (blockedKeywords.test(q)) {
-    if (errorDiv) {
-      errorDiv.textContent = "Error: Your message contains blocked keywords and cannot be processed.";
-      show("ask-error");
-    }
-    return;
-  }
-
-  const now = Date.now();
-  if (state.lastAskTime && now - state.lastAskTime < 3000) {
-    if (errorDiv) {
-      errorDiv.textContent = "Error: Please wait a few seconds before asking again.";
-      show("ask-error");
-    }
-    return;
-  }
-  state.lastAskTime = now;
-
-  openChatDrawer();
-
-  btn.disabled = true;
-  const original = btn.textContent;
-  btn.textContent = "Thinking…";
-
-  const entryId = "qa-" + Date.now();
-  addHistoryEntry(entryId, q, "Thinking…");
-  input.value = "";
-
-  const historyPayload = state.askHistory.slice(-5);
-  const contextTab = _getActiveTab();
-
-  try {
-    const res = await fetchWithTimeout(`${API_BASE}/ask`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        question: q,
-        history: historyPayload.length ? historyPayload : undefined,
-        context: contextTab || undefined,
-      }),
-    });
-    const d = await res.json();
-    const answer = d.error ? ("⚠️ " + d.error) : (d.answer || "No answer returned.");
-    updateHistoryEntry(entryId, answer, d.rows || [], d.skill_used || null);
-    state.askHistory.push({ question: q, answer });
-    if (state.askHistory.length > 10) state.askHistory.shift();
-  } catch (e) {
-    updateHistoryEntry(entryId, "⚠️ Could not reach the API. Is the server running?", []);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = original;
-  }
-}
-
-function addHistoryEntry(entryId, question, answerText) {
-  const container = $("ask-history");
-  if (!container) return;
-  const time = new Date().toLocaleTimeString();
-  const html =
-    `<details class="qa" open data-entry="${entryId}">
-       <summary><span class="qa-q">${escapeHtml(question)}</span>
-                <span class="qa-time">${time}</span></summary>
-       <div class="qa-a">${escapeHtml(answerText)}</div>
-     </details>`;
-  container.insertAdjacentHTML("beforeend", html);
-  container.scrollTop = container.scrollHeight;
-}
-
-function updateHistoryEntry(entryId, answerText, rows, skillUsed) {
-  document.querySelectorAll(`[data-entry="${entryId}"] .qa-a`)
-    .forEach(el => {
-      const aiHtml = window.marked
-        ? marked.parse(answerText)
-        : escapeHtml(answerText);
-
-      const tableHtml = (rows && rows.length > 10)
-        ? _renderRowsTable(rows)
-        : "";
-
-      const skillBadge = skillUsed
-        ? `<div class="skill-used-badge">✨ Answered using: <strong>${escapeHtml(skillUsed)}</strong> skill</div>`
-        : "";
-
-      el.innerHTML = skillBadge + aiHtml + tableHtml;
-    });
-
-  const container = $("ask-history");
-  if (container) container.scrollTop = container.scrollHeight;
-}
-
-function _renderRowsTable(rows) {
-  if (!rows || !rows.length) return "";
-  const cols = Object.keys(rows[0]);
-  const header = cols.map(c => `<th>${escapeHtml(String(c).replace(/_/g, " "))}</th>`).join("");
-  const body = rows.map(row =>
-    `<tr>${cols.map(c => `<td>${escapeHtml(String(row[c] ?? ""))}</td>`).join("")}</tr>`
-  ).join("");
-  return `
-<details class="qa-table-details">
-  <summary class="qa-table-toggle">Show all ${rows.length} rows ▾</summary>
-  <div class="qa-table-scroll">
-    <table class="qa-table">
-      <thead><tr>${header}</tr></thead>
-      <tbody>${body}</tbody>
-    </table>
-  </div>
-</details>`;
-}
-
-function wireAsk(inputId, buttonId) {
-  const btn = $(buttonId);
-  const input = $(inputId);
-  if (btn) btn.addEventListener("click", () => askQuestion(inputId, buttonId));
-  if (input) input.addEventListener("keydown", e => { if (e.key === "Enter") askQuestion(inputId, buttonId); });
-
-  const toggleBtn = $("chat-toggle-btn");
-  const fabBtn = $("chat-fab-btn");
-  const collapseBtn = $("chat-collapse-btn");
-  const expandRailBtn = $("chat-collapsed-rail");
-  const closeBtn = $("chat-close-btn");
-
-  if (toggleBtn) toggleBtn.addEventListener("click", toggleChatSidebar);
-  if (fabBtn) fabBtn.addEventListener("click", openChatDrawer);
-  if (collapseBtn) collapseBtn.addEventListener("click", collapseChatDrawer);
-  if (expandRailBtn) expandRailBtn.addEventListener("click", openChatDrawer);
-  if (closeBtn) closeBtn.addEventListener("click", closeChatDrawer);
-
-  document.addEventListener("keydown", e => {
-    if (e.key === "Escape" && document.activeElement === input) collapseChatDrawer();
-  });
-}
-
+/* ---------- App Initialization & Documentation ---------- */
 async function loadDocs() {
   try {
     const res = await fetchWithTimeout(`${API_BASE}/docs-data`);
@@ -431,7 +730,7 @@ if (assessBtn) {
   }
 }
 
-wireAsk("ask-input", "ask-button");
+initChatEvents("ask-input", "ask-button");
 loadFreshness();
 loadCachedAssessment("real");
 loadDocs();
@@ -552,13 +851,13 @@ if (paBtnAnalyze) {
       const data = await analyzeStatus();
       renderAnalyzeStatusInTab(data);
     } catch (e) {
-      const content = $("pa-results-content");
-      const placeholder = $("pa-placeholder");
+      const content = $("pa-tab-results-content") || $("pa-results-content");
+      const placeholder = $("pa-tab-placeholder") || $("pa-placeholder");
       if (content) {
         if (placeholder) placeholder.style.display = "none";
         content.innerHTML = `<p class="skill-empty">⚠️ ${escapeHtml(e.message)}</p>`;
         content.style.display = "block";
-        $("pa-results")?.classList.remove("pa-results--empty");
+        ($("pa-tab-results") || $("pa-results"))?.classList.remove("pa-results--empty");
       }
     } finally {
       _setPaBtnLoading("pa-btn-analyze", false, "Run");
@@ -576,13 +875,13 @@ if (paBtnNext) {
       const data = await proposeNextSteps();
       renderNextStepsInTab(data);
     } catch (e) {
-      const content = $("pa-results-content");
-      const placeholder = $("pa-placeholder");
+      const content = $("pa-tab-results-content") || $("pa-results-content");
+      const placeholder = $("pa-tab-placeholder") || $("pa-placeholder");
       if (content) {
         if (placeholder) placeholder.style.display = "none";
         content.innerHTML = `<p class="skill-empty">⚠️ ${escapeHtml(e.message)}</p>`;
         content.style.display = "block";
-        $("pa-results")?.classList.remove("pa-results--empty");
+        ($("pa-tab-results") || $("pa-results"))?.classList.remove("pa-results--empty");
       }
     } finally {
       _setPaBtnLoading("pa-btn-nextsteps", false, "Run");
@@ -608,7 +907,7 @@ if (paSaveBtn) {
     paSaveBtn.textContent = "Saving…";
     if (msgEl) msgEl.textContent = "";
     try {
-      const newSettings = readPaSettingsForm();
+      const newSettings = readPaAiSettingsForm();
       await saveSettings(newSettings);
       if (msgEl) { msgEl.textContent = "✓ Saved."; msgEl.className = "settings-save-msg settings-save-msg--ok"; }
       setTimeout(() => { if (msgEl) msgEl.textContent = ""; }, 2000);
@@ -620,31 +919,49 @@ if (paSaveBtn) {
     }
   });
 }
-// — Generate Report from settings panel
+
+// — Generate Report from settings panel / process flow
+async function handleGenerateReportClick() {
+  const btns = [ $("pa-btn-generate-report"), $("pa-btn-generate-bottom") ].filter(Boolean);
+  btns.forEach(b => { b.disabled = true; b.textContent = "Generating..."; });
+
+  try {
+    const payload = readPaSettingsForm();
+    const apiPayload = {
+      profile_id: payload.template_id === "custom" ? undefined : payload.template_id,
+      project_key: payload.project_scope === "ALL" ? undefined : payload.project_scope,
+      settings_override: {
+        stakeholder_ids: payload.stakeholder_ids,
+        stakeholder_notes: payload.stakeholder_notes,
+        blocks: payload.blocks,
+        focus_epics: payload.project_scope === "ALL" ? [] : [payload.project_scope]
+      }
+    };
+    const data = await generateReport(apiPayload);
+    renderGenerateReportInTab(data);
+  } catch (e) {
+    console.error(e);
+    alert("Error generating report: " + e.message);
+  } finally {
+    btns.forEach(b => {
+      b.disabled = false;
+      if (b.id === "pa-btn-generate-bottom") {
+        b.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Generate Report Digest`;
+      } else {
+        b.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Generate Report`;
+      }
+    });
+  }
+}
+
 const paBtnGenerateReport = $("pa-btn-generate-report");
 if (paBtnGenerateReport) {
-  paBtnGenerateReport.addEventListener("click", async () => {
-    paBtnGenerateReport.disabled = true;
-    paBtnGenerateReport.textContent = "Generating...";
-    try {
-      const payload = readPaSettingsForm();
-      const apiPayload = {
-          profile_id: payload.template_id === "__composer__" ? undefined : payload.template_id,
-          settings_override: {
-              stakeholder_notes: payload.stakeholder_notes,
-              blocks: payload.blocks
-          }
-      };
-      const data = await generateReport(apiPayload);
-      renderGenerateReportInTab(data);
-    } catch (e) {
-      console.error(e);
-      alert("Error generating report: " + e.message);
-    } finally {
-      paBtnGenerateReport.disabled = false;
-      paBtnGenerateReport.textContent = "🚀 Generate Report";
-    }
-  });
+  paBtnGenerateReport.addEventListener("click", handleGenerateReportClick);
+}
+
+const paBtnGenerateBottom = $("pa-btn-generate-bottom");
+if (paBtnGenerateBottom) {
+  paBtnGenerateBottom.addEventListener("click", handleGenerateReportClick);
 }
 
 // — PA Composer Save
@@ -668,56 +985,123 @@ if (paBtnComposerSave) {
   });
 }
 
-// — Project Detail View Logic
-const projectsListView = $("projects-list-view");
-const projectDetailView = $("project-detail-view");
+// — Project Back Button Logic
 const btnBackProjects = $("btn-back-projects");
-
-function openProjectDetail(card) {
-  // Extract data
-  const title = card.querySelector(".p-title")?.textContent || "Project Detail";
-  const desc = card.querySelector(".p-desc")?.textContent || "";
-  const statusBadge = card.querySelector(".p-status-tag")?.outerHTML || "";
-  const keyBadge = card.querySelector(".p-key-badge")?.textContent || "";
-  const progressWrap = card.querySelector(".p-progress-wrap")?.outerHTML || "";
-  const metaGrid = card.querySelector(".p-meta-grid")?.innerHTML || "";
-  const tags = card.querySelector(".p-tags")?.innerHTML || "";
-
-  // Populate Detail View
-  $("pd-title").textContent = title;
-  $("pd-desc").textContent = desc;
-  $("pd-badge").textContent = keyBadge;
-  $("pd-status").innerHTML = statusBadge;
-  $("pd-progress-container").innerHTML = progressWrap;
-  $("pd-meta-container").innerHTML = metaGrid;
-  $("pd-tags").innerHTML = tags;
-
-  // Load project stakeholders and RACI matrix
-  const projectKey = card.dataset.key || keyBadge;
-  if (projectKey) {
-    loadProjectStakeholders(projectKey);
-  }
-
-  // Toggle Views
-  projectsListView.style.display = "none";
-  projectDetailView.style.display = "block";
-  
-  // Scroll to top
-  window.scrollTo(0,0);
-}
-
-if (projectsListView && projectDetailView && btnBackProjects) {
-  // Bind all Project Cards to update hash
-  document.querySelectorAll(".project-card").forEach(card => {
-    card.style.cursor = "pointer";
-    card.addEventListener("click", () => {
-      const keyBadge = card.dataset.key;
-      if (keyBadge) window.location.hash = `projects/${keyBadge}`;
-    });
-  });
-
-  // Bind Back Button to update hash
+if (btnBackProjects) {
   btnBackProjects.addEventListener("click", () => {
     window.location.hash = "projects";
   });
 }
+
+/* ============================================================
+   SETTINGS PAGE MANAGEMENT
+   ============================================================ */
+
+export async function renderSettingsPage() {
+  try {
+    const settings = await loadSettings();
+    
+    const shSelect = $("page-settings-stakeholder");
+    if (shSelect) shSelect.value = settings.stakeholder || "program_manager";
+    
+    const minSevSelect = $("page-settings-min-severity");
+    if (minSevSelect) minSevSelect.value = settings.min_risk_severity || "medium";
+    
+    const verbSelect = $("page-settings-verbosity");
+    if (verbSelect) verbSelect.value = settings.summary_verbosity || "brief";
+    
+    const teamsInput = $("page-settings-focus-teams");
+    if (teamsInput) teamsInput.value = (settings.focus_teams || []).join(", ");
+    
+    const epicsInput = $("page-settings-focus-epics");
+    if (epicsInput) epicsInput.value = (settings.focus_epics || []).join(", ");
+    
+    const instructionsInput = $("page-settings-instructions");
+    if (instructionsInput) instructionsInput.value = settings.custom_instructions || "";
+
+    const cats = settings.risk_categories || ["dependency", "velocity", "overcommitment"];
+    ["dependency", "velocity", "overcommitment"].forEach(cat => {
+      const cb = $(`page-settings-risk-${cat}`);
+      if (cb) cb.checked = cats.includes(cat);
+    });
+  } catch (err) {
+    console.error("Error rendering settings page:", err);
+  }
+}
+
+function readPageSettingsForm() {
+  const teamsRaw = ($("page-settings-focus-teams")?.value || "").trim();
+  const epicsRaw = ($("page-settings-focus-epics")?.value || "").trim();
+  const cats = ["dependency", "velocity", "overcommitment"].filter(cat => {
+    const cb = $(`page-settings-risk-${cat}`);
+    return cb && cb.checked;
+  });
+  return {
+    stakeholder: $("page-settings-stakeholder")?.value || "program_manager",
+    focus_teams: teamsRaw ? teamsRaw.split(",").map(s => s.trim()).filter(Boolean) : [],
+    focus_epics: epicsRaw ? epicsRaw.split(",").map(s => s.trim()).filter(Boolean) : [],
+    risk_categories: cats.length ? cats : ["dependency", "velocity", "overcommitment"],
+    min_risk_severity: $("page-settings-min-severity")?.value || "medium",
+    summary_verbosity: $("page-settings-verbosity")?.value || "brief",
+    custom_instructions: $("page-settings-instructions")?.value?.trim() || "",
+  };
+}
+
+async function handleSavePageSettings() {
+  const msgEl = $("page-settings-save-msg");
+  const btns = [ $("btn-page-save-settings"), $("btn-page-save-bottom") ].filter(Boolean);
+  btns.forEach(b => { b.disabled = true; b.textContent = "Saving…"; });
+  if (msgEl) msgEl.textContent = "";
+
+  try {
+    const newSettings = readPageSettingsForm();
+    await saveSettings(newSettings);
+    if (msgEl) {
+      msgEl.textContent = "✓ Settings saved successfully.";
+      msgEl.className = "settings-save-msg settings-save-msg--ok";
+      setTimeout(() => { if (msgEl) msgEl.textContent = ""; }, 3000);
+    }
+  } catch (e) {
+    if (msgEl) {
+      msgEl.textContent = "⚠️ " + e.message;
+      msgEl.className = "settings-save-msg settings-save-msg--err";
+    }
+  } finally {
+    btns.forEach(b => {
+      b.disabled = false;
+      b.textContent = b.id === "btn-page-save-settings" ? "💾 Save Settings" : "Save Settings";
+    });
+  }
+}
+
+async function handleResetPageSettings() {
+  if (!confirm("Reset all AI settings to factory defaults?")) return;
+  const msgEl = $("page-settings-save-msg");
+  const resetBtn = $("btn-page-reset-settings");
+  if (resetBtn) { resetBtn.disabled = true; resetBtn.textContent = "Resetting…"; }
+
+  try {
+    await resetSettings();
+    await renderSettingsPage();
+    if (msgEl) {
+      msgEl.textContent = "✓ Settings reset to defaults.";
+      msgEl.className = "settings-save-msg settings-save-msg--ok";
+      setTimeout(() => { if (msgEl) msgEl.textContent = ""; }, 3000);
+    }
+  } catch (e) {
+    if (msgEl) {
+      msgEl.textContent = "⚠️ " + e.message;
+      msgEl.className = "settings-save-msg settings-save-msg--err";
+    }
+  } finally {
+    if (resetBtn) {
+      resetBtn.disabled = false;
+      resetBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg> Restore Defaults`;
+    }
+  }
+}
+
+// Wire Settings Page Buttons
+$("btn-page-save-settings")?.addEventListener("click", handleSavePageSettings);
+$("btn-page-save-bottom")?.addEventListener("click", handleSavePageSettings);
+$("btn-page-reset-settings")?.addEventListener("click", handleResetPageSettings);

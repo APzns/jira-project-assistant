@@ -15,24 +15,28 @@
     <!-- Left Navigation Sidebar -->
     <aside class="sidebar" id="main-sidebar">
       <div class="sidebar-header">
-        <div class="sidebar-brand">
+        <button type="button" class="sidebar-brand-btn" id="sidebar-brand-btn" data-nav="main" title="Go to Main Portfolio Page">
           <div class="sidebar-logo">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#60a5fa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <span class="sidebar-brand-text">Project Assistant</span>
-        </div>
+        </button>
       </div>
       <nav class="sidebar-nav">
-        <button class="nav-btn active" data-nav="main-view">
+        <button class="nav-btn" data-nav="main">
           <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
-            <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
-            <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
-            <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
           </svg>
-          <span class="nav-label">Main View</span>
+          <span class="nav-label">Command Center</span>
+        </button>
+        <button class="nav-btn" data-nav="assistant">
+          <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span class="nav-label">✨ AI Assistant</span>
         </button>
         <button class="nav-btn" data-nav="dashboards">
           <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -41,12 +45,6 @@
           </svg>
           <span class="nav-label">Dashboards</span>
         </button>
-        <button class="nav-btn" data-nav="projects">
-          <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-          </svg>
-          <span class="nav-label">Projects</span>
-        </button>
         <button class="nav-btn" data-nav="reports">
           <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="20" x2="18" y2="10"></line>
@@ -54,6 +52,12 @@
             <line x1="6" y1="20" x2="6" y2="14"></line>
           </svg>
           <span class="nav-label">Reports</span>
+        </button>
+        <button class="nav-btn" data-nav="projects">
+          <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span class="nav-label">Projects</span>
         </button>
         <button class="nav-btn" data-nav="stakeholders">
           <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -77,48 +81,402 @@
     <!-- Main Content Area -->
     <div class="main-content-wrapper">
       <header class="topbar">
-        <div class="brand">Project Assistant</div>
+        <div class="brand brand-clickable" id="topbar-brand-btn" role="button" tabindex="0" title="Go to Main Portfolio Page">Project Assistant</div>
         <div class="topbar-right">
             <button id="chat-toggle-btn" class="btn-chat-toggle"><span class="sparkle">✨</span> Ask AI</button>
             <span class="data-freshness" id="data-freshness">Data as of –</span>
         </div>
       </header>
 
-      <nav class="tabs" id="sub-tabs" style="display: none;">
-        <button class="tab active" data-tab="assessment">Assessment</button>
-        <button class="tab" data-tab="status">Delivery</button>
-        <button class="tab" data-tab="delivery">Predictability</button>
-        <button class="tab" data-tab="quality">Quality</button>
-        <button class="tab tab--assistant" data-tab="assistant">✨ Project Assistant</button>
-      </nav>
+      <!-- Dashboards Top Navigation & Project Scope Header -->
+      <div id="dashboards-header-wrap" class="dashboards-header-wrap" style="display: none;">
+        <!-- Dashboard Project Switcher Toolbar -->
+        <div class="dashboards-project-bar" id="dashboards-project-bar">
+          <div class="dashboards-project-bar-left">
+            <button type="button" id="dashboard-btn-back-dir" class="btn-back-dashboards" title="Back to All Project Dashboards">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+              <span>All Dashboards</span>
+            </button>
+            <div class="dashboards-selector-wrap">
+              <span class="dashboards-selector-icon">📊</span>
+              <label for="dashboard-project-select" class="dashboards-selector-label">Project Scope:</label>
+              <select id="dashboard-project-select" class="dashboards-project-dropdown" aria-label="Select Project Dashboard">
+              </select>
+            </div>
+          </div>
+          <div class="dashboards-project-bar-right" id="dashboards-project-meta">
+            <div class="dashboards-meta-pill key-pill" id="dashboard-meta-key">ALL</div>
+            <div class="dashboards-meta-pill status-pill on-track" id="dashboard-meta-status">Portfolio Active</div>
+            <div class="dashboards-meta-info">
+              <span class="meta-label">Lead:</span>
+              <span class="meta-value" id="dashboard-meta-lead">Program PMO</span>
+            </div>
+            <div class="dashboards-meta-info">
+              <span class="meta-label">Target:</span>
+              <span class="meta-value" id="dashboard-meta-release">Q4 2026</span>
+            </div>
+            <button type="button" id="dashboard-btn-project-overview" class="dashboards-project-overview-btn" title="View project overview, charter and RACI details">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span>Project Overview</span>
+            </button>
+          </div>
+        </div>
+
+        <nav class="tabs" id="sub-tabs">
+          <button class="tab active" data-tab="assessment">Assessment</button>
+          <button class="tab" data-tab="status">Delivery</button>
+          <button class="tab" data-tab="delivery">Predictability</button>
+          <button class="tab" data-tab="quality">Quality</button>
+          <button class="tab tab--assistant" data-tab="assistant">✨ Skills &amp; Settings</button>
+        </nav>
+      </div>
 
       <div class="app-layout">
         <main>
-          <!-- ============ 1. MAIN VIEW PAGE ============ -->
-          <section id="page-main-view" class="nav-page active">
-            <div class="blank-page">
-              <h2>Main View</h2>
+          <!-- ============ 0. MULTI-PROJECT EXECUTIVE COMMAND CENTER (MAIN PAGE) ============ -->
+          <section id="page-main" class="nav-page active">
+            <div class="main-page-container">
+              
+              <!-- Hero Header -->
+              <div class="main-hero-header">
+                <div class="main-hero-content">
+                  <div class="main-hero-title-row">
+                    <div class="main-hero-badge">
+                      <span class="pulse-dot"></span>
+                      <span>Portfolio Command Center</span>
+                    </div>
+                    <span class="portfolio-freshness-pill" id="main-data-freshness">Data as of –</span>
+                  </div>
+                  <h1 class="main-hero-title">Welcome back, Lead Program Manager</h1>
+                  <p class="main-hero-subtitle">
+                    Executive delivery intelligence & AI governance across all assigned projects. Tracking live Jira velocity, cross-initiative dependencies, automated stakeholder reports, and proactive delivery risks.
+                  </p>
+                </div>
+                <div class="main-hero-actions">
+                  <button type="button" id="main-btn-ask-ai" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;">
+                    <span>✨ Ask Copilot</span>
+                  </button>
+                  <button type="button" id="main-btn-new-report" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;">
+                    <span>📋 New Report</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Portfolio KPI Strip -->
+              <div class="portfolio-kpi-grid">
+                <div class="portfolio-kpi-card">
+                  <div class="kpi-card-head">
+                    <span class="kpi-icon">📁</span>
+                    <span class="kpi-title">Your Projects</span>
+                  </div>
+                  <div class="kpi-value-row">
+                    <span class="kpi-main-num" id="main-kpi-total-projects">4</span>
+                    <span class="kpi-tag kpi-tag-ok" id="main-kpi-projects-on-track">3 On Track</span>
+                  </div>
+                  <div class="kpi-subtext" id="main-kpi-projects-sub">Assigned portfolio initiatives</div>
+                </div>
+
+                <div class="portfolio-kpi-card">
+                  <div class="kpi-card-head">
+                    <span class="kpi-icon">🎯</span>
+                    <span class="kpi-title">Delivery Progress</span>
+                  </div>
+                  <div class="kpi-value-row">
+                    <span class="kpi-main-num" id="main-kpi-total-progress">68%</span>
+                    <span class="kpi-tag kpi-tag-blue" id="main-kpi-total-sp">2,090 SP</span>
+                  </div>
+                  <div class="kpi-subtext">Cumulative across active epics</div>
+                </div>
+
+                <div class="portfolio-kpi-card">
+                  <div class="kpi-card-head">
+                    <span class="kpi-icon">🔥</span>
+                    <span class="kpi-title">Active Blockers</span>
+                  </div>
+                  <div class="kpi-value-row">
+                    <span class="kpi-main-num warn" id="main-kpi-total-blockers">3</span>
+                    <span class="kpi-tag kpi-tag-warn">Action Needed</span>
+                  </div>
+                  <div class="kpi-subtext">Cross-team dependency drag</div>
+                </div>
+
+                <div class="portfolio-kpi-card">
+                  <div class="kpi-card-head">
+                    <span class="kpi-icon">⚠️</span>
+                    <span class="kpi-title">Triggered Risks</span>
+                  </div>
+                  <div class="kpi-value-row">
+                    <span class="kpi-main-num warn" id="main-kpi-total-risks">3</span>
+                    <span class="kpi-tag kpi-tag-warn">Monitored</span>
+                  </div>
+                  <div class="kpi-subtext">M2 Regulatory SLA & Latency Drag</div>
+                </div>
+              </div>
+
+              <!-- AI Program Intelligence: Hot Spots, Suggested Actions & Risks -->
+              <div class="main-section-card ai-intelligence-panel">
+                <div class="main-section-header">
+                  <div class="section-title-wrap">
+                    <div class="section-title-icon sparkle-gradient">✨</div>
+                    <div>
+                      <h2 class="main-section-title">AI Program Intelligence & Hot Spots</h2>
+                      <p class="main-section-desc">Real-time reasoning synthesizing live sprint velocity, project charters, decision logs, and risk triggers across all your projects.</p>
+                    </div>
+                  </div>
+                  <button type="button" id="main-refresh-ai-btn" class="btn-secondary btn-sm" title="Re-evaluate AI insights">
+                    🔄 Re-analyze
+                  </button>
+                </div>
+
+                <!-- Quick AI Interactive Prompt Bar -->
+                <div class="main-ai-prompt-box">
+                  <div class="main-ai-input-row">
+                    <span class="ai-input-sparkle">✨</span>
+                    <input type="text" id="main-ai-quick-input" class="main-ai-input" placeholder="Ask AI Copilot about any project, blocker, or request a cross-project summary..." />
+                    <button type="button" id="main-ai-quick-send" class="btn-primary">Ask Copilot</button>
+                  </div>
+                  <div class="main-ai-scenario-chips" id="main-ai-scenario-chips">
+                    <span class="scenario-chip-label">Quick Prompts:</span>
+                    <button type="button" class="scenario-chip" data-prompt="Which project has the highest delivery risk this sprint and what are the top blockers?">🔥 Top Delivery Hot Spots</button>
+                    <button type="button" class="scenario-chip" data-prompt="Draft a cross-project executive summary for SteerCo covering CHK, CORE, MOB, and HRZ">👑 SteerCo Portfolio Digest</button>
+                    <button type="button" class="scenario-chip" data-prompt="What are the critical dependencies and blockers between Checkout Replatform (CHK) and Platform Core (CORE)?">⚙️ Cross-Project Dependencies</button>
+                    <button type="button" class="scenario-chip" data-prompt="Analyze M2 regulatory compliance risks and recommended engineering mitigations">🔒 M2 Compliance & Risk Plan</button>
+                  </div>
+                </div>
+
+                <!-- 3-Column AI Grid: Hot Spots, Suggested Actions, Risk Radar -->
+                <div class="ai-insights-grid">
+                  <!-- Col 1: Hot Spots -->
+                  <div class="ai-insight-column hot-spots-col">
+                    <div class="insight-column-header">
+                      <span class="column-icon">🔥</span>
+                      <span class="column-title">Critical Hot Spots</span>
+                      <span class="column-badge badge-warn" id="hot-spots-count">3 Active</span>
+                    </div>
+                    <div class="insight-cards-list" id="main-hot-spots-list">
+                      <!-- Rendered dynamically -->
+                    </div>
+                  </div>
+
+                  <!-- Col 2: Suggested Actions (P1/P2/P3) -->
+                  <div class="ai-insight-column actions-col">
+                    <div class="insight-column-header">
+                      <span class="column-icon">⚡</span>
+                      <span class="column-title">Suggested Actions</span>
+                      <span class="column-badge badge-info" id="suggested-actions-count">Prioritized</span>
+                    </div>
+                    <div class="insight-cards-list" id="main-suggested-actions-list">
+                      <!-- Rendered dynamically -->
+                    </div>
+                  </div>
+
+                  <!-- Col 3: Risk Radar -->
+                  <div class="ai-insight-column risks-col">
+                    <div class="insight-column-header">
+                      <span class="column-icon">⚠️</span>
+                      <span class="column-title">Cross-Project Risk Radar</span>
+                      <span class="column-badge badge-danger" id="risk-radar-count">3 Monitored</span>
+                    </div>
+                    <div class="insight-cards-list" id="main-risk-radar-list">
+                      <!-- Rendered dynamically -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- "Your Projects" Section -->
+              <div class="main-section-card">
+                <div class="main-section-header">
+                  <div class="section-title-wrap">
+                    <div class="section-title-icon">📁</div>
+                    <div>
+                      <h2 class="main-section-title">Your Projects</h2>
+                      <p class="main-section-desc">Active initiatives assigned to your portfolio with real-time sprint health, velocity, and delivery targets.</p>
+                    </div>
+                  </div>
+                  <div class="section-header-actions">
+                    <a href="#projects" class="btn-secondary btn-sm">Manage All Projects →</a>
+                  </div>
+                </div>
+                <div class="your-projects-grid" id="main-your-projects-grid">
+                  <!-- Rendered dynamically -->
+                </div>
+              </div>
+
+              <!-- "Your Reports" Section -->
+              <div class="main-section-card">
+                <div class="main-section-header">
+                  <div class="section-title-wrap">
+                    <div class="section-title-icon">📋</div>
+                    <div>
+                      <h2 class="main-section-title">Your Reports & Briefings</h2>
+                      <p class="main-section-desc">Automated executive digests, stakeholder briefs, and delivery predictability reports configured for your projects.</p>
+                    </div>
+                  </div>
+                  <div class="section-header-actions">
+                    <a href="#reports/new" class="btn-primary btn-sm">+ Create Report</a>
+                    <a href="#reports" class="btn-secondary btn-sm">All Reports Library →</a>
+                  </div>
+                </div>
+                <div class="your-reports-grid" id="main-your-reports-grid">
+                  <!-- Rendered dynamically -->
+                </div>
+              </div>
+
             </div>
           </section>
 
-          <!-- ============ 2. DASHBOARDS PAGE ============ -->
+          <!-- ============ 1. CONVERSATIONAL AI ASSISTANT PAGE ============ -->
+          <section id="page-assistant" class="nav-page">
+            <div class="assistant-page-container">
+              
+              <!-- Header -->
+              <div class="assistant-header">
+                <div>
+                  <h2 class="assistant-title">
+                    <span>✨ Smart AI Project & Delivery Assistant</span>
+                  </h2>
+                  <p class="assistant-subtitle">
+                    Conversational program intelligence for Project Horizon. Ingests live Jira sprint metrics, Project Charter (M0–M3), Decisions (D1–D3), and Stakeholder priorities to synthesize optimal delivery reports and trade-off options.
+                  </p>
+                  <div class="assistant-context-strip">
+                    <span class="context-pill">📦 Scope: Project Horizon (HRZ)</span>
+                    <span class="context-pill">🎯 Milestones: M0 – M3 Active</span>
+                    <span class="context-pill">⚖️ Decisions: D1, D2, D3 Tracked</span>
+                    <span class="context-pill">👥 Stakeholders: 4 Personas Mapped</span>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <button type="button" id="assistant-btn-back-reports" class="btn-secondary" title="Return to Reports Catalog">
+                    ← Back to Reports
+                  </button>
+                  <button type="button" id="assistant-clear-btn" class="btn-secondary" title="Reset conversation history">
+                    🔄 Clear Chat
+                  </button>
+                </div>
+              </div>
+
+              <!-- Main Assistant Layout -->
+              <div class="assistant-layout">
+                
+                <!-- Left Sidebar: Scenarios & Stakeholder Presets -->
+                <div class="assistant-sidebar-panel">
+                  <div class="assistant-sidebar-title">⚡ Quick Scenarios</div>
+                  
+                  <div class="assistant-scenario-card" data-prompt="I want to create a report for project Checkout Flow Replatform which would be universal for all stakeholders in the project">
+                    <div class="scenario-card-title">🌐 Universal Stakeholder Digest</div>
+                    <div class="scenario-card-desc">Balanced 3-layer report for VP Product, Security Lead & Eng Leads on Checkout Replatform.</div>
+                  </div>
+
+                  <div class="assistant-scenario-card" data-prompt="Create an executive sponsor 1-pager for VP Product focusing on milestone release confidence, conversion outcomes, and Monte Carlo P80 forecasts">
+                    <div class="scenario-card-title">👑 Executive Sponsor Briefing</div>
+                    <div class="scenario-card-desc">High-level narrative & milestone confidence for VP Product & SteerCo.</div>
+                  </div>
+
+                  <div class="assistant-scenario-card" data-prompt="Engineering lead report focusing on sprint velocity, cross-team blockers, and carryover drag">
+                    <div class="scenario-card-title">⚙️ Engineering Blocker Matrix</div>
+                    <div class="scenario-card-desc">Sprint velocity predictability, cross-team dependencies, and D3 scope freeze check.</div>
+                  </div>
+
+                  <div class="assistant-scenario-card" data-prompt="Security and compliance audit digest tracking M2 regulatory deadline and high severity defects">
+                    <div class="scenario-card-title">🔒 Security & Quality Audit</div>
+                    <div class="scenario-card-desc">Regulatory milestone M2 audit readiness & zero-bug policy compliance.</div>
+                  </div>
+
+                  <div class="assistant-scenario-card" data-prompt="Analyze delivery trade-offs between cutting scope on APS-1 versus delaying M3 launch-ready date based on historical velocity">
+                    <div class="scenario-card-title">⚖️ Scope vs Delay Trade-offs</div>
+                    <div class="scenario-card-desc">What-if trade-off recommendations for upcoming sprint planning.</div>
+                  </div>
+                </div>
+
+                <!-- Right Canvas: Chat Stream + Input Bar -->
+                <div class="assistant-main-panel">
+                  <!-- Stream Container -->
+                  <div id="assistant-chat-stream" class="assistant-chat-stream">
+                    <!-- Populated dynamically by assistant.js -->
+                  </div>
+
+                  <!-- Input Bar -->
+                  <div class="assistant-input-bar">
+                    <input type="text" id="assistant-chat-input" class="assistant-input" placeholder="Ask anything about Project Horizon or request a tailored stakeholder report..." autocomplete="off" />
+                    <button type="button" id="assistant-send-btn" class="btn-primary" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px;">
+                      <span>Send</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          </section>
+
+          <!-- ============ 1. DASHBOARDS PAGE ============ -->
           <section id="page-dashboards" class="nav-page">
-            <!-- ============ ASSESSMENT TAB ============ -->
-            <section id="tab-assessment" class="tab-panel active">
+
+            <!-- Directory / Hub View (Shown on Entry #dashboards) -->
+            <div id="dashboards-directory-view" class="dashboards-directory-container">
+              <div class="dashboards-dir-header">
+                <div>
+                  <div class="dashboards-dir-badge">OPERATIONAL TELEMETRY HUB</div>
+                  <h2 class="dashboards-dir-title">Cross-Project Delivery &amp; Engineering Telemetry</h2>
+                  <p class="dashboards-dir-subtitle">
+                    Real-time comparative performance indicators, Monte Carlo milestone forecasts, sprint predictability scores, defect ratios, and AI risk health across active projects.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Filter, Sort & Search Toolbar -->
+              <div class="dashboards-dir-toolbar">
+                <div class="dashboards-sort-pills" id="telemetry-sort-pills">
+                  <span class="telemetry-sort-label">Sort by:</span>
+                  <button type="button" class="telemetry-pill active" data-sort="default">All Projects</button>
+                  <button type="button" class="telemetry-pill" data-sort="delay">⚠️ Highest Delay</button>
+                  <button type="button" class="telemetry-pill" data-sort="predictability">📉 Lowest Predictability</button>
+                  <button type="button" class="telemetry-pill" data-sort="defects">🐛 Most Defects</button>
+                  <button type="button" class="telemetry-pill" data-sort="ontrack">✅ On Track</button>
+                </div>
+
+                <div class="dashboards-dir-search-box">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input type="text" id="dashboards-dir-search-input" placeholder="Filter telemetry by key, project name, squad, or lead..." />
+                </div>
+              </div>
+
+              <!-- Comparative Telemetry View Container -->
+              <div class="dashboards-telemetry-wrap" id="dashboards-telemetry-container">
+                <div class="pd-loading muted" style="padding: 40px; text-align: center;">
+                  Loading live engineering telemetry...
+                </div>
+              </div>
+            </div>
+
+            <!-- Detail View (Shown when a project is selected #dashboards/KEY) -->
+            <div id="dashboards-detail-view" style="display: none;">
+
+              <!-- ============ ASSESSMENT TAB ============ -->
+              <section id="tab-assessment" class="tab-panel active">
               <div class="panel-head">
                 <div class="program-summary">
-                  <h2>Program Horizon - Status summary</h2>
-                  <p class="program-desc">
-                    A program to modernize the commerce platform: redesigning checkout,
-                    achieving mobile parity, hardening security, compliance, and performance,
-                    and standing up a unified analytics foundation, culminating in a phased
-                    go-live in Q4 2026.
+                  <h2 id="dashboard-project-title">Portfolio Overview - Status summary</h2>
+                  <p id="dashboard-project-desc" class="program-desc">
+                    Enterprise delivery intelligence across all active projects, tracking
+                    cross-initiative velocity, dependencies, and risk triggers.
                   </p>
                 </div>
                 <div class="panel-head-actions">
                   <button id="assess-button" class="btn-primary">Refresh report</button>
                 </div>
               </div>
+
 
               <p id="assess-empty" class="muted" style="display:none">
                 No report yet. Click “Refresh report” to generate one.
@@ -406,12 +764,12 @@
                   </div>
 
                   <!-- Results area -->
-                  <div id="pa-results" class="pa-results pa-results--empty">
-                    <div class="pa-results-placeholder" id="pa-placeholder">
+                  <div id="pa-tab-results" class="pa-results pa-results--empty">
+                    <div class="pa-results-placeholder" id="pa-tab-placeholder">
                       <div class="pa-placeholder-icon">✨</div>
                       <p class="pa-placeholder-text">Run a skill above to see results here.</p>
                     </div>
-                    <div id="pa-results-content" class="pa-results-content" style="display:none"></div>
+                    <div id="pa-tab-results-content" class="pa-results-content" style="display:none"></div>
                   </div>
 
                 </div>
@@ -474,6 +832,7 @@
 
               </div>
             </section>
+            </div> <!-- End #dashboards-detail-view -->
           </section>
 
           <!-- ============ 3. PROJECTS PAGE ============ -->
@@ -484,26 +843,35 @@
                 <!-- Page Header -->
                 <div class="projects-header">
                   <div>
-                    <h2 class="projects-title">Projects</h2>
-                    <p class="projects-subtitle">Active enterprise software delivery projects under Program Horizon.</p>
+                    <div class="dashboards-dir-badge" style="color: #8b5cf6; background: rgba(139, 92, 246, 0.08); border-color: rgba(139, 92, 246, 0.2);">PORTFOLIO GOVERNANCE &amp; CHARTERS</div>
+                    <h2 class="projects-title">Projects Governance</h2>
+                    <p class="projects-subtitle">Manage project charters, milestone commitments, and RACI stakeholder matrices across the enterprise portfolio.</p>
                   </div>
-                  <div class="projects-stats-strip">
-                    <div class="p-stat-box">
-                      <span class="p-stat-val">4</span>
-                      <span class="p-stat-lbl">Active Projects</span>
-                    </div>
-                    <div class="p-stat-box">
-                      <span class="p-stat-val text-green">2</span>
-                      <span class="p-stat-lbl">On Track</span>
-                    </div>
-                    <div class="p-stat-box">
-                      <span class="p-stat-val text-warn">2</span>
-                      <span class="p-stat-lbl">At Risk</span>
-                    </div>
-                    <div class="p-stat-box">
-                      <span class="p-stat-val">18</span>
-                      <span class="p-stat-lbl">Total Epics</span>
-                    </div>
+                  <div class="projects-header-actions">
+                    <button id="btn-add-project-main" class="btn-primary" type="button" title="Add a new project">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                      + Add Project
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Stats Strip -->
+                <div class="projects-stats-strip">
+                  <div class="p-stat-box">
+                    <span class="p-stat-val" id="p-stat-active">4</span>
+                    <span class="p-stat-lbl">Active Projects</span>
+                  </div>
+                  <div class="p-stat-box">
+                    <span class="p-stat-val text-green" id="p-stat-ontrack">2</span>
+                    <span class="p-stat-lbl">On Track</span>
+                  </div>
+                  <div class="p-stat-box">
+                    <span class="p-stat-val text-warn" id="p-stat-atrisk">2</span>
+                    <span class="p-stat-lbl">At Risk</span>
+                  </div>
+                  <div class="p-stat-box">
+                    <span class="p-stat-val" id="p-stat-archived">0</span>
+                    <span class="p-stat-lbl">Archived</span>
                   </div>
                 </div>
 
@@ -514,206 +882,22 @@
                       <circle cx="11" cy="11" r="8"></circle>
                       <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
-                    <input type="text" id="project-search-input" placeholder="Search projects by name, lead, or tag..." />
+                    <input type="text" id="project-search-input" placeholder="Search projects by key, name, lead, or tag..." />
                   </div>
                   <div class="projects-filter-pills" id="project-filter-pills">
-                    <button class="filter-pill active" data-filter="all">All (4)</button>
-                    <button class="filter-pill" data-filter="on-track">On Track (2)</button>
-                    <button class="filter-pill" data-filter="at-risk">At Risk (2)</button>
+                    <button class="filter-pill active" data-filter="all">All</button>
+                    <button class="filter-pill" data-filter="active">Active</button>
+                    <button class="filter-pill" data-filter="on-track">On Track</button>
+                    <button class="filter-pill" data-filter="at-risk">At Risk</button>
+                    <button class="filter-pill" data-filter="archived">Archived</button>
                   </div>
                 </div>
 
-                <!-- Projects Grid with 4 Projects -->
+                <!-- Projects Grid (Rendered dynamically by projects.js) -->
                 <div class="projects-grid" id="projects-grid">
-
-                  <!-- Project 1: Checkout & Commerce Flow -->
-                  <div class="project-card" data-status="at-risk" data-tags="payments checkout frontend api" data-name="checkout & commerce flow" data-key="CHK">
-                    <div class="p-card-top">
-                      <div class="p-key-badge">CHK</div>
-                      <div class="p-status-tag p-status-warn">
-                        <span class="p-status-dot"></span> At Risk
-                      </div>
-                    </div>
-                    <h3 class="p-title">Checkout & Commerce Flow</h3>
-                    <p class="p-desc">Redesigning the global checkout flow with one-click purchase, localized currencies, and multi-gateway failover resilience.</p>
-                    
-                    <!-- Progress Bar -->
-                    <div class="p-progress-wrap">
-                      <div class="p-progress-header">
-                        <span>Delivery Progress</span>
-                        <strong>68% (340 / 500 SP)</strong>
-                      </div>
-                      <div class="p-progress-bar">
-                        <div class="p-progress-fill p-fill-warn" style="width: 68%;"></div>
-                      </div>
-                    </div>
-
-                    <!-- Meta Info Grid -->
-                    <div class="p-meta-grid">
-                      <div class="p-meta-item">
-                        <span class="p-meta-label">Target Release</span>
-                        <span class="p-meta-value">Q4 2026 (v2.4)</span>
-                      </div>
-                      <div class="p-meta-item">
-                        <span class="p-meta-label">Blockers</span>
-                        <span class="p-meta-value text-warn">2 Active</span>
-                      </div>
-                    </div>
-
-                    <!-- Tags and Actions -->
-                    <div class="p-card-footer">
-                      <div class="p-tags">
-                        <span class="p-tag">Payments</span>
-                        <span class="p-tag">Checkout</span>
-                        <span class="p-tag">API</span>
-                      </div>
-                      <button class="btn-p-action btn-p-view-details">
-                        View Details →
-                      </button>
-                    </div>
+                  <div class="pd-loading muted" style="grid-column: 1 / -1; padding: 40px; text-align: center;">
+                    Loading projects...
                   </div>
-
-                  <!-- Project 2: Platform Core & Analytics -->
-                  <div class="project-card" data-status="on-track" data-tags="infrastructure analytics postgresql kafka" data-name="platform core & analytics foundation" data-key="CORE">
-                    <div class="p-card-top">
-                      <div class="p-key-badge">CORE</div>
-                      <div class="p-status-tag p-status-ok">
-                        <span class="p-status-dot"></span> On Track
-                      </div>
-                    </div>
-                    <h3 class="p-title">Platform Core & Analytics Foundation</h3>
-                    <p class="p-desc">Microservices migration, database horizontal partitioning, real-time Kafka event streaming, and unified program telemetry.</p>
-                    
-                    <!-- Progress Bar -->
-                    <div class="p-progress-wrap">
-                      <div class="p-progress-header">
-                        <span>Delivery Progress</span>
-                        <strong>82% (490 / 600 SP)</strong>
-                      </div>
-                      <div class="p-progress-bar">
-                        <div class="p-progress-fill p-fill-ok" style="width: 82%;"></div>
-                      </div>
-                    </div>
-
-                    <!-- Meta Info Grid -->
-                    <div class="p-meta-grid">
-                      <div class="p-meta-item">
-                        <span class="p-meta-label">Target Release</span>
-                        <span class="p-meta-value">Q3 2026 (v3.0)</span>
-                      </div>
-                      <div class="p-meta-item">
-                        <span class="p-meta-label">Blockers</span>
-                        <span class="p-meta-value text-green">0 Active</span>
-                      </div>
-                    </div>
-
-                    <!-- Tags and Actions -->
-                    <div class="p-card-footer">
-                      <div class="p-tags">
-                        <span class="p-tag">Infrastructure</span>
-                        <span class="p-tag">Kafka</span>
-                        <span class="p-tag">PostgreSQL</span>
-                      </div>
-                      <button class="btn-p-action btn-p-view-details">
-                        View Details →
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Project 3: Mobile Parity & Security Guild -->
-                  <div class="project-card" data-status="on-track" data-tags="mobile ios android security zero-trust auth0" data-name="mobile parity & security guild" data-key="MOB">
-                    <div class="p-card-top">
-                      <div class="p-key-badge">MOB</div>
-                      <div class="p-status-tag p-status-ok">
-                        <span class="p-status-dot"></span> On Track
-                      </div>
-                    </div>
-                    <h3 class="p-title">Mobile Parity & Security Guild</h3>
-                    <p class="p-desc">Achieving full iOS & Android feature parity while hardening SOC2, PCI-DSS compliance, and zero-trust SSO authentication.</p>
-                    
-                    <!-- Progress Bar -->
-                    <div class="p-progress-wrap">
-                      <div class="p-progress-header">
-                        <span>Delivery Progress</span>
-                        <strong>54% (215 / 400 SP)</strong>
-                      </div>
-                      <div class="p-progress-bar">
-                        <div class="p-progress-fill p-fill-ok" style="width: 54%;"></div>
-                      </div>
-                    </div>
-
-                    <!-- Meta Info Grid -->
-                    <div class="p-meta-grid">
-                      <div class="p-meta-item">
-                        <span class="p-meta-label">Target Release</span>
-                        <span class="p-meta-value">Q4 2026 (v1.8)</span>
-                      </div>
-                      <div class="p-meta-item">
-                        <span class="p-meta-label">Blockers</span>
-                        <span class="p-meta-value text-warn">1 Active</span>
-                      </div>
-                    </div>
-
-                    <!-- Tags and Actions -->
-                    <div class="p-card-footer">
-                      <div class="p-tags">
-                        <span class="p-tag">Mobile</span>
-                        <span class="p-tag">Security</span>
-                        <span class="p-tag">Auth0</span>
-                      </div>
-                      <button class="btn-p-action btn-p-view-details">
-                        View Details →
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Project 4: Project Horizon -->
-                  <div class="project-card" data-status="at-risk" data-tags="program portfolio delivery horizon" data-name="project horizon" data-key="HRZ">
-                    <div class="p-card-top">
-                      <div class="p-key-badge">HRZ</div>
-                      <div class="p-status-tag p-status-warn">
-                        <span class="p-status-dot"></span> At Risk
-                      </div>
-                    </div>
-                    <h3 class="p-title">Project Horizon</h3>
-                    <p class="p-desc">The overarching program coordinating all enterprise software delivery initiatives, dependency management, and release trains.</p>
-                    
-                    <!-- Progress Bar -->
-                    <div class="p-progress-wrap">
-                      <div class="p-progress-header">
-                        <span>Delivery Progress</span>
-                        <strong>70% (1045 / 1500 SP)</strong>
-                      </div>
-                      <div class="p-progress-bar">
-                        <div class="p-progress-fill p-fill-warn" style="width: 70%;"></div>
-                      </div>
-                    </div>
-
-                    <!-- Meta Info Grid -->
-                    <div class="p-meta-grid">
-                      <div class="p-meta-item">
-                        <span class="p-meta-label">Target Release</span>
-                        <span class="p-meta-value text-warn">FY27 Program Go-Live (Delayed)</span>
-                      </div>
-                      <div class="p-meta-item">
-                        <span class="p-meta-label">Blockers</span>
-                        <span class="p-meta-value text-warn">3 Active</span>
-                      </div>
-                    </div>
-
-                    <!-- Tags and Actions -->
-                    <div class="p-card-footer">
-                      <div class="p-tags">
-                        <span class="p-tag">Program</span>
-                        <span class="p-tag">Portfolio</span>
-                        <span class="p-tag">Delivery</span>
-                      </div>
-                      <button class="btn-p-action btn-p-view-details">
-                        View Details →
-                      </button>
-                    </div>
-                  </div>
-
                 </div>
               </div>
 
@@ -727,15 +911,32 @@
                   Back to Projects
                 </button>
                 
-                <div class="p-detail-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                <div class="p-detail-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 16px;">
                   <div>
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                       <div id="pd-badge" class="p-key-badge" style="font-size: 14px; padding: 4px 10px;"></div>
                       <div id="pd-status"></div>
+                      <div id="pd-archived-tag" style="display: none;"></div>
                     </div>
-                    <h2 id="pd-title" style="margin: 0; font-size: 28px; color: var(--text);"></h2>
+                    <h2 id="pd-title" style="margin: 0 0 4px 0; font-size: 28px; color: var(--text);"></h2>
+                    <div id="pd-lead-info" class="muted" style="font-size: 13.5px;"></div>
                   </div>
-                  <button class="btn-primary" onclick="document.querySelector('[data-nav=dashboards]').click();">View Global Dashboards</button>
+                  <div class="p-detail-actions" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <button id="btn-edit-project" class="btn-secondary" type="button" title="Edit project metadata">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      Edit Project
+                    </button>
+                    <button id="btn-archive-project" class="btn-secondary" type="button" title="Archive or unarchive project">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+                      <span id="btn-archive-project-text">Archive Project</span>
+                    </button>
+                    <button id="btn-delete-project" class="btn-secondary text-warn" type="button" title="Permanently delete project">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <button id="btn-view-project-dashboard" class="btn-primary" type="button" style="display: inline-flex; align-items: center; gap: 6px;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                      <span>View Project Dashboard</span>
+                    </button>
+                  </div>
                 </div>
                 
                 <p id="pd-desc" class="muted" style="font-size: 15px; max-width: 800px; margin-bottom: 24px; line-height: 1.5;"></p>
@@ -817,96 +1018,433 @@
                 </div>
               </div>
 
+              <!-- Modal: Add / Edit Project -->
+              <div id="modal-project-form" class="modal-overlay" style="display: none;">
+                <div class="modal-card">
+                  <div class="modal-header">
+                    <h3 class="modal-title" id="modal-proj-title">Add New Project</h3>
+                    <button type="button" class="modal-close-btn" id="btn-close-proj-modal">✕</button>
+                  </div>
+                  <div class="modal-body">
+                    <form id="project-edit-form">
+                      <div class="form-row-2">
+                        <div class="form-group">
+                          <label class="settings-label">Project Key (2-10 chars) *</label>
+                          <input type="text" id="proj-form-key" class="settings-input" placeholder="e.g. PAY, SEC, BILL" maxlength="10" required />
+                          <span class="muted" style="font-size: 11.5px;">Short unique uppercase identifier.</span>
+                        </div>
+                        <div class="form-group">
+                          <label class="settings-label">Delivery Status</label>
+                          <select id="proj-form-status" class="settings-select">
+                            <option value="on-track">🟢 On Track</option>
+                            <option value="at-risk">🟡 At Risk</option>
+                            <option value="delayed">🔴 Delayed</option>
+                            <option value="planning">🔵 In Planning</option>
+                            <option value="completed">⚪ Completed</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div class="form-group" style="margin-top: 12px;">
+                        <label class="settings-label">Project Name *</label>
+                        <input type="text" id="proj-form-name" class="settings-input" placeholder="e.g. Payments Platform & Subscription Hub" maxlength="120" required />
+                      </div>
+
+                      <div class="form-group" style="margin-top: 12px;">
+                        <label class="settings-label">Project Description</label>
+                        <textarea id="proj-form-desc" class="settings-textarea" rows="3" placeholder="Brief summary of business goals, technical scope, and delivery milestones..."></textarea>
+                      </div>
+
+                      <div class="form-row-2" style="margin-top: 12px;">
+                        <div class="form-group">
+                          <label class="settings-label">Project Lead / Owner</label>
+                          <input type="text" id="proj-form-lead" class="settings-input" placeholder="e.g. Alex Mercer" />
+                        </div>
+                        <div class="form-group">
+                          <label class="settings-label">Target Release / Milestone</label>
+                          <input type="text" id="proj-form-release" class="settings-input" placeholder="e.g. Q4 2026 (v2.4)" />
+                        </div>
+                      </div>
+
+                      <div class="form-row-3" style="margin-top: 12px;">
+                        <div class="form-group">
+                          <label class="settings-label">Delivery Progress (%)</label>
+                          <input type="number" id="proj-form-pct" class="settings-input" min="0" max="100" value="0" placeholder="0" />
+                        </div>
+                        <div class="form-group">
+                          <label class="settings-label">Story Points Progress</label>
+                          <input type="text" id="proj-form-sp" class="settings-input" placeholder="e.g. 340 / 500 SP" />
+                        </div>
+                        <div class="form-group">
+                          <label class="settings-label">Active Blockers</label>
+                          <input type="number" id="proj-form-blockers" class="settings-input" min="0" value="0" placeholder="0" />
+                        </div>
+                      </div>
+
+                      <div class="form-group" style="margin-top: 12px;">
+                        <label class="settings-label">Tags / Categories (comma-separated)</label>
+                        <input type="text" id="proj-form-tags" class="settings-input" placeholder="e.g. Payments, Checkout, API, Microservices" />
+                      </div>
+                    </form>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" id="btn-cancel-proj-modal" class="btn-secondary">Cancel</button>
+                    <button type="button" id="btn-save-proj-modal" class="btn-primary">Save Project</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Modal: Confirm Delete Project -->
+              <div id="modal-project-delete" class="modal-overlay" style="display: none;">
+                <div class="modal-card modal-card-sm">
+                  <div class="modal-header">
+                    <h3 class="modal-title text-warn">Delete Project</h3>
+                    <button type="button" class="modal-close-btn" id="btn-close-proj-del">✕</button>
+                  </div>
+                  <div class="modal-body">
+                    <p style="margin: 0 0 12px 0; font-size: 14.5px; color: var(--text);">
+                      Are you sure you want to permanently delete <strong id="proj-delete-title"></strong> (<span id="proj-delete-key"></span>)?
+                    </p>
+                    <p class="muted" style="margin: 0; font-size: 13px; line-height: 1.4;">
+                      ⚠️ This will remove all project settings, metrics, and RACI stakeholder assignments for this project. This action cannot be undone.
+                    </p>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" id="btn-cancel-proj-del" class="btn-secondary">Cancel</button>
+                    <button type="button" id="btn-confirm-proj-del" class="btn-primary btn-danger">Delete Permanently</button>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </section>
 
+          <!-- ============ 4. REPORTS PAGE (LIST VIEW & DETAIL VIEW) ============ -->
           <section id="page-reports" class="nav-page">
-            <div class="projects-page-container">
-              <div class="projects-header">
-                <div>
-                  <h2 class="projects-title">Reports</h2>
-                  <p class="projects-subtitle">Generate and compose executive program status reports.</p>
+            <div class="reports-page-container">
+              
+              <!-- ===== 4A. REPORTS LIST VIEW (DEFAULT) ===== -->
+              <div id="reports-list-view">
+                <!-- Page Header -->
+                <div class="reports-header">
+                  <div>
+                    <h2 class="reports-title">Reports</h2>
+                    <p class="reports-subtitle">Select a report template to generate instantly, or click Details to customize sections, metrics, and stakeholders.</p>
+                  </div>
+                  <div class="reports-header-actions">
+                    <button id="pa-btn-reset-profiles" class="btn-secondary" title="Restore factory default report templates">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                      Restore Defaults
+                    </button>
+                    <button id="pa-btn-ai-new-report" class="btn-secondary" style="color: #6366f1; border-color: #6366f1; font-weight: 600;" title="Create a new report template with AI Assistant">
+                      ✨ AI Report Assistant
+                    </button>
+                    <button id="pa-btn-new-report" class="btn-primary" title="Create a new custom report template">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                      + New Report
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Quick Stats Strip -->
+                <div class="reports-stats-strip">
+                  <div class="sh-stat-box">
+                    <span class="sh-stat-val" id="rep-stat-templates">5</span>
+                    <span class="sh-stat-lbl">Templates Available</span>
+                  </div>
+                  <div class="sh-stat-box">
+                    <span class="sh-stat-val text-accent" id="rep-stat-active-tpl">Weekly TPM</span>
+                    <span class="sh-stat-lbl">Default Template</span>
+                  </div>
+                  <div class="sh-stat-box">
+                    <span class="sh-stat-val text-green" id="rep-stat-blocks-count">8 Visuals</span>
+                    <span class="sh-stat-lbl">Available Blocks</span>
+                  </div>
+                  <div class="sh-stat-box">
+                    <span class="sh-stat-val" id="rep-stat-stakeholders-count">Multi-Role</span>
+                    <span class="sh-stat-lbl">Stakeholder Personas</span>
+                  </div>
+                </div>
+
+                <!-- Search and Filters Bar -->
+                <div class="projects-toolbar" style="margin-bottom: 20px;">
+                  <div class="search-input-wrap" style="flex: 1; max-width: 460px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" id="pa-report-search-input" class="search-input" placeholder="Search reports by title, description, or focus..." />
+                  </div>
+                </div>
+
+                <!-- Reports Table List -->
+                <div class="reports-list-table">
+                  <div class="reports-table-header">
+                    <div>Report Template</div>
+                    <div>Target Scope & Audience</div>
+                    <div style="text-align: right;">Actions</div>
+                  </div>
+                  <div id="reports-list-body" class="reports-list-body">
+                    <!-- Rendered dynamically by JS -->
+                  </div>
                 </div>
               </div>
 
-              <!-- Report Generator & Composer -->
-              <aside class="pa-settings-panel" id="pa-settings-panel" style="max-width: 100%; border-left: none; padding-left: 0;">
-                <div class="pa-settings-header-row">
-                  <div class="pa-settings-header">📑 Report Builder</div>
-                  <button id="pa-btn-reset-profiles" class="pa-icon-btn" title="Reset to default templates">🔄 Reset</button>
+              <!-- ===== 4B. REPORT DETAIL & EDIT VIEW ===== -->
+              <div id="report-detail-view" style="display: none;">
+                <!-- Header with Back Button and Actions -->
+                <div class="report-detail-header-row">
+                  <div class="report-detail-title-wrap">
+                    <button type="button" id="btn-back-reports" class="btn-secondary">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                      Back to Reports
+                    </button>
+                    <div>
+                      <h2 class="reports-title" id="pa-detail-view-title" style="margin: 0; font-size: 20px;">Report Details & Configuration</h2>
+                      <p class="reports-subtitle" id="pa-detail-view-subtitle" style="margin: 2px 0 0 0; font-size: 13px;">Customize report archetype, stakeholder audience, visual blocks, and directives.</p>
+                    </div>
+                  </div>
+                  <div class="reports-header-actions">
+                    <button type="button" id="pa-btn-detail-delete" class="btn-secondary btn-danger" style="display: none;">
+                      🗑️ Delete
+                    </button>
+                    <button type="button" id="pa-btn-detail-suggest" class="btn-secondary" style="color: #6366f1; border-color: #6366f1; font-weight: 600;">
+                      ✨ AI Report Assistant
+                    </button>
+                    <button type="button" id="pa-btn-detail-save" class="btn-secondary">
+                      💾 Save Template
+                    </button>
+                    <button type="button" id="pa-btn-detail-generate" class="btn-primary">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                      Generate Report
+                    </button>
+                  </div>
                 </div>
                 
-                <!-- 1. Report Selector -->
-                <div class="settings-group" id="pa-report-selector-group">
-                  <label class="settings-label" for="pa-report-select">Select Report Template</label>
-                  <div style="display: flex; gap: 8px;">
-                    <select id="pa-report-select" class="settings-select" style="flex: 1;">
-                      <!-- Options will be populated by JS, including Composer -->
-                    </select>
-                    <button id="pa-btn-edit-composer" class="btn-secondary" title="Edit in Composer" style="display: none;">✏️ Edit</button>
-                  </div>
-                </div>
-
-                <!-- 2. Multi-Stakeholder Panel -->
-                <div class="settings-group" id="pa-stakeholder-panel">
-                  <label class="settings-label">Report Stakeholders</label>
-                  <div class="pa-stakeholder-chips" id="pa-stakeholder-chips" style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px;">
-                    <!-- Chips will go here -->
-                  </div>
-                  <div style="display: flex; gap: 8px;">
-                    <select id="pa-add-stakeholder-select" class="settings-select" style="flex: 1;">
-                      <!-- Stakeholders list from API -->
-                    </select>
-                    <button id="pa-btn-add-stakeholder" class="btn-secondary">+ Add</button>
-                  </div>
-                  <textarea id="pa-stakeholder-notes" class="settings-textarea" rows="2" placeholder="Stakeholder Notes (Optional) - instructions for AI on how to interpret perspectives" style="margin-top: 8px;"></textarea>
-                </div>
-
-                <!-- Generate Button Area (when a template is selected) -->
-                <div class="pa-settings-footer" id="pa-generate-footer">
-                  <button id="pa-btn-generate-report" class="btn-primary pa-save-btn" style="width: 100%;">🚀 Generate Report</button>
-                </div>
-
-                <!-- 3. Report Composer Workspace (Hidden by default) -->
-                <div id="pa-composer-view" style="display: none; border-top: 1px solid var(--border); margin-top: 16px; padding-top: 16px;">
-                  <h3 style="margin-top:0; margin-bottom: 16px;">🛠️ Report Composer</h3>
-                  
-                  <div class="settings-group">
-                    <label class="settings-label" for="pa-composer-name">Template Name</label>
-                    <input id="pa-composer-name" class="settings-input" type="text" placeholder="e.g. My Custom Report" />
-                  </div>
-                  
-                  <div class="settings-group">
-                    <label class="settings-label" for="pa-composer-desc">Description</label>
-                    <input id="pa-composer-desc" class="settings-input" type="text" placeholder="e.g. Weekly deep dive into quality metrics" />
-                  </div>
-
-                  <!-- Blocks Grid -->
-                  <div class="settings-group">
-                    <label class="settings-label">Report Blocks</label>
-                    <div class="pa-composer-blocks-grid" id="pa-composer-blocks-grid" style="display: grid; grid-template-columns: 1fr; gap: 12px;">
-                      <!-- Block Cards generated by JS -->
+                <!-- AI Conversational Report Builder Panel -->
+                <div id="pa-ai-chat-panel" class="process-step-card" style="display: none; border-left: 4px solid #6366f1; margin-bottom: 24px;">
+                  <div class="process-step-header">
+                    <div class="process-step-info">
+                      <h3 class="process-step-title" style="color: #6366f1; display: flex; align-items: center; gap: 8px;">
+                        <span>✨ AI Report Assistant</span>
+                        <span style="font-size: 11px; background: rgba(99, 102, 241, 0.15); color: #818cf8; padding: 2px 8px; border-radius: 999px; font-weight: 500;">Interactive TPM</span>
+                      </h3>
+                      <p class="process-step-sub">Describe your reporting goals, project scope, or stakeholders to auto-configure an optimal report structure</p>
                     </div>
+                    <button type="button" id="pa-ai-chat-close" class="btn-secondary" style="padding: 4px 8px;" title="Close Assistant">✕</button>
                   </div>
+                  <div class="process-step-body">
+                    <!-- Quick Suggestion Chips -->
+                    <div class="ai-chat-prompt-chips" id="pa-ai-prompt-chips" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;">
+                      <button type="button" class="ai-chat-chip-btn" data-prompt="I want to create a report for project Checkout Flow Replatform which would be universal for all stakeholders in the project">🌐 Universal SteerCo (Checkout Flow)</button>
+                      <button type="button" class="ai-chat-chip-btn" data-prompt="Create an executive sponsor 1-pager for VP Product focusing on milestone release confidence">👑 Executive Sponsor Briefing</button>
+                      <button type="button" class="ai-chat-chip-btn" data-prompt="Engineering lead report focusing on sprint velocity, cross-team blockers, and carryover drag">⚙️ Engineering Blocker Matrix</button>
+                      <button type="button" class="ai-chat-chip-btn" data-prompt="Security and compliance audit digest tracking M2 regulatory deadline and high severity defects">🔒 Security & Quality Audit</button>
+                    </div>
 
-                  <div class="pa-settings-footer">
-                    <p id="pa-composer-msg" class="settings-save-msg"></p>
-                    <div style="display: flex; gap: 8px; width: 100%;">
-                      <button id="pa-btn-composer-cancel" class="btn-secondary" style="flex: 1;">Cancel</button>
-                      <button id="pa-btn-composer-save" class="btn-primary" style="flex: 1;">💾 Save</button>
+                    <!-- Chat Message History -->
+                    <div id="pa-ai-chat-history" style="max-height: 320px; overflow-y: auto; margin-bottom: 12px; font-size: 13.5px; display: flex; flex-direction: column; gap: 10px;">
+                      <div style="background: rgba(99, 102, 241, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.2);">
+                        <strong>AI Assistant:</strong> Tell me what project, milestone, or stakeholder group you are building this report for. I will synthesize our project charter, decisions (D1–D3), risk triggers, and stakeholder priorities into an optimal report template.
+                      </div>
+                    </div>
+
+                    <!-- Chat Input Row -->
+                    <div style="display: flex; gap: 8px;">
+                      <input type="text" id="pa-ai-chat-input" class="settings-input" placeholder="e.g. Universal report for Checkout Flow Replatform covering all stakeholders..." style="flex: 1;" />
+                      <button type="button" id="pa-ai-chat-send" class="btn-primary" style="display: inline-flex; align-items: center; gap: 6px;">
+                        <span>Send</span>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                      </button>
+                    </div>
+
+                    <!-- Accept & Prefill Button Row -->
+                    <div id="pa-ai-chat-actions" style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
+                      <button type="button" id="pa-ai-chat-apply" class="btn-primary" style="display: none; background: #10b981; border-color: #10b981; font-weight: 600;">
+                        ✓ Accept & Prefill in Edit Mode
+                      </button>
                     </div>
                   </div>
                 </div>
-              </aside>
 
-              <!-- Results Area for the Report -->
-              <div id="pa-results" class="pa-results pa-results--empty" style="margin-top: 32px;">
+                <!-- Process Flow Guided Layout (Option 2) -->
+                <div class="process-flow-container">
+
+                  <!-- Step 1: Template & Scope -->
+                  <div class="process-step-card" data-step="1">
+                    <div class="process-step-header">
+                      <div class="process-step-badge">1</div>
+                      <div class="process-step-info">
+                        <h3 class="process-step-title">Template & Scope</h3>
+                        <p class="process-step-sub">Define report metadata and target delivery project scope</p>
+                      </div>
+                      <span class="process-step-status" id="step1-status-badge">Configured</span>
+                    </div>
+                    <div class="process-step-body">
+                      <div class="form-row-2">
+                        <div class="form-group">
+                          <label class="settings-label">Report Name *</label>
+                          <input type="text" id="pa-detail-name" class="settings-input" placeholder="e.g. Weekly TPM Sprint & Delivery Health" required />
+                        </div>
+                        <div class="form-group">
+                          <label class="settings-label">Target Project Scope</label>
+                          <select id="pa-project-select" class="settings-select">
+                            <option value="ALL">🌐 All Projects (Entire Portfolio)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div class="form-group" style="margin-top: 12px;">
+                        <label class="settings-label">Description</label>
+                        <textarea id="pa-detail-desc" class="settings-textarea" rows="2" placeholder="Brief summary of report purpose and target audience..."></textarea>
+                      </div>
+
+                      <div class="form-group" style="margin-top: 10px;">
+                        <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); cursor: pointer;">
+                          <input type="checkbox" id="pa-detail-is-default" class="visual-block-checkbox" />
+                          <span>⭐ Set as Default Report Template</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Step 2: Stakeholders -->
+                  <div class="process-step-card" data-step="2">
+                    <div class="process-step-header">
+                      <div class="process-step-badge">2</div>
+                      <div class="process-step-info">
+                        <h3 class="process-step-title">Stakeholders & Audience</h3>
+                        <p class="process-step-sub">Select recipient personas to tailor AI perspective, priorities, and tone</p>
+                      </div>
+                      <span class="process-step-status" id="step2-status-badge">1 Selected</span>
+                    </div>
+                    <div class="process-step-body">
+                      <div class="studio-form-group">
+                        <div class="searchable-multiselect" id="pa-stakeholders-multiselect">
+                          <div class="ms-input-container" id="pa-sh-input-container">
+                            <div class="ms-chips" id="pa-sh-chips"></div>
+                            <input type="text" class="ms-search-input" id="pa-sh-search" placeholder="Type to search and select stakeholders..." autocomplete="off" />
+                            <svg class="ms-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                          </div>
+                          <div class="ms-dropdown" id="pa-sh-dropdown" style="display: none;">
+                            <!-- Stakeholder options rendered by JS -->
+                          </div>
+                        </div>
+                      </div>
+                      <div style="margin-top: 8px; font-size: 12.5px; color: var(--text-dim);">
+                        <span>Need to manage or add stakeholder roles? </span>
+                        <a href="#stakeholders" class="inline-link">Go to Stakeholder Settings →</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Step 3: Content & Visuals (MODAL LAUNCHER) -->
+                  <div class="process-step-card" data-step="3">
+                    <div class="process-step-header">
+                      <div class="process-step-badge">3</div>
+                      <div class="process-step-info">
+                        <h3 class="process-step-title">Content & Visuals</h3>
+                        <p class="process-step-sub">Select the visual charts, metrics, and sections to include in this report</p>
+                      </div>
+                      <span class="process-step-status" id="step3-status-badge">4 Sections</span>
+                    </div>
+                    <div class="process-step-body">
+                      <div class="visuals-config-summary">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px;">
+                          <span style="font-size: 13.5px; font-weight: 600; color: var(--text);">Configured Visual Sections:</span>
+                          <button type="button" id="btn-open-visuals-modal" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 13px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                            Configure Visuals in Modal Window
+                          </button>
+                        </div>
+                        <div id="pa-selected-visuals-chips" class="selected-visuals-chips" style="display: flex; flex-wrap: wrap; gap: 6px; padding: 12px; background: rgba(0, 0, 0, 0.12); border-radius: 8px; border: 1px dashed var(--border); min-height: 48px; align-items: center;">
+                          <!-- Populated dynamically with active visual pills -->
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Step 4: Format & Notes -->
+                  <div class="process-step-card" data-step="4">
+                    <div class="process-step-header">
+                      <div class="process-step-badge">4</div>
+                      <div class="process-step-info">
+                        <h3 class="process-step-title">Format & Directives</h3>
+                        <p class="process-step-sub">Choose export format and optional custom instructions for AI synthesis</p>
+                      </div>
+                      <span class="process-step-status" id="step4-status-badge">HTML View</span>
+                    </div>
+                    <div class="process-step-body">
+                      <div class="studio-form-group" style="margin-bottom: 16px;">
+                        <label class="studio-label">
+                          <span>📤 Preferred Export Format</span>
+                          <span class="studio-sublabel">Select instant export format</span>
+                        </label>
+                        <div class="format-pills" id="pa-format-pills">
+                          <button type="button" class="format-pill active" data-format="html">
+                            <span>🌐 Interactive HTML Document</span>
+                          </button>
+                          <button type="button" class="format-pill" data-format="deck">
+                            <span>📊 Slide Deck / Presentation</span>
+                          </button>
+                          <button type="button" class="format-pill" data-format="markdown">
+                            <span>📋 Markdown Briefing</span>
+                          </button>
+                          <button type="button" class="format-pill" data-format="print">
+                            <span>🖨️ PDF / Print View</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div class="studio-form-group">
+                        <label class="studio-label" for="pa-stakeholder-notes">
+                          <span>📝 Stakeholder Directives & Notes (Optional)</span>
+                          <span class="studio-sublabel">Custom instructions for AI analysis, risk thresholds, and domain focus</span>
+                        </label>
+                        <textarea id="pa-stakeholder-notes" class="studio-textarea" rows="2" placeholder="e.g. Focus on milestone completion confidence, Black Friday critical path dependencies, and high-severity blocker escalations..."></textarea>
+                      </div>
+
+                      <div class="process-flow-action-row">
+                        <button id="pa-btn-generate-bottom" class="btn-primary btn-lg" type="button" title="Generate report with current configuration">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                          Generate Report Digest
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- ===== 4C. RESULTS AREA FOR THE REPORT ===== -->
+              <div id="pa-results" class="pa-results pa-results--empty">
                 <div class="pa-results-placeholder" id="pa-placeholder">
-                  <div class="pa-placeholder-icon">✨</div>
-                  <p class="pa-placeholder-text">Generate a report to see results here.</p>
+                  <div class="pa-placeholder-icon">📑</div>
+                  <div class="pa-placeholder-title" style="font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px;">Ready to Generate Report</div>
+                  <p class="pa-placeholder-text">Click <strong>"Generate"</strong> on any report template or from the details view to produce the digest.</p>
                 </div>
                 <div id="pa-results-content" class="pa-results-content" style="display:none"></div>
               </div>
+
+              <!-- ===== 4D. MODAL WINDOW: CONFIGURE VISUALS & CHARTS ===== -->
+              <div id="modal-visuals-picker" class="modal-overlay" style="display: none;">
+                <div class="modal-card">
+                  <div class="modal-header">
+                    <h3 class="modal-title">Select Visuals & Report Sections</h3>
+                    <button type="button" class="modal-close-btn" id="btn-close-visuals-modal">✕</button>
+                  </div>
+                  <div class="modal-body">
+                    <p style="font-size: 13px; color: var(--text-dim); margin: 0 0 14px 0;">
+                      Check or uncheck the charts, metrics, and AI breakdown sections to include in this report:
+                    </p>
+                    <div id="pa-visual-blocks-grid" class="visual-blocks-list">
+                      <!-- Populated dynamically with interactive checkboxes -->
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="btn-cancel-visuals-modal">Cancel</button>
+                    <button type="button" class="btn-primary" id="btn-apply-visuals-modal">Apply Selection</button>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </section>
 
@@ -1166,8 +1704,125 @@
 
           <!-- ============ 6. SETTINGS PAGE ============ -->
           <section id="page-settings" class="nav-page">
-            <div class="blank-page">
-              <h2>Settings</h2>
+            <div class="settings-page-container">
+              <div class="settings-page-header">
+                <div>
+                  <h2 class="settings-page-title">⚙️ System &amp; AI Settings</h2>
+                  <p class="settings-page-subtitle">Configure AI perspective lenses, risk thresholds, sprint focus domains, and integration synchronization.</p>
+                </div>
+                <div class="settings-header-actions">
+                  <button id="btn-page-reset-settings" class="btn-secondary" type="button">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                    Restore Defaults
+                  </button>
+                  <button id="btn-page-save-settings" class="btn-primary" type="button">
+                    💾 Save Settings
+                  </button>
+                </div>
+              </div>
+
+              <div class="settings-grid">
+                <!-- AI Reasoning & Focus Card -->
+                <div class="section-card">
+                  <div class="section-card-header">
+                    <h3 class="section-card-title">✨ AI Reasoning &amp; Perspective Lens</h3>
+                    <p class="section-card-sub">Determines the focus area and stakeholder tone applied across all AI summaries, briefings, and risk scans.</p>
+                  </div>
+                  
+                  <div class="form-row-2" style="margin-top: 14px;">
+                    <div class="form-group">
+                      <label class="settings-label" for="page-settings-stakeholder">Stakeholder Perspective Lens</label>
+                      <select id="page-settings-stakeholder" class="settings-select">
+                        <option value="program_manager">🎯 Program Manager (Delivery schedules, sprint health, cross-team blockers)</option>
+                        <option value="executive">👑 Executive Sponsor (High-level milestones, strategic ROI, executive risks)</option>
+                        <option value="engineer">⚙️ Engineering Lead (Tech debt, velocity, architectural coupling)</option>
+                      </select>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="settings-label" for="page-settings-min-severity">Minimum Risk Severity</label>
+                      <select id="page-settings-min-severity" class="settings-select">
+                        <option value="low">🟢 Low — Surface all observations</option>
+                        <option value="medium" selected>🟡 Medium — Surface amber and red risks</option>
+                        <option value="high">🔴 High — Surface critical blockers only</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="form-row-2" style="margin-top: 14px;">
+                    <div class="form-group">
+                      <label class="settings-label" for="page-settings-focus-teams">Focus Teams <span class="settings-hint">(comma-separated, leave blank for all)</span></label>
+                      <input id="page-settings-focus-teams" class="settings-input" type="text" placeholder="e.g. Checkout Squad, Mobile Team, Core Platform" />
+                    </div>
+
+                    <div class="form-group">
+                      <label class="settings-label" for="page-settings-focus-epics">Focus Epics <span class="settings-hint">(comma-separated, leave blank for all)</span></label>
+                      <input id="page-settings-focus-epics" class="settings-input" type="text" placeholder="e.g. CHK-101, CORE-204" />
+                    </div>
+                  </div>
+
+                  <div class="form-group" style="margin-top: 14px;">
+                    <label class="settings-label" for="page-settings-verbosity">Summary Verbosity</label>
+                    <select id="page-settings-verbosity" class="settings-select">
+                      <option value="brief" selected>Brief (Executive headline + top bullet points)</option>
+                      <option value="detailed">Detailed (In-depth root cause and multi-layer breakdown)</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group" style="margin-top: 14px;">
+                    <label class="settings-label">Active Risk Categories</label>
+                    <div class="settings-checkboxes" style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 6px;">
+                      <label class="settings-check"><input type="checkbox" id="page-settings-risk-dependency" checked /> 🔗 Dependency blocks</label>
+                      <label class="settings-check"><input type="checkbox" id="page-settings-risk-velocity" checked /> ⚡ Velocity gaps &amp; drag</label>
+                      <label class="settings-check"><input type="checkbox" id="page-settings-risk-overcommitment" checked /> 📈 Overcommitment</label>
+                    </div>
+                  </div>
+
+                  <div class="form-group" style="margin-top: 14px;">
+                    <label class="settings-label" for="page-settings-instructions">Custom AI Instructions &amp; Strategic Priorities</label>
+                    <textarea id="page-settings-instructions" class="settings-textarea" rows="3" placeholder="e.g. Prioritize Q4 Black Friday readiness and payment gateway compliance over non-critical UI refactors..."></textarea>
+                  </div>
+
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px;">
+                    <span id="page-settings-save-msg" class="settings-save-msg"></span>
+                    <button id="btn-page-save-bottom" class="btn-primary" type="button">Save Settings</button>
+                  </div>
+                </div>
+
+                <!-- Integration & Diagnostics Card -->
+                <div class="section-card" style="margin-top: 20px;">
+                  <div class="section-card-header">
+                    <h3 class="section-card-title">🔌 Integration &amp; Data Freshness</h3>
+                    <p class="section-card-sub">Data ingestion pipelines, PostgreSQL cache status, and system diagnostics.</p>
+                  </div>
+
+                  <div class="settings-info-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 16px 0;">
+                    <div class="p-meta-item" style="background: rgba(255,255,255,0.02); padding: 14px; border-radius: 8px; border: 1px solid var(--border);">
+                      <span class="p-meta-label">Jira Data Pipeline</span>
+                      <span class="p-meta-value text-green" style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+                        <span class="pulse-dot" style="background: #10b981;"></span> Connected (Live / Synthetic)
+                      </span>
+                    </div>
+                    <div class="p-meta-item" style="background: rgba(255,255,255,0.02); padding: 14px; border-radius: 8px; border: 1px solid var(--border);">
+                      <span class="p-meta-label">Active Portfolio</span>
+                      <span class="p-meta-value" style="margin-top: 4px;">Project Horizon (4 Projects)</span>
+                    </div>
+                    <div class="p-meta-item" style="background: rgba(255,255,255,0.02); padding: 14px; border-radius: 8px; border: 1px solid var(--border);">
+                      <span class="p-meta-label">LLM Provider</span>
+                      <span class="p-meta-value" style="color: #60a5fa; margin-top: 4px;">Google Gemini Pro (Reasoning)</span>
+                    </div>
+                  </div>
+
+                  <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;">
+                    <button id="btn-reingest-jira" class="btn-secondary" type="button">
+                      🔄 Refresh Assessment Cache
+                    </button>
+                    <button id="btn-clear-ai-history" class="btn-secondary" type="button">
+                      🧹 Clear Chat History
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         </main>
@@ -1276,6 +1931,6 @@
     </div>
   </aside>
 
-  <script type="module" src="js/main.js?v=6"></script>
+  <script type="module" src="js/main.js?v=13"></script>
 </body>
 </html>

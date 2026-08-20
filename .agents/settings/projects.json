@@ -1,0 +1,93 @@
+{
+  "projects": [
+    {
+      "key": "CHK",
+      "name": "Checkout Flow Replatform",
+      "description": "Redesigning the global checkout flow with one-click purchase, localized currencies, and multi-gateway failover resilience.",
+      "lead": "Alex Mercer",
+      "target_release": "Q4 2026 (v2.4)",
+      "status": "delayed",
+      "progress_pct": 75,
+      "progress_sp": "340 / 500 SP",
+      "blockers_count": 4,
+      "tags": [
+        "Payments",
+        "Checkout",
+        "Frontend",
+        "API"
+      ],
+      "archived": false,
+      "owner": "system",
+      "is_builtin": true,
+      "created_at": "2026-01-10T08:00:00Z",
+      "updated_at": "2026-08-20T14:42:22.455856+00:00"
+    },
+    {
+      "key": "CORE",
+      "name": "Platform Core & Analytics Foundation",
+      "description": "Microservices migration, database horizontal partitioning, real-time Kafka event streaming, and unified program telemetry.",
+      "lead": "Marcus Vance",
+      "target_release": "Q3 2026 (v3.0)",
+      "status": "on-track",
+      "progress_pct": 82,
+      "progress_sp": "490 / 600 SP",
+      "blockers_count": 0,
+      "tags": [
+        "Infrastructure",
+        "Analytics",
+        "PostgreSQL",
+        "Kafka"
+      ],
+      "archived": false,
+      "owner": "system",
+      "is_builtin": true,
+      "created_at": "2026-01-10T08:00:00Z",
+      "updated_at": "2026-08-15T14:30:00Z"
+    },
+    {
+      "key": "MOB",
+      "name": "Mobile Parity & Security Guild",
+      "description": "Achieving full iOS & Android feature parity while hardening SOC2, PCI-DSS compliance, and zero-trust SSO authentication.",
+      "lead": "Dr. Aris Thorne",
+      "target_release": "Q4 2026 (v1.8)",
+      "status": "on-track",
+      "progress_pct": 54,
+      "progress_sp": "215 / 400 SP",
+      "blockers_count": 1,
+      "tags": [
+        "Mobile",
+        "iOS",
+        "Android",
+        "Security",
+        "Auth0"
+      ],
+      "archived": false,
+      "owner": "system",
+      "is_builtin": true,
+      "created_at": "2026-01-10T08:00:00Z",
+      "updated_at": "2026-08-15T14:30:00Z"
+    },
+    {
+      "key": "HRZ",
+      "name": "Project Horizon",
+      "description": "The overarching program coordinating all enterprise software delivery initiatives, dependency management, and release trains.",
+      "lead": "Elena Rostova",
+      "target_release": "FY27 Program Go-Live (Delayed)",
+      "status": "at-risk",
+      "progress_pct": 70,
+      "progress_sp": "1045 / 1500 SP",
+      "blockers_count": 3,
+      "tags": [
+        "Program",
+        "Portfolio",
+        "Delivery",
+        "Horizon"
+      ],
+      "archived": false,
+      "owner": "system",
+      "is_builtin": true,
+      "created_at": "2026-01-10T08:00:00Z",
+      "updated_at": "2026-08-15T14:30:00Z"
+    }
+  ]
+}

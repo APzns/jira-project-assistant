@@ -3,28 +3,30 @@ create_dependencies.py — Creates realistic 'Blocks' dependencies in Jira.
 
 Picks ~NUM_LINKS blocker->blocked pairs, biased toward cross-epic and
 cross-team relationships (so cross-team blocker risk has signal), and targets
-non-Done issues as the blocked side (a blocked-but-Done issue looks odd).
-
-Jira has no batch endpoint for links, so each pair is a separate
-POST /rest/api/3/issueLink call.
+non-Done issues as the blocked side.
 """
 
+import argparse
 import random
+import sys
+
 import requests
 
-from src.jira_ai.seeder.jira_common import BASE_URL, PROJECT_KEY, auth_header
+from src.jira_ai.seeder.jira_common import (
+    BASE_URL, auth_header, resolve_project_key,
+)
 
 NUM_LINKS = 40
 CROSS_TEAM_BIAS = 0.75   # fraction of links we try to make cross-team
 TEAM_FIELD_ID = "customfield_10001"
 
 
-def _fetch_candidates() -> list[dict]:
+def _fetch_candidates(project_key: str) -> list[dict]:
     """Return non-epic issues with key, parent epic key, team name, and done flag."""
     out, token = [], None
     while True:
         payload = {
-            "jql": f"project = {PROJECT_KEY} AND issuetype != Epic",
+            "jql": f"project = {project_key} AND issuetype != Epic",
             "fields": ["parent", "status", TEAM_FIELD_ID],
             "maxResults": 100,
         }
@@ -66,10 +68,19 @@ def create_link(blocker: str, blocked: str) -> bool:
     return True
 
 
-def main() -> None:
-    print("=== Creating 'Blocks' dependencies ===")
-    issues = _fetch_candidates()
-    print(f"Loaded {len(issues)} candidate issues.")
+def main(project_key: str | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Create Blocks dependencies in Jira.")
+    parser.add_argument("--project", "-p", default=None, help="Target Jira project key")
+
+    if len(sys.argv) > 1 and sys.argv[0].endswith("create_dependencies.py"):
+        args = parser.parse_args()
+        target_key = resolve_project_key(args.project or project_key)
+    else:
+        target_key = resolve_project_key(project_key)
+
+    print(f"=== Creating 'Blocks' dependencies for Project [{target_key}] ===")
+    issues = _fetch_candidates(target_key)
+    print(f"Loaded {len(issues)} candidate issues in project {target_key}.")
 
     # Blocked side: prefer non-Done issues so dependencies look active.
     not_done = [i for i in issues if not i["done"]]
@@ -104,7 +115,7 @@ def main() -> None:
             tag = "cross-team" if cross_team else "same-team"
             print(f"  [{created}/{NUM_LINKS}] {blocker['key']} blocks {blocked['key']} ({tag})")
 
-    print(f"\nDone. Created {created} Blocks links "
+    print(f"\nDone. Created {created} Blocks links in project {target_key} "
           f"({sum(1 for a, b in seen)} unique pairs).")
 
 

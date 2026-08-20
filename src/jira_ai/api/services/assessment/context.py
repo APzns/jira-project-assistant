@@ -56,15 +56,52 @@ def _normalize_sprint_progress(rows: list[dict]) -> list[dict]:
     return out
 
 
-def _compute_metrics(db) -> dict:
-    """Compute exact, deterministic metrics snapshot from SQL database."""
+def _project_sql_condition(project_key: str | None, table_alias: str = "i") -> str:
+    """SQL WHERE clause condition for project filtering."""
+    if not project_key or project_key.upper() in ("ALL", "GLOBAL"):
+        return "1=1"
+    pkey = project_key.upper()
+    if pkey == "HRZ":
+        return f"({table_alias}.key LIKE 'APS-%' OR {table_alias}.key LIKE 'HRZ-%')"
+    if pkey == "CORE":
+        return f"({table_alias}.key LIKE 'CORE-%' OR {table_alias}.key LIKE 'INF-%' OR {table_alias}.team = 'Platform Core' OR {table_alias}.team = 'Data Insights')"
+    return f"{table_alias}.key LIKE '{pkey}-%'"
+
+
+def _default_team_for_project(project_key: str | None) -> str:
+    """Return an intuitive default squad name when issue.team is null."""
+    if not project_key or project_key.upper() in ("ALL", "GLOBAL"):
+        return "Core Team"
+    pkey = project_key.upper()
+    if pkey == "HRZ":
+        return "Horizon Squad"
+    if pkey == "CHK":
+        return "Checkout Squad"
+    if pkey in ("CORE", "INF"):
+        return "Platform Core"
+    if pkey == "MOB":
+        return "Mobile Team"
+    if pkey == "PAY":
+        return "Payments Squad"
+    if pkey == "AIP":
+        return "AI Engine Squad"
+    return f"{pkey} Team"
+
+
+def _compute_metrics(db, project_key: str | None = None) -> dict:
+    """Compute exact, deterministic metrics snapshot from SQL database, optionally filtered by project_key."""
 
     def scalar(sql, **params):
         return db.execute(text(sql), params).scalar()
 
-    total = scalar("SELECT count(*) FROM issues")
+    proj_cond_i = _project_sql_condition(project_key, "i")
+    proj_cond_s = _project_sql_condition(project_key, "s")
+    proj_cond_t = _project_sql_condition(project_key, "t")
+    def_team = _default_team_for_project(project_key)
 
-    milestone_rows = db.execute(text("""
+    total = scalar(f"SELECT count(*) FROM issues i WHERE {proj_cond_i}") or 0
+
+    milestone_rows = db.execute(text(f"""
         SELECT v.name,
                v.release_date,
                count(*) AS total,
@@ -75,6 +112,7 @@ def _compute_metrics(db) -> dict:
         FROM issues i
         JOIN fix_versions v ON v.version_id = i.fix_version_id
         WHERE i.fix_version_id IS NOT NULL AND i.issue_type <> 'Epic'
+          AND {proj_cond_i}
         GROUP BY v.name, v.release_date
         ORDER BY v.release_date NULLS LAST, v.name
     """)).fetchall()
@@ -102,7 +140,7 @@ def _compute_metrics(db) -> dict:
     if dated:
         project_milestone = max(dated, key=lambda kv: kv[1]["release_date"])[0]
 
-    sprint_rows = db.execute(text("""
+    sprint_rows = db.execute(text(f"""
         SELECT i.sprint,
                s.state, s.start_date, s.end_date,
                count(*) AS total,
@@ -111,7 +149,8 @@ def _compute_metrics(db) -> dict:
                coalesce(sum(i.story_points) FILTER (WHERE i.status_category = 'Done'), 0) AS done_points
         FROM issues i
         LEFT JOIN sprints s ON s.name = i.sprint
-        WHERE i.sprint IS NOT NULL AND i.team IS NOT NULL AND i.issue_type <> 'Epic'
+        WHERE i.sprint IS NOT NULL AND i.issue_type <> 'Epic'
+          AND {proj_cond_i}
         GROUP BY i.sprint, s.state, s.start_date, s.end_date
         ORDER BY s.start_date NULLS LAST, i.sprint
     """)).fetchall()
@@ -130,17 +169,18 @@ def _compute_metrics(db) -> dict:
         for r in sprint_rows
     ])
 
-    team_rows = db.execute(text("""
-        SELECT i.sprint, i.team,
+    team_rows = db.execute(text(f"""
+        SELECT i.sprint, coalesce(i.team, :def_team) AS team,
                coalesce(sum(i.story_points), 0) AS committed,
                coalesce(sum(i.story_points) FILTER (WHERE i.status_category = 'Done'), 0) AS completed,
                s.start_date
         FROM issues i
         LEFT JOIN sprints s ON s.name = i.sprint
-        WHERE i.sprint IS NOT NULL AND i.team IS NOT NULL AND i.issue_type <> 'Epic'
-        GROUP BY i.sprint, i.team, s.start_date
+        WHERE i.sprint IS NOT NULL AND i.issue_type <> 'Epic'
+          AND {proj_cond_i}
+        GROUP BY i.sprint, coalesce(i.team, :def_team), s.start_date
         ORDER BY s.start_date NULLS LAST, i.sprint
-    """)).fetchall()
+    """), {"def_team": def_team}).fetchall()
 
     _sprints, _teams = [], []
     _committed, _completed = {}, {}
@@ -159,30 +199,33 @@ def _compute_metrics(db) -> dict:
         "completed": {t: [_completed.get(t, {}).get(s, 0) for s in _sprints] for t in _teams},
     }
 
-    blocked_issues = scalar("""
+    blocked_issues = scalar(f"""
         SELECT count(DISTINCT l.target_key)
         FROM issue_links l
         JOIN issues s ON s.key = l.source_key
         JOIN issues t ON t.key = l.target_key
         WHERE t.status_category <> 'Done' AND s.status_category <> 'Done'
+          AND ({proj_cond_s} OR {proj_cond_t})
     """) or 0
 
-    cross_team_blockers = scalar("""
+    cross_team_blockers = scalar(f"""
         SELECT count(*)
         FROM issue_links l
         JOIN issues s ON s.key = l.source_key
         JOIN issues t ON t.key = l.target_key
         WHERE s.team IS NOT NULL AND t.team IS NOT NULL AND s.team <> t.team
           AND t.status_category <> 'Done' AND s.status_category <> 'Done'
+          AND ({proj_cond_s} OR {proj_cond_t})
     """) or 0
 
-    cross_team_rows = db.execute(text("""
+    cross_team_rows = db.execute(text(f"""
         SELECT s.team AS blocker_team, t.team AS blocked_team, count(*) AS n
         FROM issue_links l
         JOIN issues s ON s.key = l.source_key
         JOIN issues t ON t.key = l.target_key
         WHERE s.team IS NOT NULL AND t.team IS NOT NULL AND s.team <> t.team
           AND t.status_category <> 'Done' AND s.status_category <> 'Done'
+          AND ({proj_cond_s} OR {proj_cond_t})
         GROUP BY s.team, t.team ORDER BY n DESC
     """)).fetchall()
     cross_team_pairs = [
@@ -190,11 +233,11 @@ def _compute_metrics(db) -> dict:
         for r in cross_team_rows
     ]
 
-    conflict_rows = db.execute(text("""
+    conflict_rows = db.execute(text(f"""
         SELECT l.source_key AS blocker, s.summary AS blocker_summary,
-               s.team AS blocker_team, bs.start_date AS blocker_start,
+               coalesce(s.team, :def_team) AS blocker_team, bs.start_date AS blocker_start,
                l.target_key AS blocked, t.summary AS blocked_summary,
-               t.team AS blocked_team, ts.start_date AS blocked_start,
+               coalesce(t.team, :def_team) AS blocked_team, ts.start_date AS blocked_start,
                s.sprint AS blocker_sprint, bs.end_date AS blocker_sprint_end,
                t.sprint AS blocked_sprint, ts.end_date AS blocked_sprint_end
         FROM issue_links l
@@ -204,13 +247,14 @@ def _compute_metrics(db) -> dict:
         LEFT JOIN sprints ts ON ts.name = t.sprint
         WHERE t.status_category <> 'Done'
           AND s.status_category <> 'Done'
+          AND ({proj_cond_s} OR {proj_cond_t})
           AND (
                s.sprint IS NULL
                OR bs.start_date IS NULL
                OR (ts.start_date IS NOT NULL AND bs.start_date >= ts.start_date)
           )
         ORDER BY ts.start_date NULLS LAST, l.target_key
-    """)).fetchall()
+    """), {"def_team": def_team}).fetchall()
     dependency_conflict_items = []
     for r in conflict_rows:
         blocker_start = r[3]
@@ -227,9 +271,10 @@ def _compute_metrics(db) -> dict:
         "items": dependency_conflict_items,
     }
 
-    unresolved_bugs = scalar("""
-        SELECT count(*) FROM issues
-        WHERE issue_type = 'Bug' AND status_category <> 'Done'
+    unresolved_bugs = scalar(f"""
+        SELECT count(*) FROM issues i
+        WHERE i.issue_type = 'Bug' AND i.status_category <> 'Done'
+          AND {proj_cond_i}
     """) or 0
 
     _closed_sp = [s for s in sprint_progress if s.get("state") == "closed"]
@@ -309,15 +354,16 @@ def _compute_metrics(db) -> dict:
         })
     team_predictability.sort(key=lambda x: (x["pct"] is None, -(x["pct"] or 0)))
 
-    delayed_rows = db.execute(text("""
+    delayed_rows = db.execute(text(f"""
         SELECT v.name, v.release_date, v.released,
-               i.key, i.summary, i.team,
+               i.key, i.summary, coalesce(i.team, :def_team) AS team,
                i.resolved, i.status_category, i.sprint, i.status
         FROM issues i
         JOIN fix_versions v ON v.version_id = i.fix_version_id
         WHERE i.issue_type <> 'Epic'
+          AND {proj_cond_i}
         ORDER BY v.release_date NULLS LAST, v.name, i.key
-    """)).fetchall()
+    """), {"def_team": def_team}).fetchall()
 
     _rel_groups: dict[str, dict] = {}
     _unrel_groups: dict[str, dict] = {}
@@ -376,7 +422,7 @@ def _compute_metrics(db) -> dict:
         "unreleased": _finalize(_unrel_groups),
     }
 
-    overdue_row = db.execute(text("""
+    overdue_row = db.execute(text(f"""
         SELECT
             coalesce(sum(i.story_points), 0) AS total_pts,
             coalesce(sum(i.story_points) FILTER (WHERE i.status_category <> 'Done'), 0) AS late_pts
@@ -384,23 +430,25 @@ def _compute_metrics(db) -> dict:
         JOIN fix_versions v ON v.version_id = i.fix_version_id
         WHERE v.overdue = true
           AND i.issue_type <> 'Epic'
+          AND {proj_cond_i}
     """)).fetchone()
     _total_pts = float(overdue_row[0] or 0)
     _late_pts = float(overdue_row[1] or 0)
     overdue_points_pct = round(100 * _late_pts / _total_pts, 1) if _total_pts else 0.0
 
-    remaining_points = scalar("""
+    remaining_points = scalar(f"""
         SELECT coalesce(sum(story_points), 0)
-        FROM issues
-        WHERE issue_type <> 'Epic' AND status_category <> 'Done'
+        FROM issues i
+        WHERE i.issue_type <> 'Epic' AND i.status_category <> 'Done'
+          AND {proj_cond_i}
     """) or 0
     velocity_pool = [s["completed_points"] for s in sprint_progress
                      if s.get("state") == "closed" and s["completed_points"] > 0]
     forecast_mc = forecast.monte_carlo_from(int(remaining_points), velocity_pool)
 
-    status_rows = db.execute(text("""
+    status_rows = db.execute(text(f"""
         SELECT coalesce(v.name, '(none)') AS fixversion,
-               coalesce(i.team, '(none)') AS team,
+               coalesce(i.team, :def_team) AS team,
                i.issue_type,
                count(*) AS total,
                count(*) FILTER (WHERE i.status_category = 'To Do') AS todo,
@@ -410,9 +458,10 @@ def _compute_metrics(db) -> dict:
         FROM issues i
         LEFT JOIN fix_versions v ON v.version_id = i.fix_version_id
         WHERE i.issue_type <> 'Epic'
-        GROUP BY coalesce(v.name, '(none)'), coalesce(i.team, '(none)'), i.issue_type
+          AND {proj_cond_i}
+        GROUP BY coalesce(v.name, '(none)'), coalesce(i.team, :def_team), i.issue_type
         ORDER BY fixversion, team, i.issue_type
-    """)).fetchall()
+    """), {"def_team": def_team}).fetchall()
     status_breakdown = [
         {
             "fixversion": fv, "team": team, "issue_type": itype,
@@ -422,13 +471,13 @@ def _compute_metrics(db) -> dict:
         for fv, team, itype, tot, td, ip, ir, dn in status_rows
     ]
 
-    progress_rows = db.execute(text("""
+    progress_rows = db.execute(text(f"""
         SELECT coalesce(i.sprint, '(none)') AS sprint,
                coalesce(s.state, 'none') AS sprint_state,
                coalesce(v.name, '(none)') AS fixversion,
                CASE WHEN v.released THEN 'closed' ELSE 'active' END AS fixversion_state,
                v.release_date,
-               coalesce(i.team, '(none)') AS team,
+               coalesce(i.team, :def_team) AS team,
                i.issue_type,
                i.key,
                i.summary,
@@ -439,8 +488,9 @@ def _compute_metrics(db) -> dict:
         LEFT JOIN sprints s ON s.name = i.sprint
         LEFT JOIN fix_versions v ON v.version_id = i.fix_version_id
         WHERE i.issue_type <> 'Epic'
+          AND {proj_cond_i}
         ORDER BY sprint, team, i.issue_type, i.key
-    """)).fetchall()
+    """), {"def_team": def_team}).fetchall()
     progress_issues = []
     for sp, sp_state, fv, fv_state, rdate, tm, itype, k, sm, st, stc, spoints in progress_rows:
         rd = rdate or MILESTONE_RELEASE_DATES.get(fv)
@@ -453,13 +503,13 @@ def _compute_metrics(db) -> dict:
             "story_points": spoints
         })
 
-    bug_open = scalar("SELECT count(*) FROM issues WHERE issue_type = 'Bug' AND status_category <> 'Done'") or 0
-    bug_closed = scalar("SELECT count(*) FROM issues WHERE issue_type = 'Bug' AND status_category = 'Done'") or 0
-    bug_points = scalar("SELECT COALESCE(SUM(story_points),0) FROM issues WHERE issue_type = 'Bug'") or 0
-    _all_points = scalar("SELECT COALESCE(SUM(story_points),0) FROM issues") or 0
+    bug_open = scalar(f"SELECT count(*) FROM issues i WHERE i.issue_type = 'Bug' AND i.status_category <> 'Done' AND {proj_cond_i}") or 0
+    bug_closed = scalar(f"SELECT count(*) FROM issues i WHERE i.issue_type = 'Bug' AND i.status_category = 'Done' AND {proj_cond_i}") or 0
+    bug_points = scalar(f"SELECT COALESCE(SUM(story_points),0) FROM issues i WHERE i.issue_type = 'Bug' AND {proj_cond_i}") or 0
+    _all_points = scalar(f"SELECT COALESCE(SUM(story_points),0) FROM issues i WHERE {proj_cond_i}") or 0
 
-    defect_rows = db.execute(text("""
-        SELECT i.sprint, i.team,
+    defect_rows = db.execute(text(f"""
+        SELECT i.sprint, coalesce(i.team, :def_team) AS team,
                COUNT(CASE WHEN LOWER(i.issue_type) IN ('bug', 'technical debt', 'tech debt') THEN 1 END) as bug_count,
                COUNT(CASE WHEN LOWER(i.issue_type) NOT IN ('bug', 'technical debt', 'tech debt') AND i.issue_type <> 'Epic' THEN 1 END) as other_count,
                COUNT(CASE WHEN i.issue_type <> 'Epic' THEN 1 END) as total_count,
@@ -467,11 +517,12 @@ def _compute_metrics(db) -> dict:
                COALESCE(SUM(CASE WHEN LOWER(i.issue_type) NOT IN ('bug', 'technical debt', 'tech debt') AND i.issue_type <> 'Epic' THEN i.story_points ELSE 0 END), 0) as other_sp,
                COALESCE(SUM(CASE WHEN i.issue_type <> 'Epic' THEN i.story_points ELSE 0 END), 0) as total_sp
         FROM issues i
-        JOIN sprints s ON i.sprint_id = s.sprint_id
+        JOIN sprints s ON (i.sprint_id = s.sprint_id OR i.sprint = s.name)
         WHERE s.state = 'closed' AND i.status_category = 'Done'
-        GROUP BY i.sprint, i.team
-        ORDER BY i.sprint, i.team
-    """)).fetchall()
+          AND {proj_cond_i}
+        GROUP BY i.sprint, coalesce(i.team, :def_team)
+        ORDER BY i.sprint, coalesce(i.team, :def_team)
+    """), {"def_team": def_team}).fetchall()
 
     defects_per_sprint = []
     _team_sp_ratios: dict[str, list[float]] = {}
@@ -504,8 +555,8 @@ def _compute_metrics(db) -> dict:
         })
 
     # Active Sprint Breakdown (included in table, but excluded from overall defect ratio calculation)
-    active_defect_rows = db.execute(text("""
-        SELECT i.sprint, i.team, s.state as sprint_state,
+    active_defect_rows = db.execute(text(f"""
+        SELECT i.sprint, coalesce(i.team, :def_team) AS team, s.state as sprint_state,
                COUNT(CASE WHEN LOWER(i.issue_type) IN ('bug', 'technical debt', 'tech debt') THEN 1 END) as bug_count,
                COUNT(CASE WHEN LOWER(i.issue_type) NOT IN ('bug', 'technical debt', 'tech debt') AND i.issue_type <> 'Epic' THEN 1 END) as other_count,
                COUNT(CASE WHEN i.issue_type <> 'Epic' THEN 1 END) as total_count,
@@ -515,9 +566,10 @@ def _compute_metrics(db) -> dict:
         FROM issues i
         JOIN sprints s ON (i.sprint_id = s.sprint_id OR i.sprint = s.name)
         WHERE s.state = 'active'
-        GROUP BY i.sprint, i.team, s.state
-        ORDER BY i.sprint, i.team
-    """)).fetchall()
+          AND {proj_cond_i}
+        GROUP BY i.sprint, coalesce(i.team, :def_team), s.state
+        ORDER BY i.sprint, coalesce(i.team, :def_team)
+    """), {"def_team": def_team}).fetchall()
 
     for r in active_defect_rows:
         sprint, team, sprint_state, bug_count, other_count, total_count, bug_sp, other_sp, total_sp = r
@@ -582,6 +634,7 @@ def _compute_metrics(db) -> dict:
     team_defects_ratio.sort(key=lambda x: (x["pct"] is None, -(x["pct"] or 0)))
 
     return {
+        "project_key": project_key or "ALL",
         "bug_stats": bug_stats,
         "status_breakdown": status_breakdown,
         "progress_issues": progress_issues,
@@ -605,6 +658,7 @@ def _compute_metrics(db) -> dict:
         "overdue_points_pct": overdue_points_pct,
         "forecast_monte_carlo": forecast_mc,
     }
+
 
 
 def _synthetic_metrics() -> dict:

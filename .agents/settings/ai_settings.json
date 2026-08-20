@@ -102,6 +102,492 @@
       "min_risk_severity": "high",
       "summary_verbosity": "detailed",
       "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
+    },
+    {
+      "id": "my-custom-test-profile",
+      "name": "QA & Defect Deep Dive",
+      "is_default": false,
+      "stakeholder": "engineer",
+      "focus_teams": [
+        "Checkout Squad"
+      ],
+      "focus_epics": [
+        "Mobile Parity"
+      ],
+      "risk_categories": [
+        "dependency"
+      ],
+      "min_risk_severity": "high",
+      "summary_verbosity": "detailed",
+      "custom_instructions": "Focus on high-severity unassigned bugs."
     }
   ],
   "stakeholder": "engineer",

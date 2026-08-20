@@ -1,195 +1,216 @@
 {
   "templates": [
     {
-      "id": "tpl_default",
-      "name": "Default Executive Report",
-      "description": "Standard status report focusing on milestone delivery dates, major schedule risks, and key strategic decisions required.",
+      "id": "report-exec-brief",
+      "name": "Executive Program Status Briefing",
+      "description": "High-level strategic briefing on milestone delivery dates, schedule risks, and key strategic decisions for leadership.",
+      "is_default": false,
+      "stakeholder_ids": [
+        "exec",
+        "pm-default"
+      ],
+      "stakeholder_notes": "Focus on overall milestone delivery dates, business risks, budget/scope tradeoffs, and required executive steering decisions.",
+      "blocks": [
+        {
+          "id": "exec_summary_1",
+          "block_type": "executive_summary",
+          "title": "Executive AI Summary",
+          "enabled": true,
+          "order": 1
+        },
+        {
+          "id": "health_kpis_1",
+          "block_type": "health_kpis",
+          "title": "KPI Health",
+          "enabled": true,
+          "order": 2
+        },
+        {
+          "id": "monte_carlo_1",
+          "block_type": "monte_carlo",
+          "title": "Monte Carlo Throughput Forecast",
+          "enabled": true,
+          "order": 3
+        },
+        {
+          "id": "action_plan_1",
+          "block_type": "action_plan",
+          "title": "P1-P3 Action Plan",
+          "enabled": true,
+          "order": 4
+        }
+      ]
+    },
+    {
+      "id": "report-pm-weekly",
+      "name": "Weekly TPM Sprint & Delivery Health",
+      "description": "Operational sprint delivery tracking, sprint predictability, capacity drag, burnup velocity, and cross-team dependencies.",
       "is_default": true,
       "stakeholder_ids": [
-        "executive"
+        "pm-default"
       ],
-      "stakeholder_notes": "Focus on high-level milestones and blocking risks.",
+      "stakeholder_notes": "Highlight active sprint overcommitments, velocity bottlenecks, carryover risks, and immediate sprint-level action items.",
       "blocks": [
         {
-          "id": "exec_summary_def",
-          "block_type": "executive_summary",
-          "title": "Executive AI Summary",
-          "enabled": true,
-          "order": 1,
-          "pm_commentary": "",
-          "chart_prompt": "",
-          "config": {}
-        },
-        {
-          "id": "burndown_def",
-          "block_type": "burndown",
-          "title": "Burndown & Velocity",
-          "enabled": true,
-          "order": 2,
-          "pm_commentary": "",
-          "chart_prompt": "",
-          "config": {}
-        },
-        {
-          "id": "action_plan_def",
-          "block_type": "action_plan",
-          "title": "P1-P3 Action Plan",
-          "enabled": true,
-          "order": 3,
-          "pm_commentary": "",
-          "chart_prompt": "",
-          "config": {}
-        }
-      ],
-      "updated_at": "2026-08-15T10:57:17.211105Z"
-    },
-    {
-      "id": "report-4f6adb28",
-      "name": "my report",
-      "description": "short overview",
-      "is_default": false,
-      "stakeholder_ids": [
-        "executive"
-      ],
-      "stakeholder_notes": "Focus on high-level milestones and blocking risks.",
-      "blocks": [
-        {
-          "id": "exec_summary_1786790982798",
-          "block_type": "executive_summary",
-          "title": "Executive AI Summary",
-          "enabled": true,
-          "order": 1,
-          "pm_commentary": "",
-          "chart_prompt": "",
-          "config": {}
-        },
-        {
-          "id": "health_kpis_1786790982798",
+          "id": "health_kpis_2",
           "block_type": "health_kpis",
           "title": "KPI Health",
           "enabled": true,
-          "order": 2,
-          "pm_commentary": "",
-          "chart_prompt": "",
-          "config": {}
+          "order": 1
         },
         {
-          "id": "burndown_1786790982798",
+          "id": "burndown_1",
           "block_type": "burndown",
           "title": "Burndown & Velocity",
           "enabled": true,
-          "order": 3,
-          "pm_commentary": "",
-          "chart_prompt": "",
-          "config": {}
+          "order": 2
         },
         {
-          "id": "monte_carlo_1786790982799",
-          "block_type": "monte_carlo",
-          "title": "Monte Carlo Throughput Forecast",
-          "enabled": true,
-          "order": 4,
-          "pm_commentary": "",
-          "chart_prompt": "",
-          "config": {}
-        },
-        {
-          "id": "dependency_matrix_1786790982799",
+          "id": "dependency_1",
           "block_type": "dependency_matrix",
           "title": "Team Dependencies Matrix",
           "enabled": true,
-          "order": 5,
-          "pm_commentary": "",
-          "chart_prompt": "",
-          "config": {}
+          "order": 3
         },
         {
-          "id": "quality_defects_1786790982799",
-          "block_type": "quality_defects",
-          "title": "Defect Ratio by Team",
-          "enabled": true,
-          "order": 6,
-          "pm_commentary": "",
-          "chart_prompt": "tylko 1 zespół",
-          "config": {}
-        },
-        {
-          "id": "action_plan_1786790982799",
+          "id": "action_plan_2",
           "block_type": "action_plan",
           "title": "P1-P3 Action Plan",
           "enabled": true,
-          "order": 7,
-          "pm_commentary": "",
-          "chart_prompt": "",
-          "config": {}
+          "order": 4
         }
-      ],
-      "created_at": "2026-08-15T10:50:21.419459Z",
-      "updated_at": "2026-08-15T10:57:17.211105Z"
+      ]
     },
     {
-      "name": "my report (Copy)",
-      "description": "short overview",
+      "id": "report-dependency-blocker",
+      "name": "Cross-Team Dependency & Blocker Matrix",
+      "description": "Deep-dive analysis on inter-team dependencies, critical path bottlenecks, upstream blockers, and alignment across squads.",
       "is_default": false,
       "stakeholder_ids": [
-        "executive"
+        "pm-default",
+        "eng-lead"
       ],
-      "stakeholder_notes": "Focus on high-level milestones and blocking risks.",
+      "stakeholder_notes": "Emphasize critical path dependencies, cross-team handoffs, and blocker mitigations across squads.",
       "blocks": [
         {
-          "id": "exec_summary_1786791382237",
+          "id": "exec_summary_2",
           "block_type": "executive_summary",
           "title": "Executive AI Summary",
           "enabled": true,
-          "order": 1,
-          "pm_commentary": "Report generated today",
-          "chart_prompt": "add information where are issues",
-          "config": {}
+          "order": 1
         },
         {
-          "id": "health_kpis_1786791382237",
-          "block_type": "health_kpis",
-          "title": "KPI Health",
-          "enabled": true,
-          "order": 2,
-          "pm_commentary": "",
-          "chart_prompt": "",
-          "config": {}
-        },
-        {
-          "id": "monte_carlo_1786791382238",
-          "block_type": "monte_carlo",
-          "title": "Monte Carlo Throughput Forecast",
-          "enabled": true,
-          "order": 4,
-          "pm_commentary": "",
-          "chart_prompt": "",
-          "config": {}
-        },
-        {
-          "id": "dependency_matrix_1786791382238",
+          "id": "dependency_2",
           "block_type": "dependency_matrix",
           "title": "Team Dependencies Matrix",
           "enabled": true,
-          "order": 5,
-          "pm_commentary": "",
-          "chart_prompt": "",
-          "config": {}
+          "order": 2
         },
         {
-          "id": "quality_defects_1786791382238",
+          "id": "burndown_2",
+          "block_type": "burndown",
+          "title": "Burndown & Velocity",
+          "enabled": true,
+          "order": 3
+        },
+        {
+          "id": "action_plan_3",
+          "block_type": "action_plan",
+          "title": "P1-P3 Action Plan",
+          "enabled": true,
+          "order": 4
+        }
+      ]
+    },
+    {
+      "id": "report-squad-quality",
+      "name": "Squad Quality & Defect Deep-Dive",
+      "description": "Detailed view on defect density, bug escape rates, regression testing load, and engineering technical debt across squads.",
+      "is_default": false,
+      "stakeholder_ids": [
+        "eng-lead",
+        "qa-lead"
+      ],
+      "stakeholder_notes": "Focus on team quality benchmarks, defect distribution across squads, and test automation coverage.",
+      "blocks": [
+        {
+          "id": "health_kpis_3",
+          "block_type": "health_kpis",
+          "title": "KPI Health",
+          "enabled": true,
+          "order": 1
+        },
+        {
+          "id": "quality_defects_1",
           "block_type": "quality_defects",
           "title": "Defect Ratio by Team",
           "enabled": true,
-          "order": 6,
-          "pm_commentary": "",
-          "chart_prompt": "",
-          "config": {}
+          "order": 2
+        },
+        {
+          "id": "dependency_3",
+          "block_type": "dependency_matrix",
+          "title": "Team Dependencies Matrix",
+          "enabled": true,
+          "order": 3
+        },
+        {
+          "id": "action_plan_4",
+          "block_type": "action_plan",
+          "title": "P1-P3 Action Plan",
+          "enabled": true,
+          "order": 4
         }
+      ]
+    },
+    {
+      "id": "report-milestone-forecast",
+      "name": "Milestone Delivery & Monte Carlo Forecast",
+      "description": "Probabilistic delivery forecasting for milestones (M0-M3), Monte Carlo throughput simulations, and completion date ranges.",
+      "is_default": false,
+      "stakeholder_ids": [
+        "exec",
+        "eng-lead",
+        "po-commerce"
       ],
-      "id": "report-56aa7d76",
-      "created_at": "2026-08-15T10:57:17.211105Z",
-      "updated_at": "2026-08-15T10:57:17.211105Z"
+      "stakeholder_notes": "Focus on statistical completion confidence intervals, milestone slippage risk, and capacity forecasting.",
+      "blocks": [
+        {
+          "id": "exec_summary_3",
+          "block_type": "executive_summary",
+          "title": "Executive AI Summary",
+          "enabled": true,
+          "order": 1
+        },
+        {
+          "id": "health_kpis_4",
+          "block_type": "health_kpis",
+          "title": "KPI Health",
+          "enabled": true,
+          "order": 2
+        },
+        {
+          "id": "monte_carlo_2",
+          "block_type": "monte_carlo",
+          "title": "Monte Carlo Throughput Forecast",
+          "enabled": true,
+          "order": 3
+        },
+        {
+          "id": "burndown_3",
+          "block_type": "burndown",
+          "title": "Burndown & Velocity",
+          "enabled": true,
+          "order": 4
+        },
+        {
+          "id": "action_plan_5",
+          "block_type": "action_plan",
+          "title": "P1-P3 Action Plan",
+          "enabled": true,
+          "order": 5
+        }
+      ]
     }
   ]
 }

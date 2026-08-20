@@ -20,9 +20,9 @@
       "description": "detailed level interest",
       "other_notes": "schedule",
       "projects": [
-        "HRZ",
         "CHK",
         "CORE",
+        "HRZ",
         "MOB"
       ],
       "priority_areas": [
@@ -67,8 +67,8 @@
       "is_builtin": true,
       "description": "Focuses on technical debt, architecture, engineering capacity, and defect ratios.",
       "projects": [
-        "CORE",
-        "CHK"
+        "CHK",
+        "CORE"
       ],
       "priority_areas": [
         "technical_debt",
@@ -96,8 +96,8 @@
       "is_builtin": true,
       "description": "Focuses on software quality, defect trends, test automation coverage, and release criteria.",
       "projects": [
-        "MOB",
-        "CHK"
+        "CHK",
+        "MOB"
       ],
       "priority_areas": [
         "quality",

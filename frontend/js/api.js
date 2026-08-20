@@ -1,5 +1,7 @@
 /* ---------- API Fetch Client ---------- */
 
+import { API_BASE } from "./state.js";
+
 export async function fetchWithTimeout(url, options = {}, timeoutMs = 45000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
@@ -16,8 +18,11 @@ export async function fetchWithTimeout(url, options = {}, timeoutMs = 45000) {
   }
 }
 
-export async function fetchAssessment(mode = "real", forceRefresh = false) {
-  const endpoint = forceRefresh ? `/assess?mode=${mode}` : `/assess/latest?mode=${mode}`;
+export async function fetchAssessment(mode = "real", forceRefresh = false, projectKey = null) {
+  let endpoint = forceRefresh ? `${API_BASE}/assess?mode=${mode}` : `${API_BASE}/assess/latest?mode=${mode}`;
+  if (projectKey && projectKey !== "ALL") {
+    endpoint += `&project_key=${encodeURIComponent(projectKey)}`;
+  }
   const resp = await fetchWithTimeout(endpoint, {}, 60000);
   if (!resp.ok) {
     throw new Error(`HTTP error ${resp.status}`);
@@ -25,14 +30,35 @@ export async function fetchAssessment(mode = "real", forceRefresh = false) {
   return await resp.json();
 }
 
-export async function postAsk(question) {
-  const resp = await fetchWithTimeout('/api/ask', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question }),
-  });
+export async function fetchStatsSummary(mode = "real", projectKey = null) {
+  let endpoint = `${API_BASE}/stats/summary?mode=${mode}`;
+  if (projectKey && projectKey !== "ALL") {
+    endpoint += `&project_key=${encodeURIComponent(projectKey)}`;
+  }
+  const resp = await fetchWithTimeout(endpoint, {}, 30000);
   if (!resp.ok) {
     throw new Error(`HTTP error ${resp.status}`);
   }
   return await resp.json();
 }
+
+export async function fetchProjects(includeArchived = false) {
+  const resp = await fetchWithTimeout(`${API_BASE}/projects?include_archived=${includeArchived}`, {}, 15000);
+  if (!resp.ok) {
+    throw new Error(`HTTP error ${resp.status}`);
+  }
+  return await resp.json();
+}
+
+export async function postAsk(question) {
+  const resp = await fetchWithTimeout(`${API_BASE}/ask`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question }),
+  }, 90000);
+  if (!resp.ok) {
+    throw new Error(`HTTP error ${resp.status}`);
+  }
+  return await resp.json();
+}
+

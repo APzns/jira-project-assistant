@@ -1,16 +1,31 @@
 /**
- * projects.js — Project details, project stakeholder assignments, RACI matrix customization,
- * and searchable role assigner with instant "+ Create New Role" link.
+ * projects.js — Complete Project Lifecycle (Add, Edit, Delete, Archive, Restore),
+ * Dynamic Grid Rendering, Filter Pills, Search, Project Detail View,
+ * and RACI Matrix Customization.
  */
 
 import { $, escapeHtml } from "../utils.js";
 import { API_BASE } from "../state.js";
 import { fetchWithTimeout } from "../api.js";
 
+let _projectsData = [];
+let _activeFilter = "all";
+let _searchQuery = "";
 let _currentProjectKey = null;
+let _currentProjectObj = null;
 let _projectAssignments = [];
 let _allStakeholders = [];
 let _selectedStakeholderToAssignId = null;
+let _editingProjectKey = null; // null for new project, key string for editing
+let _deletingProjectKey = null;
+
+const STATUS_CONFIG = {
+  "on-track": { label: "On Track", tagClass: "p-status-ok", fillClass: "p-fill-ok" },
+  "at-risk": { label: "At Risk", tagClass: "p-status-warn", fillClass: "p-fill-warn" },
+  "delayed": { label: "Delayed", tagClass: "p-status-warn", fillClass: "p-fill-warn" },
+  "planning": { label: "In Planning", tagClass: "p-status-ok", fillClass: "p-fill-ok" },
+  "completed": { label: "Completed", tagClass: "p-status-ok", fillClass: "p-fill-ok" }
+};
 
 const RACI_MAP = {
   "R": { label: "Responsible (R)", desc: "Drives and executes the deliverable", color: "#4c8dff", bg: "rgba(76, 141, 255, 0.15)", border: "rgba(76, 141, 255, 0.35)" },
@@ -24,6 +39,385 @@ const REPORTING_MAP = {
   "standard": { label: "Standard Dashboard", desc: "Sprint predictability, team velocity, active dependencies" },
   "technical": { label: "Technical Deep Dive", desc: "Granular defects, tech debt ratios, PR & commit activity" }
 };
+
+/**
+ * Fetch all projects from API and render the grid.
+ */
+export async function renderProjectsPage() {
+  const grid = $("projects-grid");
+
+  // Instant render if data is already cached in memory
+  if (_projectsData && _projectsData.length > 0) {
+    updateProjectsStats();
+    applyProjectFilters();
+  } else if (grid) {
+    grid.innerHTML = `<div class="pd-loading muted" style="grid-column: 1 / -1; padding: 40px; text-align: center;">Loading portfolio governance...</div>`;
+  }
+
+  try {
+    const [projRes, shRes] = await Promise.allSettled([
+      fetchWithTimeout(`${API_BASE}/projects?include_archived=true`, { credentials: "include" }, 8000),
+      fetchWithTimeout(`${API_BASE}/projects/stakeholders`, { credentials: "include" }, 8000)
+    ]);
+
+    if (projRes.status === "fulfilled" && projRes.value.ok) {
+      const data = await projRes.value.json();
+      _projectsData = data.projects || [];
+    } else {
+      console.warn("Could not load projects from API");
+    }
+
+    if (shRes.status === "fulfilled" && shRes.value.ok) {
+      const shData = await shRes.value.json();
+      _allProjectStakeholders = shData.projects || {};
+    }
+  } catch (err) {
+    console.error("Failed to fetch projects or stakeholders:", err);
+  }
+
+  updateProjectsStats();
+  applyProjectFilters();
+}
+
+/**
+ * Update top KPI stat boxes for projects.
+ */
+function updateProjectsStats() {
+  const activeCount = _projectsData.filter(p => !p.archived).length;
+  const onTrackCount = _projectsData.filter(p => !p.archived && (p.status === "on-track" || p.status === "planning")).length;
+  const atRiskCount = _projectsData.filter(p => !p.archived && (p.status === "at-risk" || p.status === "delayed")).length;
+  const archivedCount = _projectsData.filter(p => p.archived).length;
+
+  const elActive = $("p-stat-active");
+  const elOnTrack = $("p-stat-ontrack");
+  const elAtRisk = $("p-stat-atrisk");
+  const elArchived = $("p-stat-archived");
+
+  if (elActive) elActive.textContent = activeCount;
+  if (elOnTrack) elOnTrack.textContent = onTrackCount;
+  if (elAtRisk) elAtRisk.textContent = atRiskCount;
+  if (elArchived) elArchived.textContent = archivedCount;
+}
+
+/**
+ * Filter and render project cards in the grid.
+ */
+export function applyProjectFilters() {
+  let filtered = [..._projectsData];
+
+  // 1. Status / Archive filter
+  if (_activeFilter === "active") {
+    filtered = filtered.filter(p => !p.archived);
+  } else if (_activeFilter === "archived") {
+    filtered = filtered.filter(p => Boolean(p.archived));
+  } else if (_activeFilter === "on-track") {
+    filtered = filtered.filter(p => !p.archived && p.status === "on-track");
+  } else if (_activeFilter === "at-risk") {
+    filtered = filtered.filter(p => !p.archived && (p.status === "at-risk" || p.status === "delayed"));
+  }
+
+  // 2. Search query filter
+  if (_searchQuery) {
+    const q = _searchQuery.toLowerCase();
+    filtered = filtered.filter(p => {
+      const name = (p.name || "").toLowerCase();
+      const key = (p.key || "").toLowerCase();
+      const desc = (p.description || "").toLowerCase();
+      const lead = (p.lead || "").toLowerCase();
+      const tags = (p.tags || []).join(" ").toLowerCase();
+      return name.includes(q) || key.includes(q) || desc.includes(q) || lead.includes(q) || tags.includes(q);
+    });
+  }
+
+  renderProjectsGrid(filtered);
+}
+
+function renderProjectsGrid(filtered) {
+  const grid = $("projects-grid");
+  if (!grid) return;
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div class="p-empty-state">
+        <div class="p-empty-state-icon">📂</div>
+        <h4 class="p-empty-state-title">No projects match your criteria</h4>
+        <p class="p-empty-state-sub">Try changing your search terms or filter selection, or create a new project.</p>
+        <button type="button" class="btn-primary" onclick="window.dispatchEvent(new CustomEvent('open-add-project-modal'))">
+          + Add New Project
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(p => {
+    const key = escapeHtml(p.key || "");
+    const name = escapeHtml(p.name || "Untitled Project");
+    const desc = escapeHtml(p.description || "No description provided.");
+    const lead = escapeHtml(p.lead || "Unassigned");
+    const release = escapeHtml(p.target_release || "TBD");
+    const statusKey = p.status || "on-track";
+    const statusCfg = STATUS_CONFIG[statusKey] || STATUS_CONFIG["on-track"];
+    const isArchived = Boolean(p.archived);
+    const tags = (p.tags || []).map(t => `<span class="p-tag">${escapeHtml(t)}</span>`).join("");
+
+    const blockers = p.blockers_count || 0;
+    const blockersHtml = blockers > 0
+      ? `<span class="p-meta-value text-warn">${blockers} Active</span>`
+      : `<span class="p-meta-value text-green">0 Active</span>`;
+
+    const archiveBadgeHtml = isArchived
+      ? `<span class="p-archived-badge">Archived</span>`
+      : "";
+
+    // RACI stakeholder coverage
+    const shList = _allProjectStakeholders[p.key] || [];
+    const rItems = shList.filter(s => s.raci === "R").map(s => s.stakeholder_id);
+    const aItems = shList.filter(s => s.raci === "A").map(s => s.stakeholder_id);
+    const cCount = shList.filter(s => s.raci === "C").length;
+    const iCount = shList.filter(s => s.raci === "I").length;
+
+    let raciHtml = "";
+    if (shList.length > 0) {
+      raciHtml = `
+        <div class="p-raci-roster">
+          <div class="p-raci-title">RACI Governance Coverage</div>
+          <div class="p-raci-pills-row">
+            ${rItems.length > 0 ? `<span class="p-raci-pill role-r" title="Responsible"><strong>R:</strong> ${escapeHtml(rItems.join(', '))}</span>` : '<span class="p-raci-pill role-r"><strong>R:</strong> Unassigned</span>'}
+            ${aItems.length > 0 ? `<span class="p-raci-pill role-a" title="Accountable"><strong>A:</strong> ${escapeHtml(aItems.join(', '))}</span>` : ''}
+            ${cCount > 0 ? `<span class="p-raci-pill" title="Consulted"><strong>C:</strong> ${cCount}</span>` : ''}
+            ${iCount > 0 ? `<span class="p-raci-pill" title="Informed"><strong>I:</strong> ${iCount}</span>` : ''}
+          </div>
+        </div>
+      `;
+    } else {
+      raciHtml = `
+        <div class="p-raci-roster">
+          <div class="p-raci-title">RACI Governance Coverage</div>
+          <div class="p-raci-pills-row">
+            <span class="muted" style="font-size: 11.5px;">No stakeholders assigned yet</span>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="project-card p-governance-card ${isArchived ? 'p-card-archived' : ''}" data-key="${key}" data-status="${statusKey}">
+        <div class="p-card-top">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="p-key-badge">${key}</div>
+            ${archiveBadgeHtml}
+          </div>
+          <div class="p-status-tag ${statusCfg.tagClass}">
+            <span class="p-status-dot"></span> ${statusCfg.label}
+          </div>
+        </div>
+
+        <h3 class="p-title">${name}</h3>
+        <p class="p-desc">${desc}</p>
+
+        <!-- Scope & Milestone Targets -->
+        <div class="p-meta-grid" style="margin-bottom: 14px;">
+          <div class="p-meta-item">
+            <span class="p-meta-label">Target Milestone</span>
+            <span class="p-meta-value">${release}</span>
+          </div>
+          <div class="p-meta-item">
+            <span class="p-meta-label">Lead / Owner</span>
+            <span class="p-meta-value">${lead}</span>
+          </div>
+          <div class="p-meta-item">
+            <span class="p-meta-label">Blockers</span>
+            ${blockersHtml}
+          </div>
+        </div>
+
+        <!-- RACI Stakeholder Roster -->
+        ${raciHtml}
+
+        <!-- Tags and Actions -->
+        <div class="p-card-footer">
+          <div class="p-tags">
+            ${tags}
+          </div>
+          <div class="p-card-quick-actions">
+            <button type="button" class="btn-p-view-dashboard" data-key="${key}" title="Open ${key} Live Dashboard">
+              📊 Dashboard
+            </button>
+            <button type="button" class="btn-p-icon-action btn-p-archive-quick" data-key="${key}" data-archived="${isArchived}" title="${isArchived ? 'Restore / Unarchive Project' : 'Archive Project'}">
+              ${isArchived ? '📤' : '📦'}
+            </button>
+            <button type="button" class="btn-p-icon-action btn-p-del btn-p-delete-quick" data-key="${key}" data-name="${name}" title="Delete Project">
+              🗑️
+            </button>
+            <button type="button" class="btn-p-action btn-p-view-details" data-key="${key}" title="View Full Charter & RACI Matrix">
+              Charter &amp; RACI →
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  // Bind card clicks & quick buttons
+  grid.querySelectorAll(".project-card").forEach(card => {
+    const key = card.dataset.key;
+
+    // View Dashboard button
+    card.querySelector(".btn-p-view-dashboard")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      window.location.hash = `dashboards/${key}`;
+    });
+
+    // Details button or clicking card body
+    card.querySelector(".btn-p-view-details")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      window.location.hash = `projects/${key}`;
+    });
+
+    card.addEventListener("click", (e) => {
+      if (e.target.closest(".p-card-quick-actions")) return;
+      window.location.hash = `projects/${key}`;
+    });
+
+
+    // Quick Archive
+    card.querySelector(".btn-p-archive-quick")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isArchived = e.currentTarget.dataset.archived === "true";
+      toggleArchiveProject(key, !isArchived);
+    });
+
+    // Quick Delete
+    card.querySelector(".btn-p-delete-quick")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const projName = e.currentTarget.dataset.name || key;
+      openDeleteModal(key, projName);
+    });
+  });
+}
+
+/**
+ * Open Project Detail View
+ */
+export async function openProjectDetailByKey(projectKey) {
+  _currentProjectKey = projectKey.toUpperCase().trim();
+  const pList = $("projects-list-view");
+  const pDetail = $("project-detail-view");
+
+  if (!pDetail) return;
+  if (pList) pList.style.display = "none";
+  pDetail.style.display = "block";
+  window.scrollTo(0, 0);
+
+  // Fetch full project detail from API
+  try {
+    const res = await fetchWithTimeout(`${API_BASE}/projects/${_currentProjectKey}`, { credentials: "include" });
+    if (res.ok) {
+      const data = await res.json();
+      _currentProjectObj = data.project;
+      _projectAssignments = data.assignments || [];
+    } else {
+      // Fallback to local memory if available
+      _currentProjectObj = _projectsData.find(p => p.key === _currentProjectKey) || {
+        key: _currentProjectKey,
+        name: _currentProjectKey,
+        description: "Project information",
+        status: "on-track",
+        progress_pct: 0,
+        progress_sp: "0 / 0 SP",
+        tags: [],
+        archived: false
+      };
+    }
+  } catch (err) {
+    console.error("Error loading project detail:", err);
+  }
+
+  const p = _currentProjectObj;
+  const key = escapeHtml(p.key || _currentProjectKey);
+  const name = escapeHtml(p.name || key);
+  const desc = escapeHtml(p.description || "No description provided.");
+  const lead = escapeHtml(p.lead || "Unassigned");
+  const release = escapeHtml(p.target_release || "TBD");
+  const statusKey = p.status || "on-track";
+  const statusCfg = STATUS_CONFIG[statusKey] || STATUS_CONFIG["on-track"];
+  const pct = Math.max(0, Math.min(100, p.progress_pct || 0));
+  const spText = escapeHtml(p.progress_sp || `${pct}% complete`);
+  const blockers = p.blockers_count || 0;
+  const isArchived = Boolean(p.archived);
+
+  $("pd-title").textContent = p.name || key;
+  $("pd-desc").textContent = p.description || "";
+  $("pd-badge").textContent = key;
+  $("pd-lead-info").textContent = `Lead: ${lead} • Target: ${release}`;
+
+  $("pd-status").innerHTML = `
+    <span class="p-status-tag ${statusCfg.tagClass}">
+      <span class="p-status-dot"></span> ${statusCfg.label}
+    </span>
+  `;
+
+  const archivedTag = $("pd-archived-tag");
+  if (archivedTag) {
+    if (isArchived) {
+      archivedTag.style.display = "inline-flex";
+      archivedTag.innerHTML = `<span class="p-archived-badge">Archived</span>`;
+    } else {
+      archivedTag.style.display = "none";
+    }
+  }
+
+  const btnArchiveText = $("btn-archive-project-text");
+  if (btnArchiveText) {
+    btnArchiveText.textContent = isArchived ? "Restore / Unarchive" : "Archive Project";
+  }
+
+  $("pd-progress-container").innerHTML = `
+    <div class="p-progress-wrap" style="margin: 0; background: transparent; border: none; padding: 0;">
+      <div class="p-progress-header">
+        <span style="font-weight: 600;">Delivery Progress</span>
+        <strong>${pct}% (${spText})</strong>
+      </div>
+      <div class="p-progress-bar" style="height: 10px;">
+        <div class="p-progress-fill ${statusCfg.fillClass}" style="width: ${pct}%;"></div>
+      </div>
+    </div>
+  `;
+
+  $("pd-meta-container").innerHTML = `
+    <h4 style="margin: 0 0 12px 0; font-size: 13px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">Milestone & Team</h4>
+    <div class="p-meta-grid" style="border: none; margin: 0; padding: 0;">
+      <div class="p-meta-item">
+        <span class="p-meta-label">Target Release</span>
+        <span class="p-meta-value">${release}</span>
+      </div>
+      <div class="p-meta-item">
+        <span class="p-meta-label">Project Lead</span>
+        <span class="p-meta-value">${lead}</span>
+      </div>
+      <div class="p-meta-item">
+        <span class="p-meta-label">Active Blockers</span>
+        <span class="p-meta-value ${blockers > 0 ? 'text-warn' : 'text-green'}">${blockers} Active</span>
+      </div>
+      <div class="p-meta-item">
+        <span class="p-meta-label">Status</span>
+        <span class="p-meta-value">${statusCfg.label}</span>
+      </div>
+    </div>
+  `;
+
+  const tagsContainer = $("pd-tags");
+  if (tagsContainer) {
+    const tags = p.tags || [];
+    tagsContainer.innerHTML = tags.length > 0
+      ? tags.map(t => `<span class="p-tag">${escapeHtml(t)}</span>`).join("")
+      : `<span class="muted" style="font-size: 13px;">No tags defined</span>`;
+  }
+
+  // Load project stakeholders & RACI matrix
+  loadProjectStakeholders(_currentProjectKey);
+}
 
 /**
  * Load and render project stakeholders & RACI matrix for a given project key
@@ -103,7 +497,6 @@ function renderProjectStakeholdersView() {
     return;
   }
 
-  // Sort assignments alphabetically by role name
   const sortedAssignments = sortAssignmentsByRoleName(_projectAssignments);
 
   container.innerHTML = sortedAssignments.map(assignment => {
@@ -152,7 +545,7 @@ function renderProjectStakeholdersView() {
 }
 
 /**
- * Render searchable dropdown items for role assignment sorted alphabetically
+ * Render searchable dropdown items for role assignment
  */
 function renderSearchableRoleDropdown(filterQuery = "") {
   const dropdown = $("pd-sh-search-dropdown");
@@ -215,7 +608,6 @@ function renderSearchableRoleDropdown(filterQuery = "") {
     </div>
   `;
 
-  // Bind item clicks — clicking unassigned item adds it immediately
   dropdown.querySelectorAll(".pd-sh-menu-item:not(.disabled)").forEach(item => {
     item.addEventListener("click", () => {
       const sid = item.dataset.id;
@@ -234,7 +626,7 @@ function renderSearchableRoleDropdown(filterQuery = "") {
 }
 
 /**
- * Open the Project Stakeholders editor (Hides the header Edit button while editing)
+ * Open the Project Stakeholders editor
  */
 function openProjectStakeholdersEditor() {
   const viewContainer = $("pd-stakeholders-view-container");
@@ -244,7 +636,7 @@ function openProjectStakeholdersEditor() {
   const searchInput = $("pd-input-search-sh");
   const dropdown = $("pd-sh-search-dropdown");
 
-  if (btnEdit) btnEdit.style.display = "none"; // Hide top edit button while already editing
+  if (btnEdit) btnEdit.style.display = "none";
   if (projKeySpan) projKeySpan.textContent = _currentProjectKey;
   if (searchInput) searchInput.value = "";
   if (dropdown) dropdown.style.display = "none";
@@ -257,7 +649,7 @@ function openProjectStakeholdersEditor() {
 }
 
 /**
- * Render the editable list of project stakeholders sorted by role name
+ * Render the editable list of project stakeholders
  */
 function renderProjectStakeholdersEditList() {
   const listEl = $("pd-assigned-sh-edit-list");
@@ -268,7 +660,6 @@ function renderProjectStakeholdersEditList() {
     return;
   }
 
-  // Ensure assignments are sorted by role name
   _projectAssignments = sortAssignmentsByRoleName(_projectAssignments);
 
   listEl.innerHTML = _projectAssignments.map((assignment, idx) => {
@@ -290,7 +681,6 @@ function renderProjectStakeholdersEditList() {
         </div>
 
         <div class="pd-edit-sh-controls">
-          <!-- RACI Selector -->
           <div class="form-group" style="flex: 1;">
             <label class="settings-label">RACI Role</label>
             <select class="settings-select pd-edit-raci-select" data-index="${idx}">
@@ -301,7 +691,6 @@ function renderProjectStakeholdersEditList() {
             </select>
           </div>
 
-          <!-- Reporting Level -->
           <div class="form-group" style="flex: 1;">
             <label class="settings-label">Reporting Detail Level</label>
             <select class="settings-select pd-edit-rep-select" data-index="${idx}">
@@ -312,7 +701,6 @@ function renderProjectStakeholdersEditList() {
           </div>
         </div>
 
-        <!-- Project Specific Notes -->
         <div class="form-group" style="margin-top: 10px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <label class="settings-label">Project-Specific Directives & Focus</label>
@@ -324,7 +712,6 @@ function renderProjectStakeholdersEditList() {
     `;
   }).join("");
 
-  // Bind unassign buttons
   listEl.querySelectorAll(".btn-remove-proj-sh").forEach(btn => {
     btn.addEventListener("click", () => {
       const idx = parseInt(btn.dataset.index, 10);
@@ -333,7 +720,6 @@ function renderProjectStakeholdersEditList() {
     });
   });
 
-  // Bind live updates to assignments state
   listEl.querySelectorAll(".pd-edit-raci-select").forEach(sel => {
     sel.addEventListener("change", () => {
       const idx = parseInt(sel.dataset.index, 10);
@@ -372,7 +758,6 @@ function handleAddStakeholderToProject() {
   }
 
   if (!stakeholderId) {
-    // If not selected yet, open dropdown
     const dropdown = $("pd-sh-search-dropdown");
     if (dropdown) {
       renderSearchableRoleDropdown(searchInput ? searchInput.value : "");
@@ -445,64 +830,381 @@ async function handleSaveProjectStakeholders() {
 }
 
 /**
- * Initialize project stakeholder events
+ * Open Modal to Add or Edit Project
  */
-export function initProjectStakeholdersEvents() {
-  const btnEdit = $("btn-edit-proj-stakeholders");
-  if (btnEdit) {
-    btnEdit.addEventListener("click", openProjectStakeholdersEditor);
+export function openProjectModal(projectToEdit = null) {
+  const modal = $("modal-project-form");
+  const title = $("modal-proj-title");
+  const keyInput = $("proj-form-key");
+  const nameInput = $("proj-form-name");
+  const descInput = $("proj-form-desc");
+  const leadInput = $("proj-form-lead");
+  const releaseInput = $("proj-form-release");
+  const statusSelect = $("proj-form-status");
+  const pctInput = $("proj-form-pct");
+  const spInput = $("proj-form-sp");
+  const blockersInput = $("proj-form-blockers");
+  const tagsInput = $("proj-form-tags");
+
+  if (!modal) return;
+
+  if (projectToEdit) {
+    _editingProjectKey = projectToEdit.key;
+    if (title) title.textContent = `Edit Project (${projectToEdit.key})`;
+    if (keyInput) {
+      keyInput.value = projectToEdit.key || "";
+      keyInput.disabled = true; // Key cannot be edited
+    }
+    if (nameInput) nameInput.value = projectToEdit.name || "";
+    if (descInput) descInput.value = projectToEdit.description || "";
+    if (leadInput) leadInput.value = projectToEdit.lead || "";
+    if (releaseInput) releaseInput.value = projectToEdit.target_release || "";
+    if (statusSelect) statusSelect.value = projectToEdit.status || "on-track";
+    if (pctInput) pctInput.value = projectToEdit.progress_pct ?? 0;
+    if (spInput) spInput.value = projectToEdit.progress_sp || "";
+    if (blockersInput) blockersInput.value = projectToEdit.blockers_count ?? 0;
+    if (tagsInput) tagsInput.value = (projectToEdit.tags || []).join(", ");
+  } else {
+    _editingProjectKey = null;
+    if (title) title.textContent = "Add New Project";
+    if (keyInput) {
+      keyInput.value = "";
+      keyInput.disabled = false;
+    }
+    if (nameInput) nameInput.value = "";
+    if (descInput) descInput.value = "";
+    if (leadInput) leadInput.value = "";
+    if (releaseInput) releaseInput.value = "";
+    if (statusSelect) statusSelect.value = "on-track";
+    if (pctInput) pctInput.value = 0;
+    if (spInput) spInput.value = "";
+    if (blockersInput) blockersInput.value = 0;
+    if (tagsInput) tagsInput.value = "";
   }
 
-  const btnCancel = $("btn-cancel-proj-sh");
-  if (btnCancel) {
-    btnCancel.addEventListener("click", () => {
-      const editContainer = $("pd-stakeholders-edit-container");
-      const viewContainer = $("pd-stakeholders-view-container");
-      const btnEditTop = $("btn-edit-proj-stakeholders");
-      if (editContainer) editContainer.style.display = "none";
-      if (viewContainer) viewContainer.style.display = "grid";
-      if (btnEditTop) btnEditTop.style.display = "inline-flex";
-      renderProjectStakeholdersView();
+  modal.style.display = "flex";
+  if (keyInput && !keyInput.disabled) keyInput.focus();
+  else if (nameInput) nameInput.focus();
+}
+
+/**
+ * Close Project Modal
+ */
+export function closeProjectModal() {
+  const modal = $("modal-project-form");
+  if (modal) modal.style.display = "none";
+}
+
+/**
+ * Handle Save in Project Modal (Create or Update)
+ */
+async function handleSaveProjectModal() {
+  const saveBtn = $("btn-save-proj-modal");
+  const keyInput = $("proj-form-key");
+  const nameInput = $("proj-form-name");
+  const descInput = $("proj-form-desc");
+  const leadInput = $("proj-form-lead");
+  const releaseInput = $("proj-form-release");
+  const statusSelect = $("proj-form-status");
+  const pctInput = $("proj-form-pct");
+  const spInput = $("proj-form-sp");
+  const blockersInput = $("proj-form-blockers");
+  const tagsInput = $("proj-form-tags");
+
+  const name = nameInput ? nameInput.value.trim() : "";
+  if (!name) {
+    alert("Project Name is required.");
+    if (nameInput) nameInput.focus();
+    return;
+  }
+
+  const tags = tagsInput ? tagsInput.value.split(",").map(t => t.trim()).filter(Boolean) : [];
+
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
+  }
+
+  try {
+    if (_editingProjectKey) {
+      // UPDATE
+      const payload = {
+        name,
+        description: descInput ? descInput.value.trim() : "",
+        lead: leadInput ? leadInput.value.trim() : "",
+        target_release: releaseInput ? releaseInput.value.trim() : "",
+        status: statusSelect ? statusSelect.value : "on-track",
+        progress_pct: pctInput ? parseInt(pctInput.value, 10) || 0 : 0,
+        progress_sp: spInput ? spInput.value.trim() : "",
+        blockers_count: blockersInput ? parseInt(blockersInput.value, 10) || 0 : 0,
+        tags
+      };
+
+      const res = await fetchWithTimeout(`${API_BASE}/projects/${_editingProjectKey}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        credentials: "include"
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to update project");
+      }
+
+      closeProjectModal();
+      await renderProjectsPage();
+      if (_currentProjectKey === _editingProjectKey) {
+        openProjectDetailByKey(_editingProjectKey);
+      }
+    } else {
+      // CREATE
+      const rawKey = keyInput ? keyInput.value.toUpperCase().trim() : "";
+      if (!rawKey || rawKey.length < 2) {
+        alert("Project Key must be at least 2 characters (e.g. PAY, SEC, BILL).");
+        if (keyInput) keyInput.focus();
+        return;
+      }
+
+      const payload = {
+        key: rawKey,
+        name,
+        description: descInput ? descInput.value.trim() : "",
+        lead: leadInput ? leadInput.value.trim() : "",
+        target_release: releaseInput ? releaseInput.value.trim() : "",
+        status: statusSelect ? statusSelect.value : "on-track",
+        progress_pct: pctInput ? parseInt(pctInput.value, 10) || 0 : 0,
+        progress_sp: spInput ? spInput.value.trim() : "",
+        blockers_count: blockersInput ? parseInt(blockersInput.value, 10) || 0 : 0,
+        tags
+      };
+
+      const res = await fetchWithTimeout(`${API_BASE}/projects`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        credentials: "include"
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to create project");
+      }
+
+      closeProjectModal();
+      await renderProjectsPage();
+    }
+  } catch (err) {
+    console.error("Error saving project:", err);
+    alert(err.message || "Failed to save project");
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save Project";
+    }
+  }
+}
+
+/**
+ * Toggle Project Archive State
+ */
+export async function toggleArchiveProject(projectKey, archiveTarget = true) {
+  const pkey = projectKey.toUpperCase().trim();
+  const endpoint = archiveTarget ? `${API_BASE}/projects/${pkey}/archive` : `${API_BASE}/projects/${pkey}/unarchive`;
+
+  try {
+    const res = await fetchWithTimeout(endpoint, {
+      method: "POST",
+      credentials: "include"
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to toggle archive status");
+    }
+
+    await renderProjectsPage();
+    if (_currentProjectKey === pkey) {
+      openProjectDetailByKey(pkey);
+    }
+  } catch (err) {
+    console.error("Error archiving project:", err);
+    alert(err.message || "Failed to update project archive state");
+  }
+}
+
+/**
+ * Open Delete Confirmation Modal
+ */
+export function openDeleteModal(projectKey, projectName = "") {
+  _deletingProjectKey = projectKey.toUpperCase().trim();
+  const modal = $("modal-project-delete");
+  const title = $("proj-delete-title");
+  const keyEl = $("proj-delete-key");
+
+  if (!modal) return;
+  if (title) title.textContent = projectName || _deletingProjectKey;
+  if (keyEl) keyEl.textContent = _deletingProjectKey;
+
+  modal.style.display = "flex";
+}
+
+/**
+ * Close Delete Modal
+ */
+export function closeDeleteModal() {
+  const modal = $("modal-project-delete");
+  if (modal) modal.style.display = "none";
+  _deletingProjectKey = null;
+}
+
+/**
+ * Confirm Delete Project
+ */
+async function handleConfirmDelete() {
+  if (!_deletingProjectKey) return;
+  const pkey = _deletingProjectKey;
+  const btn = $("btn-confirm-proj-del");
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Deleting...";
+  }
+
+  try {
+    const res = await fetchWithTimeout(`${API_BASE}/projects/${pkey}`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to delete project");
+    }
+
+    closeDeleteModal();
+    await renderProjectsPage();
+
+    // If currently in detail view of deleted project, navigate back to list
+    if (window.location.hash.includes(pkey)) {
+      window.location.hash = "projects";
+    }
+  } catch (err) {
+    console.error("Error deleting project:", err);
+    alert(err.message || "Failed to delete project");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Delete Permanently";
+    }
+  }
+}
+
+/**
+ * Initialize all projects events (toolbar, filter pills, modals, RACI).
+ */
+export function initProjectsEvents() {
+  // Add Project Button (Main header)
+  $("btn-add-project-main")?.addEventListener("click", () => openProjectModal(null));
+  window.addEventListener("open-add-project-modal", () => openProjectModal(null));
+
+  // Modal Add/Edit buttons
+  $("btn-cancel-proj-modal")?.addEventListener("click", closeProjectModal);
+  $("btn-close-proj-modal")?.addEventListener("click", closeProjectModal);
+  $("btn-save-proj-modal")?.addEventListener("click", handleSaveProjectModal);
+
+  // Modal Delete buttons
+  $("btn-cancel-proj-del")?.addEventListener("click", closeDeleteModal);
+  $("btn-close-proj-del")?.addEventListener("click", closeDeleteModal);
+  $("btn-confirm-proj-del")?.addEventListener("click", handleConfirmDelete);
+
+  // Detail View Header Buttons
+  $("btn-edit-project")?.addEventListener("click", () => {
+    if (_currentProjectObj) {
+      openProjectModal(_currentProjectObj);
+    }
+  });
+
+  $("btn-archive-project")?.addEventListener("click", () => {
+    if (_currentProjectObj) {
+      const isArchived = Boolean(_currentProjectObj.archived);
+      toggleArchiveProject(_currentProjectObj.key, !isArchived);
+    }
+  });
+
+  $("btn-delete-project")?.addEventListener("click", () => {
+    if (_currentProjectObj) {
+      openDeleteModal(_currentProjectObj.key, _currentProjectObj.name);
+    }
+  });
+
+  $("btn-view-project-dashboard")?.addEventListener("click", () => {
+    if (_currentProjectObj && _currentProjectObj.key) {
+      window.location.hash = `dashboards/${_currentProjectObj.key}`;
+    } else {
+      window.location.hash = "dashboards";
+    }
+  });
+
+  // Filter pills
+  document.querySelectorAll("#project-filter-pills .filter-pill").forEach(pill => {
+    pill.addEventListener("click", () => {
+      document.querySelectorAll("#project-filter-pills .filter-pill").forEach(p => p.classList.remove("active"));
+      pill.classList.add("active");
+      _activeFilter = pill.dataset.filter || "all";
+      applyProjectFilters();
+    });
+  });
+
+  // Search input
+  const searchInput = $("project-search-input");
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      _searchQuery = e.target.value;
+      applyProjectFilters();
     });
   }
 
-  const btnSave = $("btn-save-proj-sh");
-  if (btnSave) {
-    btnSave.addEventListener("click", handleSaveProjectStakeholders);
-  }
+  // RACI Matrix editor events
+  $("btn-edit-proj-stakeholders")?.addEventListener("click", openProjectStakeholdersEditor);
+  $("btn-cancel-proj-sh")?.addEventListener("click", () => {
+    const editContainer = $("pd-stakeholders-edit-container");
+    const viewContainer = $("pd-stakeholders-view-container");
+    const btnEditTop = $("btn-edit-proj-stakeholders");
+    if (editContainer) editContainer.style.display = "none";
+    if (viewContainer) viewContainer.style.display = "grid";
+    if (btnEditTop) btnEditTop.style.display = "inline-flex";
+    renderProjectStakeholdersView();
+  });
+  $("btn-save-proj-sh")?.addEventListener("click", handleSaveProjectStakeholders);
+  $("btn-pd-add-sh-item")?.addEventListener("click", handleAddStakeholderToProject);
 
-  const btnAddSh = $("btn-pd-add-sh-item");
-  if (btnAddSh) {
-    btnAddSh.addEventListener("click", handleAddStakeholderToProject);
-  }
+  // RACI Search input
+  const shSearchInput = $("pd-input-search-sh");
+  const shDropdown = $("pd-sh-search-dropdown");
 
-  // Search input events
-  const searchInput = $("pd-input-search-sh");
-  const dropdown = $("pd-sh-search-dropdown");
-
-  if (searchInput && dropdown) {
-    searchInput.addEventListener("focus", () => {
-      renderSearchableRoleDropdown(searchInput.value);
-      dropdown.style.display = "block";
+  if (shSearchInput && shDropdown) {
+    shSearchInput.addEventListener("focus", () => {
+      renderSearchableRoleDropdown(shSearchInput.value);
+      shDropdown.style.display = "block";
     });
 
-    searchInput.addEventListener("input", () => {
+    shSearchInput.addEventListener("input", () => {
       _selectedStakeholderToAssignId = null;
-      renderSearchableRoleDropdown(searchInput.value);
-      dropdown.style.display = "block";
+      renderSearchableRoleDropdown(shSearchInput.value);
+      shDropdown.style.display = "block";
     });
 
-    searchInput.addEventListener("keydown", (e) => {
+    shSearchInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
         handleAddStakeholderToProject();
       }
     });
 
-    // Close dropdown on outside click
     document.addEventListener("click", (e) => {
-      if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
-        dropdown.style.display = "none";
+      if (!shSearchInput.contains(e.target) && !shDropdown.contains(e.target)) {
+        shDropdown.style.display = "none";
       }
     });
   }

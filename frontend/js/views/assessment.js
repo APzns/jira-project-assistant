@@ -1,10 +1,32 @@
 import { $, setText, show, hide, escapeHtml, fmtDate, fmtDay, formatForecastDelay } from "../utils.js";
-import { renderMonteCarloChart } from "../charts/delivery.js?v=2";
+import { renderMonteCarloChart } from "../charts/delivery.js";
 
-export function renderAssessmentTab(d) {
+export function renderAssessmentTab(d, projectKey = "ALL", projectObj = null) {
   show("assess-result");
   hide("assess-empty");
   hide("assess-error");
+
+  // Update Project Header Title and Description
+  const titleEl = $("dashboard-project-title");
+  const descEl = $("dashboard-project-desc");
+  if (titleEl) {
+    if (projectKey === "ALL") {
+      titleEl.textContent = "Portfolio Overview (ALL) — Status summary";
+    } else if (projectObj) {
+      titleEl.textContent = `${projectObj.name} (${projectKey}) — Status summary`;
+    } else {
+      titleEl.textContent = `Project ${projectKey} — Status summary`;
+    }
+  }
+  if (descEl) {
+    if (projectKey === "ALL") {
+      descEl.textContent = "Enterprise delivery intelligence across all active projects, tracking cross-initiative velocity, dependencies, and risk triggers.";
+    } else if (projectObj && projectObj.description) {
+      descEl.textContent = projectObj.description;
+    } else {
+      descEl.textContent = `Status assessment and delivery metrics for project ${projectKey}.`;
+    }
+  }
 
   const noticeEl = $("assess-notice");
   if (noticeEl) {
@@ -16,6 +38,7 @@ export function renderAssessmentTab(d) {
       hide("assess-notice");
     }
   }
+
 
   const m = d.metrics || {};
   const ms = m.milestone_completion || {};

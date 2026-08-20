@@ -31,6 +31,38 @@ MILESTONE_RELEASE_DATES = {
 }
 
 
+def _filter_by_project(query, project_key: str | None):
+    """Filter an Issue-based query by project key."""
+    if not project_key or project_key.upper() in ("ALL", "GLOBAL"):
+        return query
+    pkey = project_key.upper()
+    if pkey == "HRZ":
+        return query.filter(Issue.key.like("APS-%") | Issue.key.like("HRZ-%"))
+    if pkey == "CORE":
+        return query.filter(Issue.key.like("CORE-%") | Issue.key.like("INF-%") | (Issue.team == "Platform Core") | (Issue.team == "Data Insights"))
+    return query.filter(Issue.key.like(f"{pkey}-%"))
+
+
+def _default_team_for_project(project_key: str | None) -> str:
+    """Return an intuitive default squad name when issue.team is null."""
+    if not project_key or project_key.upper() in ("ALL", "GLOBAL"):
+        return "Core Team"
+    pkey = project_key.upper()
+    if pkey == "HRZ":
+        return "Horizon Squad"
+    if pkey == "CHK":
+        return "Checkout Squad"
+    if pkey in ("CORE", "INF"):
+        return "Platform Core"
+    if pkey == "MOB":
+        return "Mobile Team"
+    if pkey == "PAY":
+        return "Payments Squad"
+    if pkey == "AIP":
+        return "AI Engine Squad"
+    return f"{pkey} Team"
+
+
 def _milestone_release_date(name: str, db_value):
     """Prefer the DB release_date; fall back to the known milestone map."""
     if db_value:
@@ -38,46 +70,44 @@ def _milestone_release_date(name: str, db_value):
     return MILESTONE_RELEASE_DATES.get(name)
 
 
-def _count_by(db: Session, column) -> dict:
-    """Generic helper: count issues grouped by a given column."""
-    rows = db.query(column, func.count(Issue.key)).group_by(column).all()
+def _count_by(db: Session, column, project_key: str | None = None) -> dict:
+    """Generic helper: count issues grouped by a given column with optional project filtering."""
+    q = db.query(column, func.count(Issue.key))
+    q = _filter_by_project(q, project_key)
+    rows = q.group_by(column).all()
     return {(value if value is not None else "None"): count for value, count in rows}
 
 
-def total_issues(db: Session) -> int:
-    """Total number of issues in the database."""
-    return db.query(func.count(Issue.key)).scalar()
+def total_issues(db: Session, project_key: str | None = None) -> int:
+    """Total number of issues in the database, optionally filtered by project."""
+    q = db.query(func.count(Issue.key))
+    q = _filter_by_project(q, project_key)
+    return q.scalar() or 0
 
 
-def by_status(db: Session) -> dict:
+def by_status(db: Session, project_key: str | None = None) -> dict:
     """Issue counts grouped by status."""
-    return _count_by(db, Issue.status)
+    return _count_by(db, Issue.status, project_key=project_key)
 
 
-def by_type(db: Session) -> dict:
+def by_type(db: Session, project_key: str | None = None) -> dict:
     """Issue counts grouped by type."""
-    return _count_by(db, Issue.issue_type)
+    return _count_by(db, Issue.issue_type, project_key=project_key)
 
 
-def by_priority(db: Session) -> dict:
+def by_priority(db: Session, project_key: str | None = None) -> dict:
     """Issue counts grouped by priority."""
-    return _count_by(db, Issue.priority)
+    return _count_by(db, Issue.priority, project_key=project_key)
 
 
-def by_epic(db: Session) -> dict:
+def by_epic(db: Session, project_key: str | None = None) -> dict:
     """Issue counts grouped by epic key (None = not under an epic)."""
-    return _count_by(db, Issue.epic_key)
+    return _count_by(db, Issue.epic_key, project_key=project_key)
 
 
-def velocity_by_sprint(db: Session) -> list[dict]:
-    """Per-sprint issue count and total story points (velocity basis).
-
-    Joins the sprints table (by sprint name) so results are ordered by the
-    sprint's real start date and carry its state and dates. Excludes epics,
-    which never belong to a sprint. Sprints with no matching row in the
-    sprints table still appear (falling back to name ordering, nulls last).
-    """
-    rows = (
+def velocity_by_sprint(db: Session, project_key: str | None = None) -> list[dict]:
+    """Per-sprint issue count and total story points (velocity basis)."""
+    q = (
         db.query(
             Issue.sprint,
             func.count(Issue.key),
@@ -89,7 +119,10 @@ def velocity_by_sprint(db: Session) -> list[dict]:
         .outerjoin(Sprint, Sprint.name == Issue.sprint)
         .filter(Issue.sprint.isnot(None))
         .filter(Issue.issue_type != "Epic")
-        .group_by(Issue.sprint, Sprint.state, Sprint.start_date, Sprint.end_date)
+    )
+    q = _filter_by_project(q, project_key)
+    rows = (
+        q.group_by(Issue.sprint, Sprint.state, Sprint.start_date, Sprint.end_date)
         .order_by(Sprint.start_date.nullslast(), Issue.sprint)
         .all()
     )
@@ -106,17 +139,12 @@ def velocity_by_sprint(db: Session) -> list[dict]:
     ]
 
 
-def sprint_progress(db: Session) -> list[dict]:
-    """Per-sprint completion: done vs total issues and story points.
-
-    Ordered by the sprint's real start date. Excludes epics. 'done' uses the
-    status_category so it tracks the Done column regardless of exact status
-    name. Powers burn-up / sprint progress charts.
-    """
+def sprint_progress(db: Session, project_key: str | None = None) -> list[dict]:
+    """Per-sprint completion: done vs total issues and story points."""
     done_case = case((Issue.status_category == "Done", 1), else_=0)
     done_points = case((Issue.status_category == "Done", Issue.story_points), else_=0)
 
-    rows = (
+    q = (
         db.query(
             Issue.sprint,
             func.count(Issue.key).label("total"),
@@ -130,7 +158,10 @@ def sprint_progress(db: Session) -> list[dict]:
         .outerjoin(Sprint, Sprint.name == Issue.sprint)
         .filter(Issue.sprint.isnot(None))
         .filter(Issue.issue_type != "Epic")
-        .group_by(Issue.sprint, Sprint.state, Sprint.start_date, Sprint.end_date)
+    )
+    q = _filter_by_project(q, project_key)
+    rows = (
+        q.group_by(Issue.sprint, Sprint.state, Sprint.start_date, Sprint.end_date)
         .order_by(Sprint.start_date.nullslast(), Issue.sprint)
         .all()
     )
@@ -149,34 +180,28 @@ def sprint_progress(db: Session) -> list[dict]:
         })
     return result
 
-def points_by_sprint_team(db: Session) -> dict:
-    """Committed vs completed story points per sprint, split by team.
 
-    Returns:
-      {
-        sprints: [...],
-        teams:   [...],
-        committed: { team: [pts per sprint] },
-        completed: { team: [pts per sprint] }
-      }
-    'completed' uses status_category = Done. 'committed' is all points planned
-    into the sprint. Epics and issues with no sprint or no team are excluded.
-    """
+def points_by_sprint_team(db: Session, project_key: str | None = None) -> dict:
+    """Committed vs completed story points per sprint, split by team."""
     done_points = case((Issue.status_category == "Done", Issue.story_points), else_=0)
+    default_team = _default_team_for_project(project_key)
+    team_expr = func.coalesce(Issue.team, default_team)
 
-    rows = (
+    q = (
         db.query(
             Issue.sprint,
-            Issue.team,
+            team_expr.label("team"),
             func.coalesce(func.sum(Issue.story_points), 0).label("committed"),
             func.coalesce(func.sum(done_points), 0).label("completed"),
             Sprint.start_date,
         )
         .outerjoin(Sprint, Sprint.name == Issue.sprint)
         .filter(Issue.sprint.isnot(None))
-        .filter(Issue.team.isnot(None))
         .filter(Issue.issue_type != "Epic")
-        .group_by(Issue.sprint, Issue.team, Sprint.start_date)
+    )
+    q = _filter_by_project(q, project_key)
+    rows = (
+        q.group_by(Issue.sprint, team_expr, Sprint.start_date)
         .order_by(Sprint.start_date.nullslast(), Issue.sprint)
         .all()
     )
@@ -200,17 +225,11 @@ def points_by_sprint_team(db: Session) -> dict:
     }
 
 
-
-def milestone_progress(db: Session) -> list[dict]:
-    """Per-milestone (fix version) completion: done vs total issues.
-
-    Ordered by the version's release date. Excludes epics so counts reflect
-    real deliverable work. Joins fix_versions for the release date, falling
-    back to the known milestone map when the DB value is missing.
-    """
+def milestone_progress(db: Session, project_key: str | None = None) -> list[dict]:
+    """Per-milestone (fix version) completion: done vs total issues."""
     done_case = case((Issue.status_category == "Done", 1), else_=0)
 
-    rows = (
+    q = (
         db.query(
             Issue.fix_version,
             func.count(Issue.key).label("total"),
@@ -221,14 +240,17 @@ def milestone_progress(db: Session) -> list[dict]:
         .outerjoin(FixVersion, FixVersion.name == Issue.fix_version)
         .filter(Issue.fix_version.isnot(None))
         .filter(Issue.issue_type != "Epic")
-        .group_by(Issue.fix_version, FixVersion.release_date, FixVersion.released)
+    )
+    q = _filter_by_project(q, project_key)
+    rows = (
+        q.group_by(Issue.fix_version, FixVersion.release_date, FixVersion.released)
         .order_by(FixVersion.release_date.nullslast(), Issue.fix_version)
         .all()
     )
     return [
         {
             "fix_version": fix_version,
-            "release_date": _milestone_release_date(fix_version, release_date),  # NEW: fallback
+            "release_date": _milestone_release_date(fix_version, release_date),
             "released": bool(released) if released is not None else False,
             "total_issues": total,
             "done_issues": done,
@@ -238,36 +260,31 @@ def milestone_progress(db: Session) -> list[dict]:
     ]
 
 
-def overdue_count(db: Session) -> int:
-    """Risk metric: non-Done issues whose sprint has already ended.
-
-    Uses the sprint's end_date (the schedule source of truth) rather than
-    per-issue due dates. Backlog issues (no sprint) are not counted, since
-    without a sprint there is no schedule to be late against. Epics excluded.
-    """
+def overdue_count(db: Session, project_key: str | None = None) -> int:
+    """Risk metric: non-Done issues whose sprint has already ended."""
     now_iso = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S")
-    return (
+    q = (
         db.query(func.count(Issue.key))
         .join(Sprint, Sprint.name == Issue.sprint)
         .filter(Issue.issue_type != "Epic")
         .filter(Issue.status_category != "Done")
         .filter(Sprint.end_date.isnot(None))
         .filter(Sprint.end_date < now_iso)
-        .scalar()
     )
+    q = _filter_by_project(q, project_key)
+    return q.scalar() or 0
 
 
 def last_ingested(db: Session) -> str | None:
-    """When the issues data was most recently written by the ingestion job.
-    Powers the 'data as of X' label on the dashboard."""
+    """When the issues data was most recently written by the ingestion job."""
     value = db.query(func.max(Issue.ingested_at)).scalar()
     return value.isoformat() if value is not None else None
 
 
 # ---------------------------------------------------------------------------
-# Synthetic dashboard summary (mirrors the real shape)          # NEW (block)
+# Synthetic dashboard summary (mirrors the real shape)
 # ---------------------------------------------------------------------------
-def _synthetic_dashboard_summary() -> dict:
+def _synthetic_dashboard_summary(project_key: str | None = None) -> dict:
     """Build the dashboard summary from the synthetic generator, matching the
     real payload shape exactly so the frontend needs no branching.
     """
@@ -326,9 +343,9 @@ def _synthetic_dashboard_summary() -> dict:
         if i.get("issue_type") == "Epic":
             continue
         s = i.get("sprint")
-        t = i.get("team")
+        t = i.get("team") or _default_team_for_project(project_key)
         sp = i.get("story_points") or 0
-        if not s or not t:
+        if not s:
             continue
         if t not in teams:
             teams.append(t)
@@ -356,7 +373,7 @@ def _synthetic_dashboard_summary() -> dict:
     delivery_issues = [
         {
             "key": i["key"], "summary": i["summary"], "sprint": i.get("sprint"),
-            "team": i.get("team"), "story_points": i.get("story_points"),
+            "team": i.get("team") or _default_team_for_project(project_key), "story_points": i.get("story_points"),
             "status": i.get("status"), "status_category": i.get("status_category"), 
             "milestone": i.get("fix_version"),
         }
@@ -365,6 +382,7 @@ def _synthetic_dashboard_summary() -> dict:
     ]
 
     return {
+        "project_key": project_key or "ALL",
         "jira_base": os.getenv("JIRA_BASE_URL", ""),
         "total_issues": m.get("total_issues", 0),
         "by_status": dict(by_status),
@@ -381,15 +399,18 @@ def _synthetic_dashboard_summary() -> dict:
     }
 
 
-def issues_for_delivery(db: Session) -> list:
-    rows = db.query(
+def issues_for_delivery(db: Session, project_key: str | None = None) -> list:
+    q = db.query(
         Issue.key, Issue.summary, Issue.sprint, Issue.team,
         Issue.story_points, Issue.status, Issue.status_category, Issue.fix_version,
-    ).filter(Issue.issue_type != "Epic", Issue.issue_type != "Sub-task").all()
+    ).filter(Issue.issue_type != "Epic", Issue.issue_type != "Sub-task")
+    q = _filter_by_project(q, project_key)
+    rows = q.all()
+    default_team = _default_team_for_project(project_key)
     return [
         {
             "key": r.key, "summary": r.summary, "sprint": r.sprint,
-            "team": r.team, "story_points": r.story_points,
+            "team": r.team or default_team, "story_points": r.story_points,
             "status": r.status, "status_category": r.status_category, 
             "milestone": r.fix_version,
         }
@@ -397,22 +418,24 @@ def issues_for_delivery(db: Session) -> list:
     ]
 
 
-def dashboard_summary(db: Session, mode: str = "real") -> dict:  # NEW: mode param
-    """Bundle all metrics into a single response for the dashboard."""
-    if mode == "synthetic":                   # NEW
-        return _synthetic_dashboard_summary()  # NEW
+def dashboard_summary(db: Session, mode: str = "real", project_key: str | None = None) -> dict:
+    """Bundle all metrics into a single response for the dashboard, scoped by project_key."""
+    if mode == "synthetic":
+        return _synthetic_dashboard_summary(project_key=project_key)
     return {
+        "project_key": project_key or "ALL",
         "jira_base": os.getenv("JIRA_BASE_URL", ""),
-        "total_issues": total_issues(db),
-        "by_status": by_status(db),
-        "by_type": by_type(db),
-        "by_priority": by_priority(db),
-        "by_epic": by_epic(db),
-        "velocity_by_sprint": velocity_by_sprint(db),
-        "sprint_progress": sprint_progress(db),
-        "points_by_sprint_team": points_by_sprint_team(db),
-        "milestone_progress": milestone_progress(db),
-        "overdue_count": overdue_count(db),
+        "total_issues": total_issues(db, project_key=project_key),
+        "by_status": by_status(db, project_key=project_key),
+        "by_type": by_type(db, project_key=project_key),
+        "by_priority": by_priority(db, project_key=project_key),
+        "by_epic": by_epic(db, project_key=project_key),
+        "velocity_by_sprint": velocity_by_sprint(db, project_key=project_key),
+        "sprint_progress": sprint_progress(db, project_key=project_key),
+        "points_by_sprint_team": points_by_sprint_team(db, project_key=project_key),
+        "milestone_progress": milestone_progress(db, project_key=project_key),
+        "overdue_count": overdue_count(db, project_key=project_key),
         "last_ingested": last_ingested(db),
-        "delivery_issues": issues_for_delivery(db),
+        "delivery_issues": issues_for_delivery(db, project_key=project_key),
     }
+

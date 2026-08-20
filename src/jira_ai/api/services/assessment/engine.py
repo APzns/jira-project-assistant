@@ -13,8 +13,19 @@ REAL_CACHE_ID = 1
 SYNTHETIC_CACHE_ID = 2
 
 
+def _get_cache_id(mode: str, project_key: str | None) -> int:
+    """Return a deterministic cache ID for mode + project_key."""
+    is_synth = (mode == "synthetic")
+    if not project_key or project_key.upper() in ("ALL", "GLOBAL"):
+        return SYNTHETIC_CACHE_ID if is_synth else REAL_CACHE_ID
+    
+    base = 20000 if is_synth else 10000
+    key_hash = sum(ord(c) * (31 ** i) for i, c in enumerate(project_key.upper())) % 9000
+    return base + key_hash
+
+
 def _save_to_cache(db, assessment: dict, cache_id: int = REAL_CACHE_ID) -> None:
-    """Write the latest assessment into the cache row for this mode."""
+    """Write the latest assessment into the cache row for this mode & project."""
     row = db.get(AssessmentCache, cache_id)
     payload = json.dumps(assessment, default=str)
     if row is None:
@@ -27,9 +38,9 @@ def _save_to_cache(db, assessment: dict, cache_id: int = REAL_CACHE_ID) -> None:
     db.commit()
 
 
-def get_cached_assessment(db, mode: str = "real") -> dict | None:
-    """Return the last saved assessment for this mode, or None if none yet."""
-    cache_id = SYNTHETIC_CACHE_ID if mode == "synthetic" else REAL_CACHE_ID
+def get_cached_assessment(db, mode: str = "real", project_key: str | None = None) -> dict | None:
+    """Return the last saved assessment for this mode & project, or None if none yet."""
+    cache_id = _get_cache_id(mode, project_key)
     row = db.get(AssessmentCache, cache_id)
     if row is None:
         return None
@@ -39,20 +50,107 @@ def get_cached_assessment(db, mode: str = "real") -> dict | None:
     return data
 
 
-def assess(db, mode: str = "real") -> dict:
-    """Generate or refresh program-status assessment."""
+def get_instant_assessment(db, mode: str = "real", project_key: str | None = None) -> dict:
+    """Return cached assessment if available, or compute deterministic metrics & fallback without calling LLM."""
+    cached = get_cached_assessment(db, mode=mode, project_key=project_key)
+    if cached is not None:
+        return cached
+
+    cache_id = _get_cache_id(mode, project_key)
     if mode == "synthetic":
         metrics = _synthetic_metrics()
-        cache_id = SYNTHETIC_CACHE_ID
+        metrics["project_key"] = project_key or "ALL"
     else:
-        metrics = _compute_metrics(db)
-        cache_id = REAL_CACHE_ID
+        metrics = _compute_metrics(db, project_key=project_key)
+
+    assessment = _build_fallback_assessment(metrics, mode=mode)
+    assessment.setdefault("predictability_comment", "")
+    assessment.setdefault("predictability_summary", "")
+    assessment.setdefault("quality_summary", "")
+    assessment.setdefault("quality_actions", [])
+    assessment["project_key"] = project_key or "ALL"
+    assessment["metrics"] = metrics
+    assessment["mode"] = mode
+    assessment["generated_at"] = datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
+    assessment["monte_carlo"] = _build_monte_carlo(metrics)
+    metrics["forecast_delay_days"] = _forecast_delay_days(metrics)
+
+    overdue_pct = metrics.get("overdue_points_pct", 0)
+    milestones_data = metrics.get("milestone_completion", {})
+    any_milestone_delayed = False
+    for name, info in milestones_data.items():
+        pct = info.get("percent_done", 0)
+        days = info.get("days_to_release")
+        if days is not None and days < 0 and pct < 100:
+            any_milestone_delayed = True
+            break
+
+    progress_behind = (overdue_pct > 0) or any_milestone_delayed
+    mc_behind = metrics.get("forecast_delay_days") is not None and metrics["forecast_delay_days"] > 0
+
+    if mc_behind and progress_behind:
+        calculated_status = "delayed"
+    elif mc_behind or progress_behind:
+        calculated_status = "at_risk"
+    else:
+        calculated_status = "on_track"
+
+    assessment["overall_status"] = calculated_status
+
+    _save_to_cache(db, assessment, cache_id=cache_id)
+    return assessment
+
+
+def warmup_assessment_cache(db, mode: str = "real", force: bool = False) -> list[str]:
+    """Pre-compute metrics & baseline assessments for all registered projects in one pass.
+    Executed at the end of ingestion so subsequent UI dashboard navigation is 0ms."""
+    from pathlib import Path
+    project_keys = ["ALL", "HRZ", "CORE", "CHK", "MOB"]
+    try:
+        settings_file = Path(__file__).resolve().parents[4] / ".agents" / "settings" / "projects.json"
+        if settings_file.exists():
+            data = json.loads(settings_file.read_text(encoding="utf-8"))
+            for p in data.get("projects", []):
+                k = p.get("key")
+                if k and k not in project_keys and not p.get("archived", False):
+                    project_keys.append(k)
+    except Exception:
+        pass
+
+    warmed = []
+    for pkey in project_keys:
+        try:
+            if force:
+                cache_id = _get_cache_id(mode, pkey)
+                row = db.get(AssessmentCache, cache_id)
+                if row:
+                    db.delete(row)
+                    db.commit()
+            get_instant_assessment(db, mode=mode, project_key=pkey)
+            warmed.append(pkey)
+        except Exception:
+            pass
+    return warmed
+
+
+def assess(db, mode: str = "real", project_key: str | None = None) -> dict:
+    """Generate or refresh program-status assessment for a specific project or the global portfolio."""
+    cache_id = _get_cache_id(mode, project_key)
+    if mode == "synthetic":
+        metrics = _synthetic_metrics()
+        metrics["project_key"] = project_key or "ALL"
+    else:
+        metrics = _compute_metrics(db, project_key=project_key)
 
     lenses = _load_risk_lenses()
     context = load_project_context()
 
+    project_header = f"Project Scope: {project_key.upper()}" if project_key and project_key.upper() not in ("ALL", "GLOBAL") else "Project Scope: ALL (Global Portfolio / All Projects)"
+
     prompt = f"""You are an experienced Technical Program Manager writing a
 status assessment for stakeholders.
+
+{project_header}
 
 All numbers below were computed by a script and are exact. Your job is to
 INTERPRET them and write the commentary — do not compute or invent any figures.
@@ -124,7 +222,7 @@ Today's Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}
     assessment = _call_gemini_assessment(prompt)
 
     if assessment is None:
-        cached = get_cached_assessment(db, mode=mode)
+        cached = get_cached_assessment(db, mode=mode, project_key=project_key)
         if cached and isinstance(cached, dict) and "overall_status" in cached:
             assessment = cached
             assessment["notice"] = "Metrics updated. AI commentary preserved from cached report (LLM temporarily busy)."
@@ -134,6 +232,7 @@ Today's Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}
 
     assessment.setdefault("predictability_comment", "")
     assessment.setdefault("predictability_summary", "")
+    assessment["project_key"] = project_key or "ALL"
     assessment["metrics"] = metrics
     assessment["mode"] = mode
     assessment["generated_at"] = datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
@@ -185,3 +284,4 @@ Today's Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}
 
     _save_to_cache(db, assessment, cache_id=cache_id)
     return assessment
+
