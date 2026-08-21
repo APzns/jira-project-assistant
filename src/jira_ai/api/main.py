@@ -21,6 +21,7 @@ from src.jira_ai.api.routes import settings
 from src.jira_ai.api.routes import stakeholders
 from src.jira_ai.api.routes import reports
 from src.jira_ai.api.routes import projects
+from src.jira_ai.api.routes import assistant
 from src.jira_ai.logging_config import setup_logging
 
 logger = setup_logging()
@@ -71,7 +72,12 @@ async def basic_auth_middleware(request: Request, call_next):
             content="Authentication required.",
         )
 
-    return await call_next(request)
+    response = await call_next(request)
+    if request.url.path.endswith((".js", ".css", ".html")) or request.url.path == "/":
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 
 # ---- API routes (must be registered BEFORE the static mount below) ----
@@ -84,6 +90,7 @@ app.include_router(settings.router)
 app.include_router(stakeholders.router)
 app.include_router(reports.router)
 app.include_router(projects.router)
+app.include_router(assistant.router)
 
 
 @app.get("/health")

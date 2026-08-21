@@ -144,9 +144,9 @@ function navigate(hash) {
   // Stakeholders sub-routing (dedicated pages)
   if (navKey === "stakeholders") {
     if (subRoute === "new") {
-      renderStakeholdersPage().then(() => showStakeholderForm(null));
+      renderStakeholdersPage().then(() => showStakeholderForm());
     } else if (subRoute === "edit" && parts[2]) {
-      renderStakeholdersPage().then(() => showStakeholderForm(parts[2]));
+      renderStakeholdersPage().then(() => showStakeholderDetail(parts[2]));
     } else if (subRoute) {
       renderStakeholdersPage().then(() => showStakeholderDetail(subRoute));
     } else {
@@ -980,7 +980,7 @@ if (paBtnComposerSave) {
       if (msgEl) { msgEl.textContent = "Error saving"; msgEl.className = "settings-save-msg settings-save-msg--err"; }
     } finally {
       paBtnComposerSave.disabled = false;
-      paBtnComposerSave.textContent = "💾 Save";
+      paBtnComposerSave.innerHTML = `<svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Save`;
     }
   });
 }
@@ -1069,7 +1069,9 @@ async function handleSavePageSettings() {
   } finally {
     btns.forEach(b => {
       b.disabled = false;
-      b.textContent = b.id === "btn-page-save-settings" ? "💾 Save Settings" : "Save Settings";
+      b.innerHTML = b.id === "btn-page-save-settings" 
+        ? `<svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Save Settings` 
+        : `Save Settings`;
     });
   }
 }

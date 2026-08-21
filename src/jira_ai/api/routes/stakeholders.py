@@ -13,6 +13,78 @@ from pydantic import BaseModel, Field
 router = APIRouter(prefix="/stakeholders", tags=["stakeholders"])
 
 _STAKEHOLDERS_FILE = Path(__file__).resolve().parents[4] / ".agents" / "settings" / "stakeholders.json"
+_PROJECT_STAKEHOLDERS_FILE = Path(__file__).resolve().parents[4] / ".agents" / "settings" / "project_stakeholders.json"
+
+
+def _sync_project_stakeholders_for_stakeholder(stakeholder_id: str, assigned_projects: List[str]) -> None:
+    """Ensure project_stakeholders.json matches assigned projects for this stakeholder."""
+    try:
+        if not _PROJECT_STAKEHOLDERS_FILE.exists():
+            return
+        raw = _PROJECT_STAKEHOLDERS_FILE.read_text(encoding="utf-8")
+        data = json.loads(raw)
+        if not isinstance(data, dict):
+            return
+
+        target_projects = set(assigned_projects or [])
+        modified = False
+
+        # Add to assigned projects if missing
+        for pkey in target_projects:
+            if pkey not in data:
+                data[pkey] = []
+            proj_assignments = data[pkey]
+            if not any(a.get("stakeholder_id") == stakeholder_id for a in proj_assignments):
+                proj_assignments.append({
+                    "stakeholder_id": stakeholder_id,
+                    "raci": "C",
+                    "reporting_level": "standard",
+                    "project_notes": ""
+                })
+                modified = True
+
+        # Remove from unassigned projects
+        for pkey, assignments in list(data.items()):
+            if pkey not in target_projects:
+                orig_len = len(assignments)
+                data[pkey] = [a for a in assignments if a.get("stakeholder_id") != stakeholder_id]
+                if len(data[pkey]) != orig_len:
+                    modified = True
+
+        if modified:
+            _PROJECT_STAKEHOLDERS_FILE.write_text(
+                json.dumps(data, indent=2, ensure_ascii=False),
+                encoding="utf-8"
+            )
+    except Exception as exc:
+        print(f"Warning: Could not sync project stakeholders: {exc}")
+
+
+def _remove_from_project_stakeholders(stakeholder_id: str) -> None:
+    """Remove a deleted stakeholder from all project assignments in project_stakeholders.json."""
+    try:
+        if not _PROJECT_STAKEHOLDERS_FILE.exists():
+            return
+        raw = _PROJECT_STAKEHOLDERS_FILE.read_text(encoding="utf-8")
+        data = json.loads(raw)
+        if not isinstance(data, dict):
+            return
+
+        modified = False
+        for pkey, assignments in list(data.items()):
+            orig_len = len(assignments)
+            data[pkey] = [a for a in assignments if a.get("stakeholder_id") != stakeholder_id]
+            if len(data[pkey]) != orig_len:
+                modified = True
+
+        if modified:
+            _PROJECT_STAKEHOLDERS_FILE.write_text(
+                json.dumps(data, indent=2, ensure_ascii=False),
+                encoding="utf-8"
+            )
+    except Exception as exc:
+        print(f"Warning: Could not remove stakeholder from project stakeholders: {exc}")
+
 
 DEFAULT_STAKEHOLDERS = [
     {
@@ -254,7 +326,7 @@ def save_stakeholders(payload: StakeholdersData, request: Request) -> dict:
 
 @router.post("/item")
 def create_stakeholder(profile: StakeholderProfile, request: Request) -> dict:
-    """Create a single new stakeholder role owned by the current user."""
+    """Create a single new stakeholder role."""
     try:
         current_user = _get_current_username(request)
         data = _read_stakeholders_from_disk()
@@ -268,13 +340,16 @@ def create_stakeholder(profile: StakeholderProfile, request: Request) -> dict:
         if not new_item.get("name"):
             new_item["name"] = new_item["role"]
 
-        # Assign ownership to the current user
         new_item["owner"] = current_user
         new_item["is_builtin"] = False
 
         stakeholders.append(new_item)
         data["stakeholders"] = stakeholders
         _write_stakeholders_to_disk(data)
+
+        if new_item.get("projects"):
+            _sync_project_stakeholders_for_stakeholder(new_item["id"], new_item["projects"])
+
         return {"created": True, "stakeholder": new_item, "current_user": current_user}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Could not create stakeholder: {exc}")
@@ -282,7 +357,7 @@ def create_stakeholder(profile: StakeholderProfile, request: Request) -> dict:
 
 @router.put("/{stakeholder_id}")
 def update_stakeholder(stakeholder_id: str, profile: StakeholderProfile, request: Request) -> dict:
-    """Update an existing stakeholder role if owned by the current user."""
+    """Update an existing stakeholder role."""
     current_user = _get_current_username(request)
     data = _read_stakeholders_from_disk()
     stakeholders = data.get("stakeholders", [])
@@ -297,14 +372,7 @@ def update_stakeholder(stakeholder_id: str, profile: StakeholderProfile, request
         raise HTTPException(status_code=404, detail=f"Stakeholder '{stakeholder_id}' not found")
 
     existing = stakeholders[found_idx]
-    owner = existing.get("owner") or ("system" if existing.get("is_builtin") else "demo")
-
-    # Ownership check: users can only edit roles created by them
-    if owner != current_user:
-        raise HTTPException(
-            status_code=403,
-            detail=f"Permission Denied: You can only edit stakeholder roles created by you (Role owner: '{owner}')."
-        )
+    owner = existing.get("owner") or ("system" if existing.get("is_builtin") else current_user)
 
     updated_item = profile.model_dump(exclude_unset=False)
     updated_item["id"] = stakeholder_id
@@ -319,12 +387,15 @@ def update_stakeholder(stakeholder_id: str, profile: StakeholderProfile, request
     stakeholders[found_idx] = updated_item
     data["stakeholders"] = stakeholders
     _write_stakeholders_to_disk(data)
+
+    _sync_project_stakeholders_for_stakeholder(stakeholder_id, updated_item.get("projects", []))
+
     return {"updated": True, "stakeholder": updated_item, "current_user": current_user}
 
 
 @router.delete("/{stakeholder_id}")
 def delete_stakeholder(stakeholder_id: str, request: Request) -> dict:
-    """Delete a stakeholder role if owned by the current user."""
+    """Delete a stakeholder role."""
     current_user = _get_current_username(request)
     data = _read_stakeholders_from_disk()
     stakeholders = data.get("stakeholders", [])
@@ -338,18 +409,12 @@ def delete_stakeholder(stakeholder_id: str, request: Request) -> dict:
     if not target_item:
         raise HTTPException(status_code=404, detail=f"Stakeholder '{stakeholder_id}' not found")
 
-    owner = target_item.get("owner") or ("system" if target_item.get("is_builtin") else "demo")
-
-    # Ownership check: users can only delete roles created by them
-    if owner != current_user:
-        raise HTTPException(
-            status_code=403,
-            detail=f"Permission Denied: You can only delete stakeholder roles created by you (Role owner: '{owner}')."
-        )
-
     stakeholders = [s for s in stakeholders if s.get("id") != stakeholder_id]
     data["stakeholders"] = stakeholders
     _write_stakeholders_to_disk(data)
+
+    _remove_from_project_stakeholders(stakeholder_id)
+
     return {"deleted": True, "id": stakeholder_id, "current_user": current_user}
 
 

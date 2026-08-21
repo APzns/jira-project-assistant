@@ -4,8 +4,20 @@
       "id": "pm-default",
       "role": "Project Manager",
       "role_type": "project_manager",
-      "name": "Project Manager",
-      "email": "",
+      "owner": "system",
+      "is_builtin": true,
+      "description": "Focuses on delivery schedules, sprint health, cross-team dependencies, and team velocity.",
+      "projects": [
+        "HRZ",
+        "CHK",
+        "CORE",
+        "MOB"
+      ],
+      "priority_areas": [
+        "velocity",
+        "sprint_health",
+        "blockers"
+      ],
       "people": [
         {
           "name": "Alex Mercer",
@@ -15,27 +27,13 @@
           "name": "Samantha Reed",
           "email": "samantha.reed@company.internal"
         }
-      ],
-      "is_builtin": true,
-      "description": "detailed level interest",
-      "other_notes": "schedule",
-      "projects": [
-        "CHK",
-        "CORE",
-        "HRZ",
-        "MOB"
-      ],
-      "priority_areas": [
-        "velocity",
-        "sprint_health"
-      ],
-      "project_override": null,
-      "owner": "system"
+      ]
     },
     {
       "id": "exec",
       "role": "Executive Sponsor",
       "role_type": "executive",
+      "owner": "system",
       "is_builtin": true,
       "description": "Focuses on high-level strategic milestones, budget, ROI, and major business risks.",
       "projects": [
@@ -55,20 +53,18 @@
           "name": "David Sterling",
           "email": "david.sterling@company.internal"
         }
-      ],
-      "other_notes": "",
-      "name": "Executive Sponsor",
-      "owner": "system"
+      ]
     },
     {
       "id": "eng-lead",
       "role": "Engineering Lead",
       "role_type": "engineering_lead",
+      "owner": "system",
       "is_builtin": true,
       "description": "Focuses on technical debt, architecture, engineering capacity, and defect ratios.",
       "projects": [
-        "CHK",
-        "CORE"
+        "CORE",
+        "CHK"
       ],
       "priority_areas": [
         "technical_debt",
@@ -84,20 +80,18 @@
           "name": "Priya Sharma",
           "email": "priya.sharma@company.internal"
         }
-      ],
-      "other_notes": "",
-      "name": "Engineering Lead",
-      "owner": "system"
+      ]
     },
     {
       "id": "qa-lead",
       "role": "QA & Release Lead",
       "role_type": "qa_lead",
+      "owner": "system",
       "is_builtin": true,
       "description": "Focuses on software quality, defect trends, test automation coverage, and release criteria.",
       "projects": [
-        "CHK",
-        "MOB"
+        "MOB",
+        "CHK"
       ],
       "priority_areas": [
         "quality",
@@ -109,18 +103,23 @@
           "name": "Dr. Aris Thorne",
           "email": "aris.thorne@company.internal"
         }
-      ],
-      "other_notes": "",
-      "name": "QA & Release Lead",
-      "owner": "system"
+      ]
     },
     {
       "id": "po-commerce",
       "role": "Product Owner",
-      "role_type": "custom",
-      "owner": "demo",
-      "name": "Product Owner",
-      "email": "",
+      "role_type": "product_owner",
+      "owner": "system",
+      "is_builtin": false,
+      "description": "Drives checkout user experience, payment gateway conversion, and feature prioritization.",
+      "projects": [
+        "CHK"
+      ],
+      "priority_areas": [
+        "scope",
+        "user_experience",
+        "conversion"
+      ],
       "people": [
         {
           "name": "Chloe Lin",
@@ -130,20 +129,7 @@
           "name": "Lucas Meyer",
           "email": "lucas.meyer@company.internal"
         }
-      ],
-      "is_builtin": false,
-      "description": "Drives checkout user experience, payment gateway conversion, and feature prioritization.",
-      "other_notes": "",
-      "projects": [
-        "CHK"
-      ],
-      "priority_areas": [
-        "Scope",
-        "User Experience",
-        "Conversion",
-        "Sprint Health"
-      ],
-      "project_override": null
+      ]
     }
   ]
 }

@@ -132,6 +132,7 @@ export async function askQuestion(inputId, buttonId) {
         question: q,
         history: historyPayload.length ? historyPayload : undefined,
         context: contextTab || undefined,
+        project_key: state.currentProject || undefined,
       }),
     }, 90000);
     const d = await res.json();

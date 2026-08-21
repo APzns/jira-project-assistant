@@ -4,6 +4,10 @@
       "id": "report-exec-brief",
       "name": "Executive Program Status Briefing",
       "description": "High-level strategic briefing on milestone delivery dates, schedule risks, and key strategic decisions for leadership.",
+      "project_scope": "HRZ",
+      "owner": "David Kim",
+      "cadence": "monthly",
+      "last_generated_at": "2026-08-20T14:30:00Z",
       "is_default": false,
       "stakeholder_ids": [
         "exec",
@@ -45,6 +49,10 @@
       "id": "report-pm-weekly",
       "name": "Weekly TPM Sprint & Delivery Health",
       "description": "Operational sprint delivery tracking, sprint predictability, capacity drag, burnup velocity, and cross-team dependencies.",
+      "project_scope": "CHK",
+      "owner": "Alex Mercer",
+      "cadence": "weekly",
+      "last_generated_at": "2026-08-21T09:15:00Z",
       "is_default": true,
       "stakeholder_ids": [
         "pm-default"
@@ -85,6 +93,10 @@
       "id": "report-dependency-blocker",
       "name": "Cross-Team Dependency & Blocker Matrix",
       "description": "Deep-dive analysis on inter-team dependencies, critical path bottlenecks, upstream blockers, and alignment across squads.",
+      "project_scope": "HRZ",
+      "owner": "Rachel Green",
+      "cadence": "bi-weekly",
+      "last_generated_at": "2026-08-18T11:00:00Z",
       "is_default": false,
       "stakeholder_ids": [
         "pm-default",
@@ -126,6 +138,10 @@
       "id": "report-squad-quality",
       "name": "Squad Quality & Defect Deep-Dive",
       "description": "Detailed view on defect density, bug escape rates, regression testing load, and engineering technical debt across squads.",
+      "project_scope": "CORE",
+      "owner": "Marcus Vance",
+      "cadence": "weekly",
+      "last_generated_at": "2026-08-19T16:45:00Z",
       "is_default": false,
       "stakeholder_ids": [
         "eng-lead",
@@ -167,6 +183,10 @@
       "id": "report-milestone-forecast",
       "name": "Milestone Delivery & Monte Carlo Forecast",
       "description": "Probabilistic delivery forecasting for milestones (M0-M3), Monte Carlo throughput simulations, and completion date ranges.",
+      "project_scope": "MOB",
+      "owner": "Elena Rostova",
+      "cadence": "manual",
+      "last_generated_at": "2026-08-15T10:20:00Z",
       "is_default": false,
       "stakeholder_ids": [
         "exec",

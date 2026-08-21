@@ -17,12 +17,6 @@
       "raci": "C",
       "reporting_level": "technical",
       "project_notes": "Advises on payment gateway API latency, microservice contracts, and technical debt."
-    },
-    {
-      "stakeholder_id": "qa-lead",
-      "raci": "C",
-      "reporting_level": "technical",
-      "project_notes": "Verifies checkout test automation coverage and release regression testing."
     }
   ],
   "CORE": [
@@ -40,12 +34,6 @@
     }
   ],
   "MOB": [
-    {
-      "stakeholder_id": "qa-lead",
-      "raci": "A",
-      "reporting_level": "technical",
-      "project_notes": "Maintains mobile release criteria, device matrix testing, and defect trends."
-    },
     {
       "stakeholder_id": "pm-default",
       "raci": "R",

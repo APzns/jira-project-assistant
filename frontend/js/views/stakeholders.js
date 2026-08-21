@@ -1,6 +1,6 @@
 /**
- * stakeholders.js — Dedicated full-page views for Stakeholders with User Ownership,
- * Dynamic "Add Projects", and Dynamic "Add Focus Areas" (no checkboxes).
+ * stakeholders.js — Stakeholders Management with Section-by-Section Editing
+ * matching the Report Details design pattern.
  */
 
 import { $, escapeHtml } from "../utils.js";
@@ -12,6 +12,13 @@ let _currentUser = "demo";
 let _activeFilter = "all";
 let _searchQuery = "";
 let _currentEditingId = null;
+
+// Section edit lists
+let _sec2PeopleList = [];
+let _sec3ProjectsList = [];
+let _sec4PriosList = [];
+
+// Form lists for New Stakeholder creation
 let _formPeopleList = [];
 let _formProjectsList = [];
 let _formPriosList = [];
@@ -32,6 +39,17 @@ const ROLE_ICONS = {
   "security_lead": "🔒",
   "devops_lead": "🚀",
   "custom": "👤"
+};
+
+const ROLE_LABELS = {
+  "project_manager": "Project Manager (Delivery schedules, sprint health, cross-team blockers)",
+  "executive": "Executive Sponsor (High-level milestones, strategic ROI, executive risks)",
+  "engineering_lead": "Engineering Lead (Tech debt ratios, architecture, engineering capacity)",
+  "qa_lead": "QA & Release Lead (Test coverage, defect escape trends, release criteria)",
+  "product_owner": "Product Owner (Feature scope, user journey conversion, backlog priorities)",
+  "security_lead": "Security Lead (SOC2 compliance, audit trails, vuln remediation)",
+  "devops_lead": "DevOps Lead (CI/CD pipeline throughput, infra reliability, deployment velocity)",
+  "custom": "Custom Persona (Pure custom directives, no predefined AI bias)"
 };
 
 /**
@@ -115,7 +133,7 @@ export function showStakeholdersList() {
 }
 
 /**
- * Switch subview to Detail View
+ * Switch subview to Section-Based Detail View
  */
 export function showStakeholderDetail(stakeholderId) {
   const listView = $("stakeholders-list-view");
@@ -137,36 +155,96 @@ export function showStakeholderDetail(stakeholderId) {
 
   _currentEditingId = s.id;
 
+  // Reset all sections to view mode
+  [1, 2, 3, 4, 5].forEach(secNum => _toggleShSectionEdit(secNum, false));
+
+  // Populate view presentation and edit forms for all sections
+  _renderAllShSectionViews(s);
+  _populateShSectionEditForms(s);
+
+  // Wire delete button in header
+  const btnDelete = $("btn-detail-delete-sh");
+  if (btnDelete) {
+    btnDelete.onclick = () => {
+      confirmDeleteStakeholder(s.id, s.role || s.role_type || "Stakeholder");
+    };
+  }
+
+  if (listView) listView.style.display = "none";
+  if (formView) formView.style.display = "none";
+  detailView.style.display = "block";
+  window.scrollTo(0, 0);
+}
+
+/**
+ * Toggle individual section between View and Edit modes
+ */
+function _toggleShSectionEdit(secNumber, isEditing) {
+  const viewEl = $(`sh-sec-${secNumber}-view`);
+  const editEl = $(`sh-sec-${secNumber}-edit`);
+  const editBtn = $(`btn-edit-sh-sec-${secNumber}`);
+
+  if (viewEl) viewEl.style.display = isEditing ? "none" : "block";
+  if (editEl) editEl.style.display = isEditing ? "block" : "none";
+  if (editBtn) editBtn.style.display = isEditing ? "none" : "inline-flex";
+
+  if (isEditing) {
+    if (secNumber === 2) _renderSec2PeopleEditChips();
+    if (secNumber === 3) _renderSec3ProjectsEditChips();
+    if (secNumber === 4) _renderSec4PriosEditChips();
+  }
+}
+
+/**
+ * Render all section view presentations from stakeholder object
+ */
+function _renderAllShSectionViews(s) {
   const roleName = s.role || s.role_type || "Stakeholder";
   const people = s.people || [];
   const owner = s.owner || (s.is_builtin ? "system" : "demo");
   const isOwner = (owner === _currentUser);
 
-  $("sh-detail-title").textContent = roleName;
-  $("sh-detail-people-count").textContent = `${people.length} Individual Stakeholder${people.length === 1 ? '' : 's'} Assigned`;
-
-  // Badges: Built-in / Custom & Ownership
-  let ownerBadgeHtml = "";
-  if (isOwner) {
-    ownerBadgeHtml = `<span class="sh-owner-tag sh-owner-mine" title="Created by you">Owned by you (${escapeHtml(_currentUser)})</span>`;
-  } else if (owner === "system" || s.is_builtin) {
-    ownerBadgeHtml = `<span class="sh-owner-tag sh-owner-system" title="System persona">Standard System Role</span>`;
-  } else {
-    ownerBadgeHtml = `<span class="sh-owner-tag sh-owner-other" title="Created by ${escapeHtml(owner)}">Creator: ${escapeHtml(owner)}</span>`;
+  // Page Header Title & Subtitle
+  const titleEl = $("sh-detail-title");
+  if (titleEl) {
+    titleEl.textContent = `Stakeholder Details: ${roleName}`;
   }
 
-  $("sh-detail-type-badge").innerHTML = `
-    ${s.is_builtin 
-      ? `<span class="sh-type-tag sh-type-builtin">Standard Persona</span>` 
-      : `<span class="sh-type-tag sh-type-custom">Custom Persona</span>`}
-    ${ownerBadgeHtml}
-  `;
-  
-  // Render people in detail view
-  const peopleContainer = $("sh-detail-people");
+  // Section 1: Persona & Role Overview
+  const sec1Role = $("sh-sec-1-val-role");
+  const sec1Category = $("sh-sec-1-val-category");
+  const sec1Type = $("sh-sec-1-val-type");
+  const sec1Owner = $("sh-sec-1-val-owner");
+
+  const rIcon = ROLE_ICONS[s.role_type] || "👤";
+  const rLabel = (s.role_type || "custom").replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+
+  if (sec1Role) sec1Role.textContent = roleName;
+  if (sec1Category) sec1Category.textContent = `${rIcon} ${rLabel}`;
+  if (sec1Type) {
+    sec1Type.innerHTML = s.is_builtin 
+      ? `<span class="sh-type-tag sh-type-builtin">Standard Persona</span>`
+      : `<span class="sh-type-tag sh-type-custom">Custom Persona</span>`;
+  }
+  if (sec1Owner) {
+    if (isOwner) {
+      sec1Owner.innerHTML = `<span class="sh-owner-tag sh-owner-mine">Owned by you (${escapeHtml(_currentUser)})</span>`;
+    } else if (owner === "system" || s.is_builtin) {
+      sec1Owner.innerHTML = `<span class="sh-owner-tag sh-owner-system">Standard System Role</span>`;
+    } else {
+      sec1Owner.innerHTML = `<span class="sh-owner-tag sh-owner-other">Creator: ${escapeHtml(owner)}</span>`;
+    }
+  }
+
+  // Section 2: Individual Stakeholders
+  const sec2Sub = $("sh-sec-2-sub");
+  if (sec2Sub) {
+    sec2Sub.textContent = `${people.length} Individual Team Member${people.length === 1 ? '' : 's'} Assigned`;
+  }
+  const peopleContainer = $("sh-sec-2-val-people");
   if (peopleContainer) {
     if (people.length === 0) {
-      peopleContainer.innerHTML = `<div class="sh-person-empty">No individual stakeholders assigned yet.${isOwner ? ' Click "Edit Role" to add team members.' : ''}</div>`;
+      peopleContainer.innerHTML = `<div class="sh-person-empty">No individual stakeholders assigned yet. Click "Edit" above to add team members.</div>`;
     } else {
       peopleContainer.innerHTML = people.map(p => {
         const initials = p.name ? p.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "U";
@@ -183,22 +261,8 @@ export function showStakeholderDetail(stakeholderId) {
     }
   }
 
-  // Other Free Text Notes in detail
-  const otherSection = $("sh-detail-other-section");
-  const otherText = $("sh-detail-other");
-  if (otherSection && otherText) {
-    if (s.other_notes && s.other_notes.trim()) {
-      otherText.textContent = s.other_notes.trim();
-      otherSection.style.display = "flex";
-    } else {
-      otherSection.style.display = "none";
-    }
-  }
-
-  $("sh-detail-desc").textContent = s.description || "Focuses on high-level delivery schedules, sprint health, cross-team dependencies, and team velocity weekly.";
-
-  // Projects list with RACI and link to project settings
-  const pContainer = $("sh-detail-projects");
+  // Section 3: Assigned Delivery Projects
+  const pContainer = $("sh-sec-3-val-projects");
   if (pContainer) {
     pContainer.innerHTML = `<div class="pd-loading muted">Loading assigned project configurations...</div>`;
     
@@ -208,7 +272,6 @@ export function showStakeholderDetail(stakeholderId) {
         const pMap = projData.projects || {};
         const assignedProjects = [];
         
-        // Find which projects have this stakeholder
         for (const [pkey, assignments] of Object.entries(pMap)) {
           const match = assignments.find(a => a.stakeholder_id === s.id);
           if (match) {
@@ -224,7 +287,7 @@ export function showStakeholderDetail(stakeholderId) {
         }
 
         if (assignedProjects.length === 0) {
-          pContainer.innerHTML = `<div class="sh-person-empty">Not assigned to any projects yet. <a href="#projects" class="inline-link" style="color: var(--accent); font-weight: 600;">Go to Project Settings</a> to assign this role and configure RACI matrix.</div>`;
+          pContainer.innerHTML = `<div class="sh-person-empty">Not assigned to any projects yet. Click "Edit" above or visit <a href="#projects" class="inline-link" style="color: var(--accent); font-weight: 600;">Project Settings</a> to assign this role.</div>`;
           return;
         }
 
@@ -264,8 +327,8 @@ export function showStakeholderDetail(stakeholderId) {
       });
   }
 
-  // Priority Areas
-  const prioContainer = $("sh-detail-priorities");
+  // Section 4: Priority Focus Areas
+  const prioContainer = $("sh-sec-4-val-priorities");
   if (prioContainer) {
     prioContainer.innerHTML = "";
     const prios = s.priority_areas && s.priority_areas.length > 0 ? s.priority_areas : ["Velocity & Burndown", "Sprint Health"];
@@ -277,103 +340,275 @@ export function showStakeholderDetail(stakeholderId) {
     });
   }
 
-  // Bind Actions: Only owners can edit or delete
-  const btnEdit = $("btn-detail-edit-sh");
-  const btnDelete = $("btn-detail-delete-sh");
-
-  if (btnEdit) {
-    if (isOwner) {
-      btnEdit.style.display = "inline-flex";
-      btnEdit.onclick = () => {
-        window.location.hash = `stakeholders/edit/${s.id}`;
-      };
-    } else {
-      btnEdit.style.display = "none";
-    }
+  // Section 5: AI Persona & Synthesis Guidance
+  const descEl = $("sh-sec-5-val-desc");
+  const otherEl = $("sh-sec-5-val-other");
+  if (descEl) {
+    descEl.textContent = s.description || "Focuses on high-level delivery schedules, sprint health, cross-team dependencies, and team velocity weekly.";
   }
-
-  if (btnDelete) {
-    if (isOwner) {
-      btnDelete.style.display = "inline-flex";
-      btnDelete.onclick = () => {
-        confirmDeleteStakeholder(s.id, roleName);
-      };
-    } else {
-      btnDelete.style.display = "none";
-    }
+  if (otherEl) {
+    otherEl.textContent = (s.other_notes && s.other_notes.trim()) ? s.other_notes.trim() : "None";
   }
-
-  if (listView) listView.style.display = "none";
-  if (formView) formView.style.display = "none";
-  detailView.style.display = "block";
-  window.scrollTo(0, 0);
 }
 
 /**
- * Switch subview to Add / Edit Form View
+ * Populate edit form inputs for all sections from stakeholder object
  */
-export function showStakeholderForm(stakeholderId = null) {
+function _populateShSectionEditForms(s) {
+  // Section 1 Edit Form
+  const editRole = $("sh-edit-role");
+  const editRoleType = $("sh-edit-role-type");
+  if (editRole) editRole.value = s.role || s.role_type || "";
+  if (editRoleType) editRoleType.value = s.role_type || "custom";
+
+  // Section 2 Edit Form (People)
+  _sec2PeopleList = s.people ? JSON.parse(JSON.stringify(s.people)) : [];
+  _renderSec2PeopleEditChips();
+
+  // Section 3 Edit Form (Projects)
+  _sec3ProjectsList = s.projects && s.projects.length > 0 ? [...s.projects] : [];
+  _renderSec3ProjectsEditChips();
+
+  // Section 4 Edit Form (Priority Focus Areas)
+  if (s.priority_areas && s.priority_areas.length > 0) {
+    _sec4PriosList = s.priority_areas.map(p => p.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()));
+  } else {
+    _sec4PriosList = ["Velocity & Burndown", "Sprint Health"];
+  }
+  _renderSec4PriosEditChips();
+
+  // Section 5 Edit Form (Guidance & Notes)
+  const editDesc = $("sh-edit-desc");
+  const editOther = $("sh-edit-other");
+  const editOtherCounter = $("sh-edit-other-counter");
+  if (editDesc) editDesc.value = s.description || "";
+  if (editOther) {
+    editOther.value = s.other_notes || "";
+    if (editOtherCounter) {
+      editOtherCounter.textContent = `${editOther.value.length} / 500 characters`;
+    }
+  }
+}
+
+/**
+ * Save an individual stakeholder section to backend and update views.
+ */
+async function _saveShSection(secNumber) {
+  const s = _stakeholdersData.find(item => item.id === _currentEditingId);
+  if (!s) return;
+
+  const saveBtn = document.querySelector(`#sh-sec-${secNumber}-edit .btn-sh-sec-save`);
+  const origHtml = saveBtn ? saveBtn.innerHTML : "";
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = `<svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin-icon"><circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="12"></circle></svg> Saving...`;
+  }
+
+  try {
+    const payload = JSON.parse(JSON.stringify(s));
+
+    if (secNumber === 1) {
+      const roleVal = $("sh-edit-role")?.value.trim();
+      const roleTypeVal = $("sh-edit-role-type")?.value || "custom";
+      if (!roleVal) throw new Error("Please enter a role title.");
+      payload.role = roleVal;
+      payload.role_type = roleTypeVal;
+      payload.name = roleVal;
+    } else if (secNumber === 2) {
+      // Check if pending person typed
+      const pendingName = $("sh-sec-2-new-name")?.value.trim();
+      const pendingEmail = $("sh-sec-2-new-email")?.value.trim() || "";
+      if (pendingName) {
+        _sec2PeopleList.push({ name: pendingName, email: pendingEmail });
+        const nameIn = $("sh-sec-2-new-name");
+        const emailIn = $("sh-sec-2-new-email");
+        if (nameIn) nameIn.value = "";
+        if (emailIn) emailIn.value = "";
+      }
+      payload.people = _sec2PeopleList;
+    } else if (secNumber === 3) {
+      if (_sec3ProjectsList.length === 0) {
+        throw new Error("Please assign at least one delivery project.");
+      }
+      payload.projects = _sec3ProjectsList;
+    } else if (secNumber === 4) {
+      payload.priority_areas = _sec4PriosList;
+    } else if (secNumber === 5) {
+      payload.description = $("sh-edit-desc")?.value.trim() || "";
+      payload.other_notes = $("sh-edit-other")?.value.trim().slice(0, 500) || "";
+    }
+
+    const res = await fetchWithTimeout(`${API_BASE}/stakeholders/${_currentEditingId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      credentials: "include"
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to save changes");
+    }
+
+    const resData = await res.json();
+    const updated = resData.stakeholder || payload;
+
+    // Update in-memory data
+    const idx = _stakeholdersData.findIndex(item => item.id === _currentEditingId);
+    if (idx >= 0) _stakeholdersData[idx] = updated;
+
+    _renderAllShSectionViews(updated);
+    _populateShSectionEditForms(updated);
+    _toggleShSectionEdit(secNumber, false);
+    updateStakeholdersStats();
+  } catch (err) {
+    console.error("Save section error:", err);
+    alert(err.message || "Failed to save changes");
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = origHtml;
+    }
+  }
+}
+
+/**
+ * Cancel editing for an individual stakeholder section and restore cached values.
+ */
+function _cancelShSection(secNumber) {
+  const s = _stakeholdersData.find(item => item.id === _currentEditingId);
+  if (s) {
+    _populateShSectionEditForms(s);
+  }
+  _toggleShSectionEdit(secNumber, false);
+}
+
+/**
+ * Render chips for Section 2 (People) edit container
+ */
+function _renderSec2PeopleEditChips() {
+  const listEl = $("sh-sec-2-people-list");
+  if (!listEl) return;
+
+  if (_sec2PeopleList.length === 0) {
+    listEl.innerHTML = `<div class="sh-form-people-empty">No individual stakeholders added yet. Enter names and emails below to add team members.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = _sec2PeopleList.map((p, idx) => `
+    <div class="sh-form-person-chip">
+      <span class="sh-form-person-name">${escapeHtml(p.name)}</span>
+      ${p.email ? `<span class="sh-form-person-email">&lt;${escapeHtml(p.email)}&gt;</span>` : ''}
+      <button type="button" class="btn-remove-person" data-index="${idx}" title="Remove ${escapeHtml(p.name)}">✕ Remove</button>
+    </div>
+  `).join("");
+
+  listEl.querySelectorAll(".btn-remove-person").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const idx = parseInt(btn.dataset.index, 10);
+      _sec2PeopleList.splice(idx, 1);
+      _renderSec2PeopleEditChips();
+    });
+  });
+}
+
+/**
+ * Render chips for Section 3 (Projects) edit container
+ */
+function _renderSec3ProjectsEditChips() {
+  const listEl = $("sh-sec-3-projects-list");
+  if (!listEl) return;
+
+  if (_sec3ProjectsList.length === 0) {
+    listEl.innerHTML = `<div class="sh-form-projects-empty">No delivery projects assigned. Select a project below and click "+ Add Project".</div>`;
+    return;
+  }
+
+  listEl.innerHTML = _sec3ProjectsList.map((pkey, idx) => {
+    const pInfo = PROJECT_MAP[pkey] || { name: pkey, color: "#4c8dff" };
+    return `
+      <div class="sh-form-proj-chip" style="--proj-accent: ${pInfo.color}">
+        <span class="sh-project-dot"></span>
+        <strong class="sh-form-proj-key">${escapeHtml(pkey)}</strong>
+        <span class="sh-form-proj-name">${escapeHtml(pInfo.name)}</span>
+        <button type="button" class="btn-remove-proj-chip" data-index="${idx}" title="Remove ${escapeHtml(pkey)}">✕</button>
+      </div>
+    `;
+  }).join("");
+
+  listEl.querySelectorAll(".btn-remove-proj-chip").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const idx = parseInt(btn.dataset.index, 10);
+      _sec3ProjectsList.splice(idx, 1);
+      _renderSec3ProjectsEditChips();
+    });
+  });
+}
+
+/**
+ * Render chips for Section 4 (Priorities) edit container
+ */
+function _renderSec4PriosEditChips() {
+  const listEl = $("sh-sec-4-prios-list");
+  if (!listEl) return;
+
+  if (_sec4PriosList.length === 0) {
+    listEl.innerHTML = `<div class="sh-form-prios-empty">No focus areas assigned. Choose a preset or type a custom focus area below.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = _sec4PriosList.map((prio, idx) => `
+    <div class="sh-form-prio-chip">
+      <span class="sh-form-prio-name">${escapeHtml(prio)}</span>
+      <button type="button" class="btn-remove-prio-chip" data-index="${idx}" title="Remove ${escapeHtml(prio)}">✕</button>
+    </div>
+  `).join("");
+
+  listEl.querySelectorAll(".btn-remove-prio-chip").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const idx = parseInt(btn.dataset.index, 10);
+      _sec4PriosList.splice(idx, 1);
+      _renderSec4PriosEditChips();
+    });
+  });
+}
+
+/**
+ * Switch subview to Add / Creation View (for + Add Stakeholder)
+ */
+export function showStakeholderForm() {
   const listView = $("stakeholders-list-view");
   const detailView = $("stakeholder-detail-view");
   const formView = $("stakeholder-form-view");
 
   if (!formView) return;
 
-  _currentEditingId = stakeholderId;
-  const isEditing = !!stakeholderId;
-  
-  let s = null;
-  if (isEditing) {
-    s = _stakeholdersData.find(item => item.id === stakeholderId);
-    if (s) {
-      const owner = s.owner || (s.is_builtin ? "system" : "demo");
-      if (owner !== _currentUser) {
-        alert(`Permission Denied: You can only edit stakeholder roles created by you (Owner: '${owner}').`);
-        window.location.hash = `stakeholders/${stakeholderId}`;
-        return;
-      }
-    }
-  }
+  _currentEditingId = null;
 
-  $("sh-form-view-title").textContent = isEditing ? "Edit Stakeholder Role" : "Add Stakeholder Role";
-  $("btn-sh-form-submit").textContent = isEditing ? "Save Role" : "Create Role";
+  $("sh-form-view-title").textContent = "Add Stakeholder Role";
+  $("btn-sh-form-submit").textContent = "Create Role";
 
-  // Fill form inputs
-  $("sh-form-role").value = s ? (s.role || s.role_type || "") : "";
-  $("sh-form-role-type").value = s ? (s.role_type || "custom") : "custom";
-  
-  // Clean placeholder behavior for description
-  $("sh-form-desc").value = (s && s.description && !s.is_builtin) ? s.description : "";
+  // Reset creation form inputs
+  $("sh-form-role").value = "";
+  $("sh-form-role-type").value = "custom";
+  $("sh-form-desc").value = "";
 
-  // Other notes free text & counter
   const otherInput = $("sh-form-other");
   const otherCounter = $("sh-form-other-counter");
   if (otherInput) {
-    otherInput.value = s ? (s.other_notes || "") : "";
-    if (otherCounter) {
-      otherCounter.textContent = `${otherInput.value.length} / 500 characters`;
-    }
+    otherInput.value = "";
+    if (otherCounter) otherCounter.textContent = "0 / 500 characters";
   }
 
-  // Populate people list for form
-  _formPeopleList = s && s.people ? JSON.parse(JSON.stringify(s.people)) : [];
+  _formPeopleList = [];
   renderFormPeopleChips();
 
-  // Populate projects list for form (Dynamic "Add Projects")
-  _formProjectsList = s && s.projects && s.projects.length > 0 
-    ? [...s.projects] 
-    : (isEditing ? [] : ["HRZ", "CHK"]);
+  _formProjectsList = ["HRZ", "CHK"];
   renderFormProjectsChips();
 
-  // Populate priority focus areas list for form (Dynamic "Add Focus Area")
-  if (s && s.priority_areas && s.priority_areas.length > 0) {
-    _formPriosList = s.priority_areas.map(p => p.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()));
-  } else {
-    _formPriosList = isEditing ? [] : ["Velocity & Burndown", "Sprint Health", "Risks & Blockers"];
-  }
+  _formPriosList = ["Velocity & Burndown", "Sprint Health", "Risks & Blockers"];
   renderFormPriosChips();
 
-  // Clear sub-inputs
   const newNameInput = $("sh-new-person-name");
   const newEmailInput = $("sh-new-person-email");
   if (newNameInput) newNameInput.value = "";
@@ -394,7 +629,7 @@ export function showStakeholderForm(stakeholderId = null) {
 }
 
 /**
- * Render chips for people assigned in the form
+ * Render chips for people in the Add Stakeholder form
  */
 function renderFormPeopleChips() {
   const listEl = $("sh-form-people-list");
@@ -423,7 +658,7 @@ function renderFormPeopleChips() {
 }
 
 /**
- * Render chips for projects assigned in the form (Dynamic "Add Projects")
+ * Render chips for projects in the Add Stakeholder form
  */
 function renderFormProjectsChips() {
   const listEl = $("sh-form-projects-list");
@@ -456,7 +691,7 @@ function renderFormProjectsChips() {
 }
 
 /**
- * Render chips for Priority Focus Areas in the form (Dynamic "Add Focus Area")
+ * Render chips for priorities in the Add Stakeholder form
  */
 function renderFormPriosChips() {
   const listEl = $("sh-form-prios-list");
@@ -484,7 +719,7 @@ function renderFormPriosChips() {
 }
 
 /**
- * Add a project from the dropdown selector
+ * Add a project from the dropdown selector in form
  */
 function handleAddProjectToForm() {
   const select = $("sh-add-project-select");
@@ -498,7 +733,7 @@ function handleAddProjectToForm() {
 }
 
 /**
- * Add a priority focus area from dropdown or custom input
+ * Add a priority focus area from dropdown or custom input in form
  */
 function handleAddPrioToForm() {
   const customInput = $("sh-custom-prio-input");
@@ -554,7 +789,6 @@ export function applyStakeholderFilters() {
   if (!container) return;
 
   const filtered = _stakeholdersData.filter(s => {
-    // Role filter
     let matchesFilter = true;
     const rType = (s.role_type || "custom").toLowerCase();
     if (_activeFilter === "project_manager") {
@@ -567,7 +801,6 @@ export function applyStakeholderFilters() {
       matchesFilter = !s.is_builtin || rType === "custom" || rType === "product_owner";
     }
 
-    // Search query
     let matchesSearch = true;
     if (_searchQuery) {
       const q = _searchQuery.toLowerCase();
@@ -604,7 +837,7 @@ export function applyStakeholderFilters() {
   container.querySelectorAll(".btn-sh-edit").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      window.location.hash = `stakeholders/edit/${btn.dataset.id}`;
+      window.location.hash = `stakeholders/${btn.dataset.id}`;
     });
   });
 
@@ -683,25 +916,19 @@ function renderStakeholderRow(s) {
         <button class="btn-sh-details" data-id="${escapeHtml(s.id)}" title="View stakeholder details">
           Details
         </button>
-        ${isOwner ? `
-          <button class="btn-icon-action btn-sh-edit" data-id="${escapeHtml(s.id)}" title="Edit role">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-          </button>
-          <button class="btn-icon-action btn-icon-delete btn-sh-delete" data-id="${escapeHtml(s.id)}" data-name="${roleName}" title="Delete role">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-          </button>
-        ` : `
-          <span class="sh-readonly-lock" title="Read-only: Created by ${escapeHtml(owner)}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-          </span>
-        `}
+        <button class="btn-icon-action btn-sh-edit" data-id="${escapeHtml(s.id)}" title="Edit stakeholder sections">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        </button>
+        <button class="btn-icon-action btn-icon-delete btn-sh-delete" data-id="${escapeHtml(s.id)}" data-name="${roleName}" title="Delete role">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </button>
       </div>
     </div>
   `;
 }
 
 /**
- * Handle form submission for Add / Edit
+ * Handle form submission for Add Stakeholder (Creation)
  */
 async function handleStakeholderFormSubmit(e) {
   e.preventDefault();
@@ -719,7 +946,6 @@ async function handleStakeholderFormSubmit(e) {
     return;
   }
 
-  // Check if any unsaved person is typed into the sub-inputs
   const pendingName = $("sh-new-person-name")?.value.trim();
   const pendingEmail = $("sh-new-person-email")?.value.trim() || "";
   if (pendingName) {
@@ -741,54 +967,38 @@ async function handleStakeholderFormSubmit(e) {
     people: _formPeopleList,
     projects: _formProjectsList,
     priority_areas: _formPriosList,
-    is_builtin: false
+    is_builtin: false,
+    owner: _currentUser
   };
 
   submitBtn.disabled = true;
-  submitBtn.textContent = "Saving...";
+  submitBtn.textContent = "Creating...";
 
   try {
-    let res;
-    if (_currentEditingId) {
-      // Update existing
-      payload.id = _currentEditingId;
-      const existing = _stakeholdersData.find(item => item.id === _currentEditingId);
-      if (existing) {
-        payload.is_builtin = existing.is_builtin;
-        payload.owner = existing.owner;
-      }
-
-      res = await fetchWithTimeout(`${API_BASE}/stakeholders/${_currentEditingId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        credentials: "include"
-      });
-    } else {
-      // Create new
-      payload.owner = _currentUser;
-      res = await fetchWithTimeout(`${API_BASE}/stakeholders/item`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        credentials: "include"
-      });
-    }
+    const res = await fetchWithTimeout(`${API_BASE}/stakeholders/item`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      credentials: "include"
+    });
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
       throw new Error(errData.detail || `Server returned error ${res.status}`);
     }
 
+    const json = await res.json();
+    const createdItem = json.stakeholder || payload;
+
     await renderStakeholdersPage();
-    window.location.hash = "stakeholders";
+    window.location.hash = `stakeholders/${createdItem.id}`;
   } catch (err) {
-    console.error("Save stakeholder error:", err);
-    errorEl.textContent = err.message || "Failed to save stakeholder role.";
+    console.error("Create stakeholder error:", err);
+    errorEl.textContent = err.message || "Failed to create stakeholder role.";
     errorEl.style.display = "block";
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = _currentEditingId ? "Save Role" : "Create Role";
+    submitBtn.textContent = "Create Role";
   }
 }
 
@@ -852,6 +1062,31 @@ export function initStakeholdersEvents() {
     });
   }
 
+  // "Reset Defaults" button in header
+  const btnReset = $("btn-reset-stakeholders");
+  if (btnReset) {
+    btnReset.addEventListener("click", async () => {
+      if (!confirm("Are you sure you want to reset all stakeholders to default template personas? Custom stakeholder modifications will be reverted.")) {
+        return;
+      }
+      try {
+        const res = await fetchWithTimeout(`${API_BASE}/stakeholders/reset`, {
+          method: "POST",
+          credentials: "include"
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || "Failed to reset stakeholders");
+        }
+        await renderStakeholdersPage();
+        showStakeholdersList();
+      } catch (err) {
+        console.error("Reset stakeholders error:", err);
+        alert("Error resetting stakeholders: " + err.message);
+      }
+    });
+  }
+
   // Back button in Detail View
   const btnBackDetail = $("btn-back-sh-detail");
   if (btnBackDetail) {
@@ -860,7 +1095,103 @@ export function initStakeholdersEvents() {
     });
   }
 
-  // Back button in Form View
+  // Section Edit Buttons (Section 1..5)
+  document.querySelectorAll(".btn-sh-section-edit").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const secNum = parseInt(btn.dataset.section, 10);
+      if (secNum) _toggleShSectionEdit(secNum, true);
+    });
+  });
+
+  // Section Cancel Buttons (Section 1..5)
+  document.querySelectorAll(".btn-sh-sec-cancel").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const secNum = parseInt(btn.dataset.section, 10);
+      if (secNum) _cancelShSection(secNum);
+    });
+  });
+
+  // Section Save Buttons (Section 1..5)
+  document.querySelectorAll(".btn-sh-sec-save").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const secNum = parseInt(btn.dataset.section, 10);
+      if (secNum) _saveShSection(secNum);
+    });
+  });
+
+  // Section 2: Add Person in edit mode
+  const btnSec2AddPerson = $("btn-sh-sec-2-add-person");
+  if (btnSec2AddPerson) {
+    btnSec2AddPerson.addEventListener("click", () => {
+      const nameInput = $("sh-sec-2-new-name");
+      const emailInput = $("sh-sec-2-new-email");
+      const name = nameInput?.value.trim();
+      const email = emailInput?.value.trim() || "";
+      if (!name) {
+        if (nameInput) nameInput.focus();
+        return;
+      }
+      _sec2PeopleList.push({ name, email });
+      _renderSec2PeopleEditChips();
+      if (nameInput) nameInput.value = "";
+      if (emailInput) emailInput.value = "";
+      if (nameInput) nameInput.focus();
+    });
+  }
+
+  // Section 3: Add Project in edit mode
+  const btnSec3AddProject = $("btn-sh-sec-3-add-project");
+  if (btnSec3AddProject) {
+    btnSec3AddProject.addEventListener("click", () => {
+      const select = $("sh-sec-3-add-project-select");
+      if (!select) return;
+      const pkey = select.value;
+      if (pkey && !_sec3ProjectsList.includes(pkey)) {
+        _sec3ProjectsList.push(pkey);
+        _renderSec3ProjectsEditChips();
+      }
+    });
+  }
+
+  // Section 4: Add Priority in edit mode
+  const btnSec4AddPrio = $("btn-sh-sec-4-add-prio");
+  if (btnSec4AddPrio) {
+    btnSec4AddPrio.addEventListener("click", () => {
+      const customInput = $("sh-sec-4-custom-prio-input");
+      const select = $("sh-sec-4-add-prio-select");
+      let prioVal = customInput?.value.trim();
+      if (!prioVal && select && select.value) {
+        prioVal = select.value;
+      }
+      if (!prioVal) {
+        if (customInput) customInput.focus();
+        return;
+      }
+      if (!_sec4PriosList.includes(prioVal)) {
+        _sec4PriosList.push(prioVal);
+        _renderSec4PriosEditChips();
+      }
+      if (customInput) customInput.value = "";
+      if (select) select.value = "";
+    });
+  }
+
+  // Section 5: Real-time counter for Other Notes
+  const editOtherInput = $("sh-edit-other");
+  const editOtherCounter = $("sh-edit-other-counter");
+  if (editOtherInput && editOtherCounter) {
+    editOtherInput.addEventListener("input", () => {
+      const len = editOtherInput.value.length;
+      editOtherCounter.textContent = `${len} / 500 characters`;
+      if (len >= 480) {
+        editOtherCounter.style.color = "var(--amber)";
+      } else {
+        editOtherCounter.style.color = "var(--text-dim)";
+      }
+    });
+  }
+
+  // Creation View: Back button
   const btnBackForm = $("btn-back-sh-form");
   if (btnBackForm) {
     btnBackForm.addEventListener("click", () => {
@@ -868,7 +1199,7 @@ export function initStakeholdersEvents() {
     });
   }
 
-  // Cancel button in Form View
+  // Creation View: Cancel button
   const btnCancelForm = $("btn-cancel-sh-form");
   if (btnCancelForm) {
     btnCancelForm.addEventListener("click", () => {
@@ -876,42 +1207,31 @@ export function initStakeholdersEvents() {
     });
   }
 
-  // Form submission
+  // Creation View: Form submission
   const form = $("form-stakeholder");
   if (form) {
     form.addEventListener("submit", handleStakeholderFormSubmit);
   }
 
-  // Add person button in form
+  // Creation View: Add person button
   const btnAddPerson = $("btn-add-person-item");
   if (btnAddPerson) {
     btnAddPerson.addEventListener("click", handleAddPersonToForm);
   }
 
-  // Add project button in form (Dynamic "Add Projects")
+  // Creation View: Add project button
   const btnAddProject = $("btn-add-project-item");
   if (btnAddProject) {
     btnAddProject.addEventListener("click", handleAddProjectToForm);
   }
 
-  // Add Priority Focus Area button in form (Dynamic "Add Focus Area")
+  // Creation View: Add Priority Focus Area button
   const btnAddPrio = $("btn-add-prio-item");
   if (btnAddPrio) {
     btnAddPrio.addEventListener("click", handleAddPrioToForm);
   }
 
-  // Add focus area on Enter key in custom input
-  const customPrioInput = $("sh-custom-prio-input");
-  if (customPrioInput) {
-    customPrioInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        handleAddPrioToForm();
-      }
-    });
-  }
-
-  // Real-time character counter for "Other" textarea
+  // Creation View: Counter for Other Notes
   const otherInput = $("sh-form-other");
   const otherCounter = $("sh-form-other-counter");
   if (otherInput && otherCounter) {
@@ -925,18 +1245,4 @@ export function initStakeholdersEvents() {
       }
     });
   }
-
-  // Add person on Enter key in new person inputs
-  const personNameInput = $("sh-new-person-name");
-  const personEmailInput = $("sh-new-person-email");
-  [personNameInput, personEmailInput].forEach(input => {
-    if (input) {
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          handleAddPersonToForm();
-        }
-      });
-    }
-  });
 }

@@ -8,7 +8,60 @@ import { $, escapeHtml } from "../utils.js";
 import { API_BASE } from "../state.js";
 import { fetchWithTimeout } from "../api.js";
 
-let _projectsData = [];
+let _projectsData = [
+  {
+    key: "CHK",
+    name: "Checkout Flow Replatform",
+    description: "Redesigning the global checkout flow with one-click purchase, localized currencies, and multi-gateway failover resilience.",
+    lead: "Alex Mercer",
+    target_release: "Q4 2026 (v2.4)",
+    status: "delayed",
+    progress_pct: 75,
+    progress_sp: "340 / 500 SP",
+    blockers_count: 4,
+    tags: ["Payments", "Checkout", "Frontend", "API"],
+    archived: false
+  },
+  {
+    key: "CORE",
+    name: "Platform Core & Analytics Foundation",
+    description: "Microservices migration, database horizontal partitioning, real-time Kafka event streaming, and unified program telemetry.",
+    lead: "Marcus Vance",
+    target_release: "Q3 2026 (v3.0)",
+    status: "on-track",
+    progress_pct: 82,
+    progress_sp: "490 / 600 SP",
+    blockers_count: 0,
+    tags: ["Infrastructure", "Analytics", "PostgreSQL", "Kafka"],
+    archived: false
+  },
+  {
+    key: "MOB",
+    name: "Mobile Parity & Security Guild",
+    description: "Achieving full iOS & Android feature parity while hardening SOC2, PCI-DSS compliance, and zero-trust SSO authentication.",
+    lead: "Dr. Aris Thorne",
+    target_release: "Q4 2026 (v1.8)",
+    status: "on-track",
+    progress_pct: 54,
+    progress_sp: "215 / 400 SP",
+    blockers_count: 1,
+    tags: ["Mobile", "iOS", "Android", "Security", "Auth0"],
+    archived: false
+  },
+  {
+    key: "HRZ",
+    name: "Project Horizon",
+    description: "The overarching program coordinating all enterprise software delivery initiatives, dependency management, and release trains.",
+    lead: "Elena Rostova",
+    target_release: "FY27 Program Go-Live (Delayed)",
+    status: "at-risk",
+    progress_pct: 70,
+    progress_sp: "1045 / 1500 SP",
+    blockers_count: 3,
+    tags: ["Program", "Portfolio", "Delivery", "Horizon"],
+    archived: false
+  }
+];
 let _activeFilter = "all";
 let _searchQuery = "";
 let _currentProjectKey = null;
@@ -18,6 +71,7 @@ let _allStakeholders = [];
 let _selectedStakeholderToAssignId = null;
 let _editingProjectKey = null; // null for new project, key string for editing
 let _deletingProjectKey = null;
+let _allProjectStakeholders = {};
 
 const STATUS_CONFIG = {
   "on-track": { label: "On Track", tagClass: "p-status-ok", fillClass: "p-fill-ok" },
@@ -248,7 +302,7 @@ function renderProjectsGrid(filtered) {
               ${isArchived ? '📤' : '📦'}
             </button>
             <button type="button" class="btn-p-icon-action btn-p-del btn-p-delete-quick" data-key="${key}" data-name="${name}" title="Delete Project">
-              🗑️
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </button>
             <button type="button" class="btn-p-action btn-p-view-details" data-key="${key}" title="View Full Charter & RACI Matrix">
               Charter &amp; RACI →
@@ -417,6 +471,116 @@ export async function openProjectDetailByKey(projectKey) {
 
   // Load project stakeholders & RACI matrix
   loadProjectStakeholders(_currentProjectKey);
+
+  // Load project-specific reports & briefings
+  loadProjectReports(_currentProjectKey);
+}
+
+/**
+ * Load and render project-specific reports in project detail view
+ */
+export async function loadProjectReports(projectKey) {
+  const pkey = (projectKey || _currentProjectKey || "").toUpperCase().trim();
+  const container = $("pd-reports-view-container");
+  const btnAddReport = $("btn-add-proj-report");
+  if (!container) return;
+
+  if (btnAddReport) {
+    btnAddReport.onclick = () => {
+      window.location.hash = "reports/new";
+    };
+  }
+
+  container.innerHTML = `<div class="pd-loading muted" style="grid-column: 1 / -1; padding: 24px; text-align: center;">Loading ${escapeHtml(pkey)} project reports...</div>`;
+
+  try {
+    const res = await fetchWithTimeout(`${API_BASE}/reports?project_key=${encodeURIComponent(pkey)}`, { credentials: "include" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const templates = data.templates || [];
+
+    if (templates.length === 0) {
+      container.innerHTML = `
+        <div class="pd-sh-empty" style="grid-column: 1 / -1; padding: 28px; text-align: center;">
+          <span style="font-size: 26px; display: block; margin-bottom: 8px;">📋</span>
+          <p style="margin: 0 0 4px 0; color: var(--text); font-weight: 600;">No reports configured specifically for ${escapeHtml(pkey)} yet.</p>
+          <p class="muted" style="margin: 0 0 14px 0; font-size: 13px;">Create a report template scoped to this project to track delivery KPIs, sprint velocity, and risks.</p>
+          <a href="#reports/new" class="btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+            + Create Report for ${escapeHtml(pkey)}
+          </a>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = templates.map(t => {
+      const id = escapeHtml(t.id || "");
+      const name = escapeHtml(t.name || "Untitled Report");
+      const desc = escapeHtml(t.description || "Project delivery and status digest.");
+      const blocksCount = (t.blocks || []).length;
+      const scope = (t.project_scope || "ALL").toUpperCase();
+      const isDirectMatch = scope === pkey;
+
+      const scopeBadge = isDirectMatch
+        ? `<span class="report-scope-badge scope-proj">📦 Scoped: ${escapeHtml(pkey)}</span>`
+        : `<span class="report-scope-badge scope-all">🌐 Portfolio Template</span>`;
+
+      const owner = escapeHtml(t.owner || "Alex Mercer");
+      const cadence = escapeHtml(t.cadence || "weekly");
+      const lastGen = t.last_generated_at ? new Date(t.last_generated_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Never run";
+
+      return `
+        <div class="pd-proj-report-card" data-id="${id}">
+          <div class="pd-proj-report-head">
+            <div>
+              <strong class="pd-proj-report-title">${name}</strong>
+              <div style="margin-top: 4px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                ${scopeBadge}
+                <span class="report-badge-blocks">🔄 ${cadence}</span>
+              </div>
+            </div>
+            <span class="report-badge-blocks">${blocksCount} Sections</span>
+          </div>
+          <p class="pd-proj-report-desc">${desc}</p>
+          <div style="font-size: 11.5px; color: var(--text-dim); margin-bottom: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <span>👤 ${owner}</span>
+            <span>🕒 Last run: ${escapeHtml(lastGen)}</span>
+          </div>
+          <div class="pd-proj-report-actions">
+            <button type="button" class="btn-secondary btn-sm btn-p-rep-view" data-id="${id}">
+              ✏️ Configure / Details
+            </button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    container.querySelectorAll(".btn-p-rep-view").forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        if (id) window.location.hash = `reports/${id}`;
+      };
+    });
+
+    container.querySelectorAll(".btn-p-rep-gen").forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        if (id) window.location.hash = `reports/${id}`;
+      };
+    });
+
+    container.querySelectorAll(".pd-proj-report-card").forEach(card => {
+      card.onclick = () => {
+        const id = card.dataset.id;
+        if (id) window.location.hash = `reports/${id}`;
+      };
+    });
+  } catch (err) {
+    console.error("Error loading project reports:", err);
+    container.innerHTML = `<div class="error-text" style="grid-column: 1 / -1; padding: 20px; text-align: center;">Failed to load reports for ${escapeHtml(pkey)}.</div>`;
+  }
 }
 
 /**

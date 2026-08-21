@@ -765,6 +765,10 @@ const FALLBACK_TEMPLATES = [
     id: "report-pm-weekly",
     name: "Weekly TPM Sprint & Delivery Health",
     description: "Core sprint tracking, velocity, burndown, and cross-team dependencies for weekly scrum of scrums.",
+    project_scope: "CHK",
+    owner: "Alex Mercer",
+    cadence: "weekly",
+    last_generated_at: "2026-08-21T09:15:00Z",
     stakeholder_ids: ["pm-default"],
     stakeholder_notes: "Focus on sprint commitment health and delivery risks.",
     blocks: [
@@ -779,6 +783,10 @@ const FALLBACK_TEMPLATES = [
     id: "report-exec-brief",
     name: "Executive Program Status Briefing",
     description: "High-level summary of program health, milestone delivery forecasts, and top cross-team risks for leadership.",
+    project_scope: "HRZ",
+    owner: "David Kim",
+    cadence: "monthly",
+    last_generated_at: "2026-08-20T14:30:00Z",
     stakeholder_ids: ["exec-sponsor"],
     stakeholder_notes: "Executive summary focusing on high-level milestones.",
     blocks: [
@@ -793,6 +801,10 @@ const FALLBACK_TEMPLATES = [
     id: "report-dependency-blocker",
     name: "Cross-Team Dependency & Blocker Matrix",
     description: "Deep dive into squad dependencies, critical path bottlenecks, and inter-team blockers.",
+    project_scope: "HRZ",
+    owner: "Rachel Green",
+    cadence: "bi-weekly",
+    last_generated_at: "2026-08-18T11:00:00Z",
     stakeholder_ids: ["eng-lead-core"],
     stakeholder_notes: "Focus on upstream blockers and squad handoff risks.",
     blocks: [
@@ -806,6 +818,10 @@ const FALLBACK_TEMPLATES = [
     id: "report-squad-quality",
     name: "Squad Quality & Defect Deep-Dive",
     description: "Defect rates, escape ratios, and tech debt across all delivery squads.",
+    project_scope: "CORE",
+    owner: "Marcus Vance",
+    cadence: "weekly",
+    last_generated_at: "2026-08-19T16:45:00Z",
     stakeholder_ids: ["qa-lead"],
     stakeholder_notes: "Focus on defect density and escaped bug resolution.",
     blocks: [
@@ -819,6 +835,10 @@ const FALLBACK_TEMPLATES = [
     id: "report-milestone-forecast",
     name: "Milestone Delivery & Monte Carlo Forecast",
     description: "Probabilistic forecasts (P50/P80) and target dates for major release milestones.",
+    project_scope: "MOB",
+    owner: "Elena Rostova",
+    cadence: "manual",
+    last_generated_at: "2026-08-15T10:20:00Z",
     stakeholder_ids: ["exec-sponsor", "po-checkout"],
     stakeholder_notes: "Focus on milestone release dates and confidence intervals.",
     blocks: [
@@ -848,7 +868,39 @@ let _selectedBlockTypes = ["health_kpis", "burndown", "dependency_matrix", "acti
 let _selectedProjectScope = "ALL";
 let _selectedExportFormat = "html";
 let _reportSearchQuery = "";
+let _reportProjectFilter = "all";
+let _reportSortOrder = "last_generated_desc";
+let _reportOwnerFilter = "all";
 let _paEventsBound = false;
+let _isReportDetailEditing = false;
+
+const CADENCE_MAP = {
+  "manual": { label: "Manual (On-Demand)", icon: "⚡", tagClass: "cadence-manual" },
+  "daily": { label: "Daily Standup", icon: "📅", tagClass: "cadence-daily" },
+  "weekly": { label: "Weekly", icon: "🔄", tagClass: "cadence-weekly" },
+  "bi-weekly": { label: "Bi-Weekly", icon: "🔄", tagClass: "cadence-biweekly" },
+  "monthly": { label: "Monthly", icon: "🗓️", tagClass: "cadence-monthly" }
+};
+
+function formatLastGenerated(isoString) {
+  if (!isoString) return "Never run";
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return isoString;
+    const now = new Date();
+    const diffMs = now - d;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffHours < 1) return "Just now";
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  } catch {
+    return isoString;
+  }
+}
 
 /**
  * Render the main Reports page (List View).
@@ -931,10 +983,18 @@ function _updateReportsStats() {
   }
 }
 
+const KNOWN_PROJECTS = {
+  "CHK": { name: "Checkout Flow Replatform", icon: "🛒" },
+  "CORE": { name: "Platform Core & Analytics Foundation", icon: "⚙️" },
+  "MOB": { name: "Mobile Parity & Security Guild", icon: "📱" },
+  "HRZ": { name: "Project Horizon", icon: "🚀" },
+  "ALL": { name: "Portfolio-wide / Cross-Project", icon: "🌐" }
+};
+
 let _tempSelectedBlockTypes = [];
 
 /**
- * Render the list of report templates in #reports-list-body (3-Column List/Table Format).
+ * Render the list of report templates in #reports-list-body (Flat Table Format with Sorting & Owner Filter).
  */
 function _renderReportsGrid() {
   const grid = document.getElementById("reports-list-body") || document.getElementById("reports-grid");
@@ -943,20 +1003,95 @@ function _renderReportsGrid() {
   const templates = _cachedReports?.templates || FALLBACK_TEMPLATES;
   const q = _reportSearchQuery.toLowerCase().trim();
 
-  const filtered = templates.filter(t => {
-    if (!q) return true;
-    const name = (t.name || "").toLowerCase();
-    const desc = (t.description || "").toLowerCase();
-    const notes = (t.stakeholder_notes || "").toLowerCase();
-    return name.includes(q) || desc.includes(q) || notes.includes(q);
+  const shList = (_cachedStakeholders?.stakeholders && _cachedStakeholders.stakeholders.length > 0)
+    ? _cachedStakeholders.stakeholders
+    : FALLBACK_STAKEHOLDERS;
+
+  // 1. Filtering
+  let filtered = templates.filter(t => {
+    // A. Search Query Filter (Matches Name, Description, Notes, Project Key & Name, Stakeholder Names & Personas, Owner)
+    if (q) {
+      const name = (t.name || "").toLowerCase();
+      const desc = (t.description || "").toLowerCase();
+      const notes = (t.stakeholder_notes || "").toLowerCase();
+      const scope = (t.project_scope || "ALL").toLowerCase();
+      const owner = (t.owner || "").toLowerCase();
+      const cadence = (t.cadence || "").toLowerCase();
+      const projInfo = KNOWN_PROJECTS[(t.project_scope || "ALL").toUpperCase()];
+      const projName = (projInfo?.name || "").toLowerCase();
+
+      // Search across stakeholder IDs, names, roles, and role types
+      const shIds = t.stakeholder_ids || [];
+      const shMatches = shIds.some(sid => {
+        const found = shList.find(s => s.id === sid);
+        if (!found) return sid.toLowerCase().includes(q);
+        const sName = (found.name || "").toLowerCase();
+        const sRole = (found.role || "").toLowerCase();
+        const sRoleType = (found.role_type || "").toLowerCase();
+        const sId = (found.id || "").toLowerCase();
+        return sName.includes(q) || sRole.includes(q) || sRoleType.includes(q) || sId.includes(q);
+      });
+
+      if (!name.includes(q) && !desc.includes(q) && !notes.includes(q) && !scope.includes(q) && !projName.includes(q) && !owner.includes(q) && !cadence.includes(q) && !shMatches) {
+        return false;
+      }
+    }
+
+    // B. Project Scope Filter Pill
+    if (_reportProjectFilter === "ALL") {
+      if ((t.project_scope || "ALL").toUpperCase() !== "ALL") return false;
+    } else if (_reportProjectFilter !== "all") {
+      const target = _reportProjectFilter.toUpperCase();
+      const scope = (t.project_scope || "ALL").toUpperCase();
+      if (scope !== target && scope !== "ALL") return false;
+    }
+
+    // C. Owner Filter
+    if (_reportOwnerFilter !== "all") {
+      const owner = (t.owner || "").toLowerCase().trim();
+      const targetOwner = _reportOwnerFilter.toLowerCase().trim();
+      if (!owner.includes(targetOwner) && !targetOwner.includes(owner)) return false;
+    }
+
+    return true;
+  });
+
+  // 2. Sorting
+  filtered.sort((a, b) => {
+    if (_reportSortOrder === "project") {
+      const pA = (a.project_scope || "ALL").toUpperCase();
+      const pB = (b.project_scope || "ALL").toUpperCase();
+      if (pA !== pB) return pA.localeCompare(pB);
+      return (a.name || "").localeCompare(b.name || "");
+    }
+    if (_reportSortOrder === "last_generated_desc") {
+      const tA = a.last_generated_at ? new Date(a.last_generated_at).getTime() : 0;
+      const tB = b.last_generated_at ? new Date(b.last_generated_at).getTime() : 0;
+      return tB - tA;
+    }
+    if (_reportSortOrder === "last_generated_asc") {
+      const tA = a.last_generated_at ? new Date(a.last_generated_at).getTime() : 0;
+      const tB = b.last_generated_at ? new Date(b.last_generated_at).getTime() : 0;
+      return tA - tB;
+    }
+    if (_reportSortOrder === "name_asc") {
+      return (a.name || "").localeCompare(b.name || "");
+    }
+    if (_reportSortOrder === "cadence") {
+      const cRank = { "daily": 1, "weekly": 2, "bi-weekly": 3, "monthly": 4, "manual": 5 };
+      const rA = cRank[(a.cadence || "weekly").toLowerCase()] || 99;
+      const rB = cRank[(b.cadence || "weekly").toLowerCase()] || 99;
+      return rA - rB;
+    }
+    return 0;
   });
 
   if (filtered.length === 0) {
     grid.innerHTML = `
       <div class="p-empty-state" style="margin: 20px;">
         <div class="p-empty-state-icon">📋</div>
-        <h4 class="p-empty-state-title">No report templates match "${escapeHtml(_reportSearchQuery)}"</h4>
-        <p class="p-empty-state-sub">Try changing your search terms or create a new custom report template.</p>
+        <h4 class="p-empty-state-title">No report templates match your filters</h4>
+        <p class="p-empty-state-sub">Try changing your search terms, project filter, or owner selection.</p>
         <button type="button" class="btn-primary" id="btn-empty-new-report">
           + Create New Report
         </button>
@@ -966,64 +1101,71 @@ function _renderReportsGrid() {
     return;
   }
 
-  const shList = (_cachedStakeholders?.stakeholders && _cachedStakeholders.stakeholders.length > 0)
-    ? _cachedStakeholders.stakeholders
-    : FALLBACK_STAKEHOLDERS;
-
+  // Render Flat Rows
   grid.innerHTML = filtered.map(t => {
     const id = escapeHtml(t.id || "");
     const name = escapeHtml(t.name || "Untitled Report");
     const desc = escapeHtml(t.description || "No description provided.");
     const isDefault = Boolean(t.is_default);
     const shIds = t.stakeholder_ids || [];
+    const scope = (t.project_scope || "ALL").toUpperCase();
+    const owner = escapeHtml(t.owner || "Alex Mercer");
+    const cadenceKey = (t.cadence || "weekly").toLowerCase();
+    const cadenceCfg = CADENCE_MAP[cadenceKey] || { label: t.cadence || "Weekly", icon: "🔄", tagClass: "cadence-weekly" };
+    const lastGenFormatted = formatLastGenerated(t.last_generated_at);
 
     const badgeHtml = isDefault
       ? `<span class="report-badge-default">⭐ Default</span>`
       : `<span class="report-badge-custom">📋 Template</span>`;
 
+    const scopeHtml = scope === "ALL"
+      ? `<span class="report-scope-badge scope-all">🌐 All Projects (Portfolio)</span>`
+      : `<span class="report-scope-badge scope-proj">📦 Project: ${escapeHtml(scope)}</span>`;
+
     const shNames = shIds.map(sid => {
       const found = shList.find(s => s.id === sid);
-      return found ? found.name : sid;
+      return found ? (found.name ? `${found.name} (${found.role || found.role_type || sid})` : found.role || sid) : sid;
     }).join(", ") || "All Stakeholders";
 
     return `
       <div class="report-list-row" data-id="${id}">
-        <!-- Column 1: Info -->
+        <!-- Column 1: Info & Cadence -->
         <div class="rep-col-info">
           <div class="rep-title-line">
             <strong class="report-row-title">${name}</strong>
             ${badgeHtml}
           </div>
           <p class="report-row-desc">${desc}</p>
+          <div class="rep-meta-strip">
+            <span class="rep-cadence-tag ${cadenceCfg.tagClass}" title="Report generation cadence">
+              <span>${cadenceCfg.icon}</span> ${escapeHtml(cadenceCfg.label)}
+            </span>
+            <span class="rep-last-gen-tag" title="Last generated timestamp">
+              🕒 Last run: <strong>${escapeHtml(lastGenFormatted)}</strong>
+            </span>
+            <span class="rep-owner-tag" title="Report Template Owner">
+              👤 ${owner}
+            </span>
+          </div>
         </div>
 
         <!-- Column 2: Scope & Stakeholders -->
         <div class="rep-col-scope">
-          <div class="rep-meta-tag" title="Target Portfolio Scope">
-            <span class="rep-meta-icon">🌐</span>
-            <span>All Projects</span>
+          <div class="rep-meta-tag" title="Target Scope: ${escapeHtml(scope)}">
+            ${scopeHtml}
           </div>
-          <div class="rep-meta-tag" title="Audience: ${escapeHtml(shNames)}" style="margin-top: 3px;">
-            <span class="rep-meta-icon">👤</span>
+          <div class="rep-meta-tag" title="Audience: ${escapeHtml(shNames)}" style="margin-top: 5px;">
+            <span class="rep-meta-icon">👥</span>
             <span>${escapeHtml(shNames)}</span>
           </div>
         </div>
 
-        <!-- Column 3: Actions -->
+        <!-- Column 3: Actions (Details Button ONLY) -->
         <div class="rep-col-actions">
-          <button type="button" class="btn-primary btn-generate-card" data-id="${id}" title="Generate report immediately">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-            Generate
-          </button>
           <button type="button" class="btn-secondary btn-details-card" data-id="${id}" title="Configure sections and parameters">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
             Details
           </button>
-          ${!isDefault ? `
-            <button type="button" class="btn-p-icon-action btn-p-del btn-delete-card" data-id="${id}" title="Delete template">
-              🗑️
-            </button>
-          ` : ''}
         </div>
       </div>
     `;
@@ -1032,26 +1174,11 @@ function _renderReportsGrid() {
   // Bind Row Action buttons
   grid.querySelectorAll(".report-list-row").forEach(row => {
     const id = row.dataset.id;
-    const template = templates.find(t => t.id === id);
-
-    // Generate Button
-    row.querySelector(".btn-generate-card")?.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (template) executeReportGeneration(template);
-    });
 
     // Details Button
     row.querySelector(".btn-details-card")?.addEventListener("click", (e) => {
       e.stopPropagation();
       window.location.hash = `reports/${id}`;
-    });
-
-    // Delete Button
-    row.querySelector(".btn-delete-card")?.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (confirm(`Delete report template "${template?.name}"?`)) {
-        _deleteReportTemplate(id);
-      }
     });
 
     // Clicking anywhere on row opens details
@@ -1063,9 +1190,9 @@ function _renderReportsGrid() {
 }
 
 /**
- * Open Report Detail & Edit View for a given report template ID (or null for new).
+ * Open Report Detail View for a given report template ID (or null for new).
  */
-export function openReportDetail(templateId) {
+export function openReportDetail(templateId, defaultProjectScope = null) {
   const listView = document.getElementById("reports-list-view");
   const detailView = document.getElementById("report-detail-view");
   if (!detailView) return;
@@ -1077,21 +1204,33 @@ export function openReportDetail(templateId) {
   _currentEditingTemplateId = templateId;
   const templates = _cachedReports?.templates || FALLBACK_TEMPLATES;
   const template = templates.find(t => t.id === templateId);
+  const isDefault = template ? Boolean(template.is_default) : false;
 
-  const titleEl = document.getElementById("pa-detail-view-title");
   const nameInput = document.getElementById("pa-detail-name");
   const descInput = document.getElementById("pa-detail-desc");
   const defaultCheck = document.getElementById("pa-detail-is-default");
   const notesText = document.getElementById("pa-stakeholder-notes");
-  const btnDelete = document.getElementById("pa-btn-detail-delete");
+  const ownerSelect = document.getElementById("pa-detail-owner");
+  const cadenceSelect = document.getElementById("pa-detail-cadence");
+  const deleteBtn = document.getElementById("pa-btn-detail-delete");
+  const titleEl = document.getElementById("pa-detail-view-title");
+  const subTitle = document.getElementById("pa-detail-view-subtitle");
+  const newActions = document.getElementById("pa-new-report-actions");
+  const bottomGen = document.getElementById("pa-bottom-generate-row");
 
   if (template) {
-    if (titleEl) titleEl.textContent = `Configure: ${template.name}`;
+    // When viewing an existing report: Read-Only Section Cards by default
+    _isReportDetailEditing = false;
+
+    if (titleEl) titleEl.textContent = `Report Details: ${template.name}`;
+    if (subTitle) subTitle.textContent = "View or edit report parameters per section below.";
+
     if (nameInput) nameInput.value = template.name || "";
     if (descInput) descInput.value = template.description || "";
     if (defaultCheck) defaultCheck.checked = Boolean(template.is_default);
     if (notesText) notesText.value = template.stakeholder_notes || "";
-    if (btnDelete) btnDelete.style.display = template.is_default ? "none" : "inline-flex";
+    if (ownerSelect) ownerSelect.value = template.owner || "Alex Mercer";
+    if (cadenceSelect) cadenceSelect.value = template.cadence || "weekly";
 
     _selectedStakeholders = [...(template.stakeholder_ids || ["pm-default"])];
     _selectedBlockTypes = (template.blocks || [])
@@ -1100,90 +1239,326 @@ export function openReportDetail(templateId) {
     if (_selectedBlockTypes.length === 0) {
       _selectedBlockTypes = ["health_kpis", "burndown", "dependency_matrix", "action_plan"];
     }
+    _selectedProjectScope = template.project_scope || "ALL";
+
+    // Delete button: visible only for custom non-default templates
+    if (deleteBtn) deleteBtn.style.display = (!isDefault) ? "inline-flex" : "none";
+
+    // Hide creation actions, show bottom generate
+    if (newActions) newActions.style.display = "none";
+    if (bottomGen) bottomGen.style.display = "flex";
+
+    // Show view containers, hide edit containers for all 4 sections
+    [1, 2, 3, 4].forEach(sec => _toggleSectionEdit(sec, false));
+    _renderAllSectionViews(template);
   } else {
+    // When creating a new report template: All Sections in Edit Mode
     _currentEditingTemplateId = null;
+    _isReportDetailEditing = true;
+
     if (titleEl) titleEl.textContent = "Create New Report Template";
+    if (subTitle) subTitle.textContent = "Configure report archetype, audience, visuals, and synthesis directives.";
+
     if (nameInput) nameInput.value = "Custom Program Report";
     if (descInput) descInput.value = "Custom program delivery digest";
     if (defaultCheck) defaultCheck.checked = false;
     if (notesText) notesText.value = "";
-    if (btnDelete) btnDelete.style.display = "none";
+    if (ownerSelect) ownerSelect.value = "Alex Mercer";
+    if (cadenceSelect) cadenceSelect.value = "weekly";
 
     _selectedStakeholders = ["pm-default"];
     _selectedBlockTypes = ["exec_summary", "health_kpis", "burndown", "action_plan"];
+    _selectedProjectScope = defaultProjectScope || "ALL";
+
+    if (deleteBtn) deleteBtn.style.display = "none";
+    if (newActions) newActions.style.display = "flex";
+    if (bottomGen) bottomGen.style.display = "none";
+
+    // Open all 4 sections for editing
+    [1, 2, 3, 4].forEach(sec => _toggleSectionEdit(sec, true));
   }
 
   _renderProjectSelect(_cachedProjects);
-  _renderStakeholderMultiSelect();
-  _renderSelectedVisualsChips();
+  const projSelect = document.getElementById("pa-project-select");
+  if (projSelect) {
+    projSelect.value = _selectedProjectScope;
+  }
   _initFormatPills();
   _bindPaSettingsEvents();
   _updateReportsStats();
 }
 
 /**
- * Render selected visual block badges in Step 3 summary area.
+ * Render read-only view presentations for all 4 report configuration sections.
  */
-function _renderSelectedVisualsChips() {
-  const container = document.getElementById("pa-selected-visuals-chips");
+function _renderAllSectionViews(template) {
+  _renderSection1View(template);
+  _renderSection2View(template);
+  _renderSection3View(template);
+  _renderSection4View(template);
+}
+
+function _renderSection1View(template) {
+  const nameVal = document.getElementById("sec-1-val-name");
+  const scopeVal = document.getElementById("sec-1-val-scope");
+  const ownerVal = document.getElementById("sec-1-val-owner");
+  const cadenceVal = document.getElementById("sec-1-val-cadence");
+  const descVal = document.getElementById("sec-1-val-desc");
+  const defaultBadge = document.getElementById("sec-1-val-default-badge");
+
+  const name = template?.name || document.getElementById("pa-detail-name")?.value || "Untitled Report";
+  const scope = (template?.project_scope || _selectedProjectScope || "ALL").toUpperCase();
+  const owner = template?.owner || document.getElementById("pa-detail-owner")?.value || "Alex Mercer";
+  const cadenceKey = (template?.cadence || document.getElementById("pa-detail-cadence")?.value || "weekly").toLowerCase();
+  const desc = template?.description || document.getElementById("pa-detail-desc")?.value || "No description provided.";
+  const isDefault = template ? Boolean(template.is_default) : (document.getElementById("pa-detail-is-default")?.checked || false);
+
+  const cadenceCfg = CADENCE_MAP[cadenceKey] || { label: "Weekly", icon: "🔄", tagClass: "cadence-weekly" };
+  const scopeText = scope === "ALL"
+    ? `<span class="report-scope-badge scope-all">🌐 All Projects (Entire Portfolio)</span>`
+    : `<span class="report-scope-badge scope-proj">📦 Project: ${escapeHtml(scope)}</span>`;
+
+  if (nameVal) nameVal.textContent = name;
+  if (scopeVal) scopeVal.innerHTML = scopeText;
+  if (ownerVal) ownerVal.textContent = owner;
+  if (cadenceVal) {
+    cadenceVal.innerHTML = `<span class="rep-cadence-tag ${cadenceCfg.tagClass}"><span>${cadenceCfg.icon}</span> ${escapeHtml(cadenceCfg.label)}</span>`;
+  }
+  if (descVal) descVal.textContent = desc;
+  if (defaultBadge) defaultBadge.style.display = isDefault ? "block" : "none";
+}
+
+function _renderSection2View(template) {
+  const container = document.getElementById("sec-2-val-stakeholders");
   if (!container) return;
 
-  if (_selectedBlockTypes.length === 0) {
-    container.innerHTML = `<span style="font-size: 12.5px; color: var(--text-dim); font-style: italic;">No visual sections selected yet. Click "Configure Visuals in Modal Window" to choose sections.</span>`;
+  const shList = (_cachedStakeholders?.stakeholders && _cachedStakeholders.stakeholders.length > 0)
+    ? _cachedStakeholders.stakeholders
+    : FALLBACK_STAKEHOLDERS;
+
+  const currentShIds = _selectedStakeholders && _selectedStakeholders.length > 0
+    ? _selectedStakeholders
+    : (template?.stakeholder_ids || ["pm-default"]);
+
+  if (currentShIds.length === 0) {
+    container.innerHTML = `<div class="muted" style="font-size: 13px;">🌐 Universal — all stakeholder personas included.</div>`;
     return;
   }
 
-  container.innerHTML = _selectedBlockTypes.map(type => {
-    const def = AVAILABLE_REPORT_BLOCKS.find(b => b.type === type) || { title: type, icon: "📌" };
+  container.innerHTML = currentShIds.map(sid => {
+    const s = shList.find(x => x.id === sid);
+    const name = s ? (s.name || sid) : sid;
+    const role = s ? (s.role || s.role_type || "Stakeholder") : "Stakeholder Persona";
     return `
-      <div class="ms-chip" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: rgba(76, 141, 255, 0.12); border: 1px solid rgba(76, 141, 255, 0.3); border-radius: 6px; color: var(--text); font-size: 12.5px;">
-        <span>${def.icon}</span>
-        <strong>${escapeHtml(def.title)}</strong>
-        <span class="ms-chip-remove remove-visual-chip" data-type="${escapeHtml(type)}" title="Remove section" style="cursor: pointer; opacity: 0.7; margin-left: 4px;">✕</span>
+      <div class="sec-sh-badge">
+        <span class="sec-sh-avatar">👤</span>
+        <div class="sec-sh-info">
+          <strong class="sec-sh-name">${escapeHtml(name)}</strong>
+          <span class="sec-sh-role">${escapeHtml(role)}</span>
+        </div>
       </div>
     `;
   }).join("");
+}
 
-  container.querySelectorAll(".remove-visual-chip").forEach(btn => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const removeType = btn.dataset.type;
-      _selectedBlockTypes = _selectedBlockTypes.filter(t => t !== removeType);
-      _renderSelectedVisualsChips();
-      _updateReportsStats();
-    });
+function _renderSection3View(template) {
+  const container = document.getElementById("sec-3-val-visuals");
+  if (!container) return;
+
+  const activeTypes = _selectedBlockTypes && _selectedBlockTypes.length > 0
+    ? _selectedBlockTypes
+    : ["health_kpis", "burndown", "dependency_matrix", "action_plan"];
+
+  const activeBlocks = activeTypes.map(type => {
+    const found = AVAILABLE_REPORT_BLOCKS.find(b => b.type === type);
+    return found || { type, title: type, desc: "Custom report section", icon: "📊" };
   });
+
+  if (activeBlocks.length === 0) {
+    container.innerHTML = `<div class="muted" style="font-size: 13px;">No visual blocks selected.</div>`;
+    return;
+  }
+
+  container.innerHTML = activeBlocks.map((block, idx) => `
+    <div class="sec-visual-card">
+      <div class="sec-visual-num">${idx + 1}</div>
+      <span class="sec-visual-icon">${block.icon || "📊"}</span>
+      <div class="sec-visual-info">
+        <strong class="sec-visual-title">${escapeHtml(block.title)}</strong>
+        <p class="sec-visual-desc">${escapeHtml(block.desc)}</p>
+      </div>
+    </div>
+  `).join("");
+}
+
+function _renderSection4View(template) {
+  const formatVal = document.getElementById("sec-4-val-format");
+  const notesVal = document.getElementById("sec-4-val-notes");
+
+  const formatLabels = {
+    html: "🌐 Interactive HTML Document",
+    deck: "📊 Slide Deck / Presentation",
+    markdown: "📋 Markdown Briefing",
+    print: "🖨️ PDF / Print View"
+  };
+
+  const fmt = _selectedExportFormat || template?.export_format || "html";
+  const notes = document.getElementById("pa-stakeholder-notes")?.value || template?.stakeholder_notes || "";
+
+  if (formatVal) formatVal.textContent = formatLabels[fmt] || "🌐 Interactive HTML Document";
+  if (notesVal) {
+    notesVal.textContent = notes.trim() ? notes.trim() : "None specified. Standard AI synthesis applied.";
+    notesVal.style.fontStyle = notes.trim() ? "normal" : "italic";
+    notesVal.style.color = notes.trim() ? "var(--text)" : "var(--text-dim)";
+  }
 }
 
 /**
- * Open modal window to configure visual block checkboxes.
+ * Toggle a specific section between View and Edit mode.
  */
-function _openVisualsModal() {
-  const modal = document.getElementById("modal-visuals-picker");
-  if (!modal) return;
+function _toggleSectionEdit(secNumber, isEditing) {
+  const viewEl = document.getElementById(`sec-${secNumber}-view`);
+  const editEl = document.getElementById(`sec-${secNumber}-edit`);
+  const editBtn = document.getElementById(`btn-edit-sec-${secNumber}`);
 
-  _tempSelectedBlockTypes = [..._selectedBlockTypes];
-  _renderVisualBlocksModalList();
-  modal.style.display = "flex";
+  if (viewEl) viewEl.style.display = isEditing ? "none" : "block";
+  if (editEl) editEl.style.display = isEditing ? "block" : "none";
+  if (editBtn) editBtn.style.display = isEditing ? "none" : "inline-flex";
+
+  if (isEditing) {
+    if (secNumber === 2) _renderStakeholderMultiSelect();
+    if (secNumber === 3) _renderVisualBlocksGrid();
+  }
 }
 
 /**
- * Close modal window for visual block checkboxes.
+ * Save an individual report section to backend and update cached state.
  */
-function _closeVisualsModal() {
-  const modal = document.getElementById("modal-visuals-picker");
-  if (modal) modal.style.display = "none";
+async function _saveSection(secNumber) {
+  const form = readPaSettingsForm();
+  const isNew = !_currentEditingTemplateId || _currentEditingTemplateId.startsWith("new") || _currentEditingTemplateId === "custom";
+
+  if (isNew) {
+    await _saveCurrentTemplate();
+    return;
+  }
+
+  const saveBtn = document.querySelector(`#sec-${secNumber}-edit .btn-section-save`);
+  const origHtml = saveBtn ? saveBtn.innerHTML : "";
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = `<svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin-icon"><circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="12"></circle></svg> Saving...`;
+  }
+
+  try {
+    const payload = {
+      name: form.name,
+      description: form.description,
+      project_scope: form.project_scope || "ALL",
+      owner: form.owner || "Alex Mercer",
+      cadence: form.cadence || "weekly",
+      is_default: form.is_default,
+      stakeholder_ids: form.stakeholder_ids,
+      stakeholder_notes: form.stakeholder_notes,
+      blocks: form.blocks
+    };
+
+    const res = await fetchWithTimeout(`${API_BASE}/reports/${_currentEditingTemplateId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      credentials: "include"
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to save changes");
+    }
+
+    const resData = await res.json();
+    const updated = resData.template || payload;
+    updated.id = _currentEditingTemplateId;
+
+    // Update local cache
+    const templates = _cachedReports?.templates || [];
+    const idx = templates.findIndex(t => t.id === _currentEditingTemplateId);
+    if (idx >= 0) templates[idx] = updated;
+
+    // Update title in header if Section 1 was saved
+    const titleEl = document.getElementById("pa-detail-view-title");
+    if (titleEl && updated.name) {
+      titleEl.textContent = `Report Details: ${updated.name}`;
+    }
+
+    // Refresh view presentations and close edit container
+    _renderAllSectionViews(updated);
+    _toggleSectionEdit(secNumber, false);
+    _updateReportsStats();
+  } catch (err) {
+    console.error("Save section error:", err);
+    alert(err.message || "Failed to save changes");
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = origHtml;
+    }
+  }
 }
 
 /**
- * Render interactive checkboxes in modal window.
+ * Cancel editing for an individual report section and restore cached values.
  */
-function _renderVisualBlocksModalList() {
+function _cancelSection(secNumber) {
+  const templates = _cachedReports?.templates || FALLBACK_TEMPLATES;
+  const template = templates.find(t => t.id === _currentEditingTemplateId);
+
+  if (template) {
+    if (secNumber === 1) {
+      const nameInput = document.getElementById("pa-detail-name");
+      const descInput = document.getElementById("pa-detail-desc");
+      const projSelect = document.getElementById("pa-project-select");
+      const ownerSelect = document.getElementById("pa-detail-owner");
+      const cadenceSelect = document.getElementById("pa-detail-cadence");
+      const defaultCheck = document.getElementById("pa-detail-is-default");
+
+      if (nameInput) nameInput.value = template.name || "";
+      if (descInput) descInput.value = template.description || "";
+      if (projSelect) projSelect.value = template.project_scope || "ALL";
+      if (ownerSelect) ownerSelect.value = template.owner || "Alex Mercer";
+      if (cadenceSelect) cadenceSelect.value = template.cadence || "weekly";
+      if (defaultCheck) defaultCheck.checked = Boolean(template.is_default);
+    } else if (secNumber === 2) {
+      _selectedStakeholders = [...(template.stakeholder_ids || ["pm-default"])];
+    } else if (secNumber === 3) {
+      _selectedBlockTypes = (template.blocks || [])
+        .filter(b => b.enabled !== false)
+        .map(b => b.block_type || b.id);
+    } else if (secNumber === 4) {
+      const notesText = document.getElementById("pa-stakeholder-notes");
+      if (notesText) notesText.value = template.stakeholder_notes || "";
+      _selectedExportFormat = template.export_format || "html";
+      const container = document.getElementById("pa-format-pills");
+      if (container) {
+        container.querySelectorAll(".format-pill").forEach(p => {
+          p.classList.toggle("active", p.dataset.format === _selectedExportFormat);
+        });
+      }
+    }
+    _renderAllSectionViews(template);
+  }
+
+  _toggleSectionEdit(secNumber, false);
+}
+
+/**
+ * Render interactive checkboxes in visual blocks config area.
+ */
+function _renderVisualBlocksGrid() {
   const container = document.getElementById("pa-visual-blocks-grid");
   if (!container) return;
 
   container.innerHTML = AVAILABLE_REPORT_BLOCKS.map(block => {
-    const isChecked = _tempSelectedBlockTypes.includes(block.type);
+    const isChecked = _selectedBlockTypes.includes(block.type);
     return `
       <div class="visual-block-row ${isChecked ? 'selected' : ''}" data-type="${escapeHtml(block.type)}">
         <input type="checkbox" class="visual-block-checkbox" id="vbc-${escapeHtml(block.type)}" ${isChecked ? 'checked' : ''} />
@@ -1208,14 +1583,15 @@ function _renderVisualBlocksModalList() {
       checkbox.checked = nextChecked;
 
       if (nextChecked) {
-        if (!_tempSelectedBlockTypes.includes(blockType)) {
-          _tempSelectedBlockTypes.push(blockType);
+        if (!_selectedBlockTypes.includes(blockType)) {
+          _selectedBlockTypes.push(blockType);
         }
         row.classList.add("selected");
       } else {
-        _tempSelectedBlockTypes = _tempSelectedBlockTypes.filter(t => t !== blockType);
+        _selectedBlockTypes = _selectedBlockTypes.filter(t => t !== blockType);
         row.classList.remove("selected");
       }
+      _updateReportsStats();
     };
 
     checkbox.addEventListener("click", (e) => {
@@ -1289,14 +1665,17 @@ function _setupSearchableMultiSelect(cfg) {
       if (!item) return;
       const chip = document.createElement("div");
       chip.className = "ms-chip";
-      chip.innerHTML = `<span>${escapeHtml(item.title)}</span><span class="ms-chip-remove" data-id="${id}" title="Remove">✕</span>`;
-      chip.querySelector(".ms-chip-remove").addEventListener("click", (e) => {
-        e.stopPropagation();
-        const next = selectedIds.filter(x => x !== id);
-        onSelectionChange(next);
-        renderChips();
-        renderDropdownList();
-      });
+      const removeBtnHtml = _isReportDetailEditing ? `<span class="ms-chip-remove" data-id="${id}" title="Remove">✕</span>` : ``;
+      chip.innerHTML = `<span>${escapeHtml(item.title)}</span>${removeBtnHtml}`;
+      if (_isReportDetailEditing) {
+        chip.querySelector(".ms-chip-remove")?.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const next = selectedIds.filter(x => x !== id);
+          onSelectionChange(next);
+          renderChips();
+          renderDropdownList();
+        });
+      }
       chipsContainer.appendChild(chip);
     });
   }
@@ -1330,6 +1709,7 @@ function _setupSearchableMultiSelect(cfg) {
         </div>
       `;
       opt.addEventListener("click", (e) => {
+        if (!_isReportDetailEditing) return;
         e.stopPropagation();
         let next;
         if (isSelected) {
@@ -1349,11 +1729,13 @@ function _setupSearchableMultiSelect(cfg) {
   renderDropdownList();
 
   searchInput.oninput = () => {
+    if (!_isReportDetailEditing) return;
     dropdown.style.display = "block";
     renderDropdownList(searchInput.value);
   };
 
   inputContainer.onclick = () => {
+    if (!_isReportDetailEditing) return;
     dropdown.style.display = "block";
     searchInput.focus();
     renderDropdownList(searchInput.value);
@@ -1373,6 +1755,7 @@ function _initFormatPills() {
   const pills = container.querySelectorAll(".format-pill");
   pills.forEach(pill => {
     pill.onclick = () => {
+      if (!_isReportDetailEditing) return;
       pills.forEach(p => p.classList.remove("active"));
       pill.classList.add("active");
       _selectedExportFormat = pill.dataset.format || "html";
@@ -1505,13 +1888,17 @@ function _suggestReportTemplate(forceNew = false) {
     const applyBtn = document.getElementById("pa-ai-chat-apply");
     if (applyBtn) applyBtn.style.display = "none";
 
-    // Bind prompt chip clicks
+    // Bind prompt chip clicks to prefill prompt suggestion
     const chipContainer = document.getElementById("pa-ai-prompt-chips");
     if (chipContainer) {
       chipContainer.querySelectorAll(".ai-chat-chip-btn").forEach(chip => {
         chip.onclick = () => {
           const prompt = chip.dataset.prompt;
-          if (prompt) _sendAiChatMsg(prompt);
+          const input = document.getElementById("pa-ai-chat-input");
+          if (prompt && input) {
+            input.value = prompt;
+            input.focus();
+          }
         };
       });
     }
@@ -1645,7 +2032,7 @@ function _applyAiTemplate() {
   if (suggestion.blocks && Array.isArray(suggestion.blocks)) {
     const blockIds = suggestion.blocks.map(b => b.block_type || b.id || b);
     _selectedBlockTypes = blockIds.map(id => id === "executive_summary" ? "exec_summary" : id);
-    _renderSelectedVisualsChips();
+    _renderVisualBlocksGrid();
   }
 
   // 4. Format & Directives
@@ -1662,6 +2049,9 @@ function _applyAiTemplate() {
     const notesEl = document.getElementById("pa-stakeholder-notes");
     if (notesEl) notesEl.value = suggestion.stakeholder_notes;
   }
+
+  // Update view presentations with newly applied AI template
+  _renderAllSectionViews(suggestion);
 
   // Update step badges
   const s1Badge = document.getElementById("step1-status-badge");
@@ -1696,7 +2086,7 @@ function _applyAiTemplate() {
  * Save report template from detail editor.
  */
 async function _saveCurrentTemplate() {
-  const btn = document.getElementById("pa-btn-detail-save");
+  const btn = document.getElementById("pa-btn-new-save") || document.getElementById("pa-btn-detail-save");
   const form = readPaSettingsForm();
 
   if (btn) {
@@ -1708,6 +2098,9 @@ async function _saveCurrentTemplate() {
     const payload = {
       name: form.name,
       description: form.description,
+      project_scope: form.project_scope || "ALL",
+      owner: form.owner || "Alex Mercer",
+      cadence: form.cadence || "weekly",
       is_default: form.is_default,
       stakeholder_ids: form.stakeholder_ids,
       stakeholder_notes: form.stakeholder_notes,
@@ -1715,7 +2108,7 @@ async function _saveCurrentTemplate() {
     };
 
     let res;
-    if (_currentEditingTemplateId && !_currentEditingTemplateId.startsWith("new")) {
+    if (_currentEditingTemplateId && !_currentEditingTemplateId.startsWith("new") && _currentEditingTemplateId !== "custom") {
       res = await fetchWithTimeout(`${API_BASE}/reports/${_currentEditingTemplateId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -1737,16 +2130,18 @@ async function _saveCurrentTemplate() {
     }
 
     const json = await res.json();
-    _currentEditingTemplateId = json.template?.id || _currentEditingTemplateId;
+    const createdId = json.template?.id || _currentEditingTemplateId;
+    _currentEditingTemplateId = createdId;
     alert(`✓ Report template "${form.name}" saved successfully.`);
-    window.location.hash = "reports";
+    await renderReportsPage();
+    window.location.hash = `reports/${createdId}`;
   } catch (err) {
     console.error("Save template error:", err);
     alert(err.message || "Failed to save template");
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "💾 Save Template";
+      btn.innerHTML = `<svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Create Report Template`;
     }
   }
 }
@@ -1812,7 +2207,7 @@ export async function executeReportGeneration(templateOrPayload) {
   } else {
     apiPayload = {
       profile_id: templateOrPayload.id,
-      project_key: undefined,
+      project_key: templateOrPayload.project_scope === "ALL" ? undefined : templateOrPayload.project_scope,
       settings_override: {
         stakeholder_ids: templateOrPayload.stakeholder_ids,
         stakeholder_notes: templateOrPayload.stakeholder_notes,
@@ -1841,6 +2236,43 @@ function _bindPaSettingsEvents() {
   if (_paEventsBound) return;
   _paEventsBound = true;
 
+  // Project filter pills on Reports catalog page
+  document.querySelectorAll("#pa-reports-filter-pills .filter-pill").forEach(pill => {
+    pill.addEventListener("click", () => {
+      document.querySelectorAll("#pa-reports-filter-pills .filter-pill").forEach(p => p.classList.remove("active"));
+      pill.classList.add("active");
+      _reportProjectFilter = pill.dataset.filter || "all";
+      _renderReportsGrid();
+    });
+  });
+
+  // Sort select on Reports page
+  const sortSelect = document.getElementById("pa-report-sort-select");
+  if (sortSelect) {
+    sortSelect.addEventListener("change", (e) => {
+      _reportSortOrder = e.target.value;
+      _renderReportsGrid();
+    });
+  }
+
+  // Owner filter on Reports page
+  const ownerFilter = document.getElementById("pa-report-owner-filter");
+  if (ownerFilter) {
+    ownerFilter.addEventListener("change", (e) => {
+      _reportOwnerFilter = e.target.value;
+      _renderReportsGrid();
+    });
+  }
+
+  // Search input on Reports page
+  const searchInput = document.getElementById("pa-report-search-input");
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      _reportSearchQuery = e.target.value;
+      _renderReportsGrid();
+    });
+  }
+
   // New report button
   document.getElementById("pa-btn-new-report")?.addEventListener("click", () => {
     window.location.hash = "reports/new";
@@ -1862,8 +2294,36 @@ function _bindPaSettingsEvents() {
     renderReportsPage();
   });
 
-  // Save template in details view
-  document.getElementById("pa-btn-detail-save")?.addEventListener("click", _saveCurrentTemplate);
+  // Section-by-section Edit buttons
+  document.querySelectorAll(".btn-section-edit").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const secNum = parseInt(btn.dataset.section, 10);
+      if (secNum) _toggleSectionEdit(secNum, true);
+    });
+  });
+
+  // Section-by-section Cancel buttons
+  document.querySelectorAll(".btn-section-cancel").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const secNum = parseInt(btn.dataset.section, 10);
+      if (secNum) _cancelSection(secNum);
+    });
+  });
+
+  // Section-by-section Save buttons
+  document.querySelectorAll(".btn-section-save").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const secNum = parseInt(btn.dataset.section, 10);
+      if (secNum) _saveSection(secNum);
+    });
+  });
+
+  // New Report Template creation buttons
+  document.getElementById("pa-btn-new-save")?.addEventListener("click", _saveCurrentTemplate);
+  document.getElementById("pa-btn-new-cancel")?.addEventListener("click", () => {
+    renderReportsPage();
+    window.location.hash = "reports";
+  });
 
   // AI Report Assistant button in details view -> Navigate to Reports AI Assistant
   document.getElementById("pa-btn-detail-suggest")?.addEventListener("click", () => {
@@ -1896,15 +2356,6 @@ function _bindPaSettingsEvents() {
   document.getElementById("pa-btn-detail-generate")?.addEventListener("click", triggerGenerate);
   document.getElementById("pa-btn-generate-bottom")?.addEventListener("click", triggerGenerate);
 
-  // Search input on reports list
-  const searchInput = document.getElementById("pa-report-search-input");
-  if (searchInput) {
-    searchInput.addEventListener("input", (e) => {
-      _reportSearchQuery = e.target.value;
-      _renderReportsGrid();
-    });
-  }
-
   // Project select change
   const projSelect = document.getElementById("pa-project-select");
   if (projSelect) {
@@ -1915,22 +2366,7 @@ function _bindPaSettingsEvents() {
   }
 
   // Visuals Modal Picker
-  document.getElementById("btn-open-visuals-modal")?.addEventListener("click", _openVisualsModal);
-  document.getElementById("btn-close-visuals-modal")?.addEventListener("click", _closeVisualsModal);
-  document.getElementById("btn-cancel-visuals-modal")?.addEventListener("click", _closeVisualsModal);
-  document.getElementById("btn-apply-visuals-modal")?.addEventListener("click", () => {
-    _selectedBlockTypes = [..._tempSelectedBlockTypes];
-    _closeVisualsModal();
-    _renderSelectedVisualsChips();
-    _updateReportsStats();
-  });
 
-  const visualsModal = document.getElementById("modal-visuals-picker");
-  if (visualsModal) {
-    visualsModal.addEventListener("click", (e) => {
-      if (e.target === visualsModal) _closeVisualsModal();
-    });
-  }
 
   // Reset profiles
   const resetBtn = document.getElementById("pa-btn-reset-profiles");

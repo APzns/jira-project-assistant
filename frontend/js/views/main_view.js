@@ -18,6 +18,7 @@ let _projectsList = [];
 let _reportsList = [];
 let _assessmentData = null;
 let _isRendering = false;
+let _mainReportFilter = "all";
 
 const STATUS_MAP = {
   "on-track": { label: "On Track", badgeClass: "p-status-ok", progressClass: "p-fill-ok" },
@@ -36,6 +37,14 @@ const STAKEHOLDER_NAMES = {
   "sec-lead": "🔒 Security Lead",
   "qa-lead": "🧪 QA Lead",
   "po-commerce": "🛍️ Commerce PO"
+};
+
+const PROJECT_NAME_MAP = {
+  "CHK": "Checkout Flow",
+  "CORE": "Platform Core",
+  "MOB": "Mobile Guild",
+  "HRZ": "Project Horizon",
+  "ALL": "Portfolio-wide"
 };
 
 /**
@@ -317,6 +326,10 @@ function renderYourProjects() {
     const blockers = p.blockers_count || 0;
     const tagsHtml = (p.tags || []).slice(0, 3).map(t => `<span class="proj-mini-tag">${escapeHtml(t)}</span>`).join("");
 
+    // Calculate project-specific reports count
+    const pReports = _reportsList.filter(r => (r.project_scope || "ALL").toUpperCase() === p.key.toUpperCase() || (r.project_scope || "ALL").toUpperCase() === "ALL");
+    const pReportsCount = pReports.length;
+
     html += `
       <div class="main-project-card" data-key="${escapeHtml(p.key)}">
         <div class="main-project-card-header">
@@ -356,7 +369,10 @@ function renderYourProjects() {
 
         <div class="main-proj-footer">
           <div class="main-proj-tags">${tagsHtml}</div>
-          <div style="display: flex; gap: 6px; align-items: center;">
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn-p-view-reports" data-key="${escapeHtml(p.key)}" title="View ${pReportsCount} reports for ${escapeHtml(p.key)}">
+              📋 ${pReportsCount} Reports
+            </button>
             <button type="button" class="btn-p-view-dashboard" data-key="${escapeHtml(p.key)}" title="Open ${escapeHtml(p.key)} Dashboard">
               📊 Dashboard
             </button>
@@ -372,6 +388,18 @@ function renderYourProjects() {
   container.innerHTML = html;
 
   // Wire click events
+  container.querySelectorAll(".btn-p-view-reports").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const key = btn.dataset.key;
+      if (key) {
+        setMainReportFilter(key);
+        const repSection = $("main-your-reports-grid");
+        if (repSection) repSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  });
+
   container.querySelectorAll(".btn-p-view-dashboard").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -384,7 +412,7 @@ function renderYourProjects() {
 
   container.querySelectorAll(".main-project-card, .btn-proj-goto").forEach(el => {
     el.addEventListener("click", (e) => {
-      if (e.target.closest(".btn-p-view-dashboard")) return;
+      if (e.target.closest(".btn-p-view-dashboard") || e.target.closest(".btn-p-view-reports")) return;
       const key = el.dataset.key || el.closest(".main-project-card")?.dataset.key;
       if (key) {
         window.location.hash = `projects/${key}`;
@@ -393,9 +421,20 @@ function renderYourProjects() {
   });
 }
 
+/**
+ * Switch the active project filter for reports on the main page.
+ */
+export function setMainReportFilter(filterKey) {
+  _mainReportFilter = filterKey || "all";
+  const filterPills = document.querySelectorAll("#main-reports-filter-pills .filter-pill");
+  filterPills.forEach(pill => {
+    pill.classList.toggle("active", pill.dataset.filter === _mainReportFilter);
+  });
+  renderYourReports();
+}
 
 /**
- * Render "Your Reports" section.
+ * Render "Your Reports" section grouped/filtered by project.
  */
 function renderYourReports() {
   const container = $("main-your-reports-grid");
@@ -406,21 +445,56 @@ function renderYourReports() {
     return;
   }
 
+  // Filter reports by selected project filter
+  let filtered = [..._reportsList];
+  if (_mainReportFilter === "ALL") {
+    filtered = filtered.filter(r => (r.project_scope || "ALL").toUpperCase() === "ALL");
+  } else if (_mainReportFilter !== "all") {
+    const targetKey = _mainReportFilter.toUpperCase();
+    filtered = filtered.filter(r => {
+      const scope = (r.project_scope || "ALL").toUpperCase();
+      return scope === targetKey || scope === "ALL";
+    });
+  }
+
+  if (filtered.length === 0) {
+    const projName = PROJECT_NAME_MAP[_mainReportFilter] || _mainReportFilter;
+    container.innerHTML = `
+      <div class="p-empty-state" style="grid-column: 1 / -1; padding: 30px; text-align: center;">
+        <div class="p-empty-state-icon">📋</div>
+        <h4 class="p-empty-state-title">No reports configured for ${escapeHtml(projName)}</h4>
+        <p class="p-empty-state-sub">Create a new customized report template scoped for this project.</p>
+        <button type="button" class="btn-primary btn-sm" onclick="window.location.hash='reports/new'">
+          + Create Report for ${escapeHtml(projName)}
+        </button>
+      </div>
+    `;
+    return;
+  }
+
   let html = "";
-  _reportsList.forEach(r => {
+  filtered.forEach(r => {
     const audienceHtml = (r.stakeholder_ids || []).map(id => {
       const label = STAKEHOLDER_NAMES[id] || id;
       return `<span class="report-audience-pill">${escapeHtml(label)}</span>`;
     }).join("");
 
     const blocksCount = (r.blocks || []).length;
+    const scope = (r.project_scope || "ALL").toUpperCase();
+    const scopeName = PROJECT_NAME_MAP[scope] || scope;
+    const scopeBadgeHtml = scope === "ALL"
+      ? `<span class="report-scope-badge scope-all">🌐 Portfolio</span>`
+      : `<span class="report-scope-badge scope-proj">📦 ${escapeHtml(scope)} — ${escapeHtml(scopeName)}</span>`;
 
     html += `
-      <div class="main-report-card" data-id="${escapeHtml(r.id)}">
+      <div class="main-report-card" data-id="${escapeHtml(r.id)}" data-scope="${escapeHtml(scope)}">
         <div class="main-report-card-head">
           <div class="main-report-icon-title">
             <span class="report-type-icon">📋</span>
-            <span class="main-report-title">${escapeHtml(r.name)}</span>
+            <div>
+              <span class="main-report-title">${escapeHtml(r.name)}</span>
+              <div style="margin-top: 3px;">${scopeBadgeHtml}</div>
+            </div>
           </div>
           <span class="report-badge-blocks">${blocksCount} Sections</span>
         </div>
@@ -434,7 +508,7 @@ function renderYourReports() {
 
         <div class="main-report-actions">
           <button type="button" class="btn-secondary btn-sm btn-report-view" data-id="${escapeHtml(r.id)}">
-            View Report
+            Configure / Edit
           </button>
           <button type="button" class="btn-primary btn-sm btn-report-generate" data-id="${escapeHtml(r.id)}">
             <span>⚡ Generate Digest</span>
@@ -491,6 +565,17 @@ export function initMainPageEvents() {
     };
   }
 
+  // Filter Pills in "Your Reports & Briefings"
+  const reportFilterPills = document.querySelectorAll("#main-reports-filter-pills .filter-pill");
+  reportFilterPills.forEach(pill => {
+    pill.onclick = () => {
+      reportFilterPills.forEach(p => p.classList.remove("active"));
+      pill.classList.add("active");
+      _mainReportFilter = pill.dataset.filter || "all";
+      renderYourReports();
+    };
+  });
+
   // Refresh AI Analysis Button
   const refreshAiBtn = $("main-refresh-ai-btn");
   if (refreshAiBtn) {
@@ -529,12 +614,13 @@ export function initMainPageEvents() {
     };
   }
 
-  // Quick scenario chips -> triggers Ask AI Copilot drawer
+  // Quick scenario chips -> populate prompt suggestion into quick input box
   document.querySelectorAll(".scenario-chip").forEach(chip => {
     chip.onclick = () => {
       const prompt = chip.dataset.prompt;
-      if (prompt) {
-        askAiCopilot(prompt);
+      if (prompt && quickInput) {
+        quickInput.value = prompt;
+        quickInput.focus();
       }
     };
   });

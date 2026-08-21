@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Project Horizon — Program Intelligence</title>
-  <link rel="stylesheet" href="styles.css?v=6" />
+  <title>Project Assistant — Program Intelligence</title>
+  <link rel="stylesheet" href="styles.css?v=8" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
@@ -31,12 +31,6 @@
             <polyline points="9 22 9 12 15 12 15 22"></polyline>
           </svg>
           <span class="nav-label">Command Center</span>
-        </button>
-        <button class="nav-btn" data-nav="assistant">
-          <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-          </svg>
-          <span class="nav-label">✨ AI Assistant</span>
         </button>
         <button class="nav-btn" data-nav="dashboards">
           <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -83,7 +77,7 @@
       <header class="topbar">
         <div class="brand brand-clickable" id="topbar-brand-btn" role="button" tabindex="0" title="Go to Main Portfolio Page">Project Assistant</div>
         <div class="topbar-right">
-            <button id="chat-toggle-btn" class="btn-chat-toggle"><span class="sparkle">✨</span> Ask AI</button>
+            <button id="chat-toggle-btn" class="btn-chat-toggle"><span class="sparkle">✨</span> AI Assistant</button>
             <span class="data-freshness" id="data-freshness">Data as of –</span>
         </div>
       </header>
@@ -158,10 +152,7 @@
                   </p>
                 </div>
                 <div class="main-hero-actions">
-                  <button type="button" id="main-btn-ask-ai" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;">
-                    <span>✨ Ask Copilot</span>
-                  </button>
-                  <button type="button" id="main-btn-new-report" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;">
+                  <button type="button" id="main-btn-new-report" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;">
                     <span>📋 New Report</span>
                   </button>
                 </div>
@@ -315,7 +306,7 @@
                     <div class="section-title-icon">📋</div>
                     <div>
                       <h2 class="main-section-title">Your Reports & Briefings</h2>
-                      <p class="main-section-desc">Automated executive digests, stakeholder briefs, and delivery predictability reports configured for your projects.</p>
+                      <p class="main-section-desc">Automated executive digests, stakeholder briefs, and delivery predictability reports grouped by project.</p>
                     </div>
                   </div>
                   <div class="section-header-actions">
@@ -323,6 +314,19 @@
                     <a href="#reports" class="btn-secondary btn-sm">All Reports Library →</a>
                   </div>
                 </div>
+
+                <!-- Project Scope Filter Toolbar -->
+                <div class="main-reports-toolbar">
+                  <div class="projects-filter-pills" id="main-reports-filter-pills">
+                    <button class="filter-pill active" data-filter="all">All Projects</button>
+                    <button class="filter-pill" data-filter="CHK">CHK (Checkout)</button>
+                    <button class="filter-pill" data-filter="CORE">CORE (Platform)</button>
+                    <button class="filter-pill" data-filter="MOB">MOB (Mobile)</button>
+                    <button class="filter-pill" data-filter="HRZ">HRZ (Horizon)</button>
+                    <button class="filter-pill" data-filter="ALL">🌐 Portfolio-wide</button>
+                  </div>
+                </div>
+
                 <div class="your-reports-grid" id="main-your-reports-grid">
                   <!-- Rendered dynamically -->
                 </div>
@@ -342,7 +346,7 @@
                     <span>✨ Smart AI Project & Delivery Assistant</span>
                   </h2>
                   <p class="assistant-subtitle">
-                    Conversational program intelligence for Project Horizon. Ingests live Jira sprint metrics, Project Charter (M0–M3), Decisions (D1–D3), and Stakeholder priorities to synthesize optimal delivery reports and trade-off options.
+                    Conversational program intelligence. Ingests live Jira sprint metrics, Project Charter (M0–M3), Decisions (D1–D3), and Stakeholder priorities to synthesize optimal delivery reports and trade-off options.
                   </p>
                   <div class="assistant-context-strip">
                     <span class="context-pill">📦 Scope: Project Horizon (HRZ)</span>
@@ -368,29 +372,29 @@
                 <div class="assistant-sidebar-panel">
                   <div class="assistant-sidebar-title">⚡ Quick Scenarios</div>
                   
-                  <div class="assistant-scenario-card" data-prompt="I want to create a report for project Checkout Flow Replatform which would be universal for all stakeholders in the project">
-                    <div class="scenario-card-title">🌐 Universal Stakeholder Digest</div>
-                    <div class="scenario-card-desc">Balanced 3-layer report for VP Product, Security Lead & Eng Leads on Checkout Replatform.</div>
+                  <div class="assistant-scenario-card" data-prompt="What critical blockers, dependency conflicts, or high-priority items exist across the MOB and CHK projects?">
+                    <div class="scenario-card-title">🔍 Project Blockers & Risks</div>
+                    <div class="scenario-card-desc">Inspect active blockers, dependency links, and high-priority open issues in MOB and CHK.</div>
                   </div>
 
-                  <div class="assistant-scenario-card" data-prompt="Create an executive sponsor 1-pager for VP Product focusing on milestone release confidence, conversion outcomes, and Monte Carlo P80 forecasts">
-                    <div class="scenario-card-title">👑 Executive Sponsor Briefing</div>
-                    <div class="scenario-card-desc">High-level narrative & milestone confidence for VP Product & SteerCo.</div>
+                  <div class="assistant-scenario-card" data-prompt="What are the recommended P1, P2, and P3 next steps for our active sprints based on current velocity and blockers?">
+                    <div class="scenario-card-title">⚡ Propose Next Steps</div>
+                    <div class="scenario-card-desc">Prioritized P1/P2/P3 action plan for sprint unblocking and scope rebalancing.</div>
                   </div>
 
-                  <div class="assistant-scenario-card" data-prompt="Engineering lead report focusing on sprint velocity, cross-team blockers, and carryover drag">
-                    <div class="scenario-card-title">⚙️ Engineering Blocker Matrix</div>
-                    <div class="scenario-card-desc">Sprint velocity predictability, cross-team dependencies, and D3 scope freeze check.</div>
-                  </div>
-
-                  <div class="assistant-scenario-card" data-prompt="Security and compliance audit digest tracking M2 regulatory deadline and high severity defects">
-                    <div class="scenario-card-title">🔒 Security & Quality Audit</div>
-                    <div class="scenario-card-desc">Regulatory milestone M2 audit readiness & zero-bug policy compliance.</div>
+                  <div class="assistant-scenario-card" data-prompt="What advice do you have to keep Milestone M2 compliance on track while maintaining Checkout velocity?">
+                    <div class="scenario-card-title">💡 Strategic TPM Advice</div>
+                    <div class="scenario-card-desc">Recommendations on M2 regulatory audit prep and cross-squad capacity sharing.</div>
                   </div>
 
                   <div class="assistant-scenario-card" data-prompt="Analyze delivery trade-offs between cutting scope on APS-1 versus delaying M3 launch-ready date based on historical velocity">
                     <div class="scenario-card-title">⚖️ Scope vs Delay Trade-offs</div>
-                    <div class="scenario-card-desc">What-if trade-off recommendations for upcoming sprint planning.</div>
+                    <div class="scenario-card-desc">What-if trade-off analysis comparing scope cut on APS-1 vs M3 launch delay.</div>
+                  </div>
+
+                  <div class="assistant-scenario-card" data-prompt="Suggest a stakeholder-adjusted report for my project">
+                    <div class="scenario-card-title">📋 Stakeholders-Adjusted Report</div>
+                    <div class="scenario-card-desc">Suggest a report adjusted for specific stakeholders with options to choose project and add stakeholders.</div>
                   </div>
                 </div>
 
@@ -403,7 +407,7 @@
 
                   <!-- Input Bar -->
                   <div class="assistant-input-bar">
-                    <input type="text" id="assistant-chat-input" class="assistant-input" placeholder="Ask anything about Project Horizon or request a tailored stakeholder report..." autocomplete="off" />
+                    <input type="text" id="assistant-chat-input" class="assistant-input" placeholder="Ask questions about blockers, velocity, advice, next steps, or request a report..." autocomplete="off" />
                     <button type="button" id="assistant-send-btn" class="btn-primary" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px;">
                       <span>Send</span>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
@@ -932,6 +936,7 @@
                     </button>
                     <button id="btn-delete-project" class="btn-secondary text-warn" type="button" title="Permanently delete project">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
                     <button id="btn-view-project-dashboard" class="btn-primary" type="button" style="display: inline-flex; align-items: center; gap: 6px;">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
                       <span>View Project Dashboard</span>
@@ -1014,6 +1019,27 @@
                       <button type="button" id="btn-cancel-proj-sh" class="btn-secondary">Cancel</button>
                       <button type="button" id="btn-save-proj-sh" class="btn-primary">Save Project Stakeholders</button>
                     </div>
+                  </div>
+                </div>
+
+                <!-- Project Reports & Briefings Section -->
+                <div class="pd-reports-section" id="pd-reports-section" style="margin-top: 24px;">
+                  <div class="pd-section-header">
+                    <div>
+                      <h3 class="pd-section-title">Project Reports &amp; Delivery Digests</h3>
+                      <p class="pd-section-subtitle">Automated executive briefings, sprint predictability, and squad health reports configured for this project.</p>
+                    </div>
+                    <div class="pd-section-actions">
+                      <button id="btn-add-proj-report" class="btn-primary" type="button" title="Create a new report template for this project">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        + Create Project Report
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Project Reports Grid -->
+                  <div id="pd-reports-view-container" class="pd-reports-grid">
+                    <!-- Populated dynamically by projects.js -->
                   </div>
                 </div>
               </div>
@@ -1167,18 +1193,47 @@
                 </div>
 
                 <!-- Search and Filters Bar -->
-                <div class="projects-toolbar" style="margin-bottom: 20px;">
-                  <div class="search-input-wrap" style="flex: 1; max-width: 460px;">
+                <div class="projects-toolbar" style="margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                  <div class="search-input-wrap" style="flex: 1; min-width: 240px;">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <input type="text" id="pa-report-search-input" class="search-input" placeholder="Search reports by title, description, or focus..." />
+                    <input type="text" id="pa-report-search-input" class="search-input" placeholder="Search by title, project, stakeholder, or persona..." />
+                  </div>
+                  <div class="toolbar-select-wrap">
+                    <label class="toolbar-select-label" for="pa-report-sort-select">Sort By:</label>
+                    <select id="pa-report-sort-select" class="settings-select toolbar-compact-select">
+                      <option value="project">Project (A–Z)</option>
+                      <option value="last_generated_desc" selected>Last Generated (Newest first)</option>
+                      <option value="last_generated_asc">Last Generated (Oldest first)</option>
+                      <option value="name_asc">Report Name (A–Z)</option>
+                      <option value="cadence">Generation Cadence</option>
+                    </select>
+                  </div>
+                  <div class="toolbar-select-wrap">
+                    <label class="toolbar-select-label" for="pa-report-owner-filter">Owner:</label>
+                    <select id="pa-report-owner-filter" class="settings-select toolbar-compact-select">
+                      <option value="all">All Owners</option>
+                      <option value="Alex Mercer">Alex Mercer (Lead TPM)</option>
+                      <option value="David Kim">David Kim (VP Eng / Exec)</option>
+                      <option value="Rachel Green">Rachel Green (Core Lead)</option>
+                      <option value="Marcus Vance">Marcus Vance (QA Lead)</option>
+                      <option value="Elena Rostova">Elena Rostova (Product Owner)</option>
+                    </select>
+                  </div>
+                  <div class="projects-filter-pills" id="pa-reports-filter-pills">
+                    <button class="filter-pill active" data-filter="all">All Projects</button>
+                    <button class="filter-pill" data-filter="CHK">CHK</button>
+                    <button class="filter-pill" data-filter="CORE">CORE</button>
+                    <button class="filter-pill" data-filter="MOB">MOB</button>
+                    <button class="filter-pill" data-filter="HRZ">HRZ</button>
+                    <button class="filter-pill" data-filter="ALL">🌐 Portfolio</button>
                   </div>
                 </div>
 
                 <!-- Reports Table List -->
                 <div class="reports-list-table">
                   <div class="reports-table-header">
-                    <div>Report Template</div>
-                    <div>Target Scope & Audience</div>
+                    <div>Report Template &amp; Cadence</div>
+                    <div>Target Scope &amp; Audience</div>
                     <div style="text-align: right;">Actions</div>
                   </div>
                   <div id="reports-list-body" class="reports-list-body">
@@ -1197,21 +1252,19 @@
                       Back to Reports
                     </button>
                     <div>
-                      <h2 class="reports-title" id="pa-detail-view-title" style="margin: 0; font-size: 20px;">Report Details & Configuration</h2>
-                      <p class="reports-subtitle" id="pa-detail-view-subtitle" style="margin: 2px 0 0 0; font-size: 13px;">Customize report archetype, stakeholder audience, visual blocks, and directives.</p>
+                      <h2 class="reports-title" id="pa-detail-view-title" style="margin: 0; font-size: 20px;">Report Details &amp; Configuration</h2>
+                      <p class="reports-subtitle" id="pa-detail-view-subtitle" style="margin: 2px 0 0 0; font-size: 13px;">View or edit report parameters per section below.</p>
                     </div>
                   </div>
                   <div class="reports-header-actions">
-                    <button type="button" id="pa-btn-detail-delete" class="btn-secondary btn-danger" style="display: none;">
-                      🗑️ Delete
+                    <button type="button" id="pa-btn-detail-delete" class="btn-secondary btn-danger" style="display: none; align-items: center; gap: 6px;">
+                      <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Delete Template
                     </button>
-                    <button type="button" id="pa-btn-detail-suggest" class="btn-secondary" style="color: #6366f1; border-color: #6366f1; font-weight: 600;">
-                      ✨ AI Report Assistant
+                    <button type="button" id="pa-btn-detail-suggest" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; color: #6366f1; border-color: #6366f1; font-weight: 600;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+                      🤖 AI Report Assistant
                     </button>
-                    <button type="button" id="pa-btn-detail-save" class="btn-secondary">
-                      💾 Save Template
-                    </button>
-                    <button type="button" id="pa-btn-detail-generate" class="btn-primary">
+                    <button type="button" id="pa-btn-detail-generate" class="btn-primary" style="display: inline-flex; align-items: center; gap: 6px;">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                       Generate Report
                     </button>
@@ -1236,7 +1289,7 @@
                       <button type="button" class="ai-chat-chip-btn" data-prompt="I want to create a report for project Checkout Flow Replatform which would be universal for all stakeholders in the project">🌐 Universal SteerCo (Checkout Flow)</button>
                       <button type="button" class="ai-chat-chip-btn" data-prompt="Create an executive sponsor 1-pager for VP Product focusing on milestone release confidence">👑 Executive Sponsor Briefing</button>
                       <button type="button" class="ai-chat-chip-btn" data-prompt="Engineering lead report focusing on sprint velocity, cross-team blockers, and carryover drag">⚙️ Engineering Blocker Matrix</button>
-                      <button type="button" class="ai-chat-chip-btn" data-prompt="Security and compliance audit digest tracking M2 regulatory deadline and high severity defects">🔒 Security & Quality Audit</button>
+                      <button type="button" class="ai-chat-chip-btn" data-prompt="Security and compliance audit digest tracking M2 regulatory deadline and high severity defects">🔒 Security &amp; Quality Audit</button>
                     </div>
 
                     <!-- Chat Message History -->
@@ -1258,30 +1311,66 @@
                     <!-- Accept & Prefill Button Row -->
                     <div id="pa-ai-chat-actions" style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
                       <button type="button" id="pa-ai-chat-apply" class="btn-primary" style="display: none; background: #10b981; border-color: #10b981; font-weight: 600;">
-                        ✓ Accept & Prefill in Edit Mode
+                        ✓ Accept &amp; Apply Configuration
                       </button>
                     </div>
                   </div>
                 </div>
 
-                <!-- Process Flow Guided Layout (Option 2) -->
+                <!-- Process Flow Guided Layout (Section Cards) -->
                 <div class="process-flow-container">
 
                   <!-- Step 1: Template & Scope -->
-                  <div class="process-step-card" data-step="1">
+                  <div class="process-step-card" id="section-card-1" data-step="1">
                     <div class="process-step-header">
                       <div class="process-step-badge">1</div>
                       <div class="process-step-info">
-                        <h3 class="process-step-title">Template & Scope</h3>
-                        <p class="process-step-sub">Define report metadata and target delivery project scope</p>
+                        <h3 class="process-step-title">Template &amp; Scope</h3>
+                        <p class="process-step-sub">Report metadata, ownership, cadence, and target project scope</p>
                       </div>
-                      <span class="process-step-status" id="step1-status-badge">Configured</span>
+                      <div class="process-step-actions">
+                        <button type="button" class="btn-section-edit" id="btn-edit-sec-1" data-section="1">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                          Edit
+                        </button>
+                      </div>
                     </div>
-                    <div class="process-step-body">
+                    
+                    <!-- Section 1: View Presentation Mode -->
+                    <div class="section-view-container" id="sec-1-view">
+                      <div class="sec-summary-grid">
+                        <div class="sec-summary-item">
+                          <span class="sec-summary-label">Report Name</span>
+                          <div class="sec-summary-value" id="sec-1-val-name">Weekly TPM Sprint &amp; Delivery Health</div>
+                        </div>
+                        <div class="sec-summary-item">
+                          <span class="sec-summary-label">Target Project Scope</span>
+                          <div class="sec-summary-value" id="sec-1-val-scope">🌐 All Projects (Entire Portfolio)</div>
+                        </div>
+                        <div class="sec-summary-item">
+                          <span class="sec-summary-label">Owner / Creator</span>
+                          <div class="sec-summary-value" id="sec-1-val-owner">Alex Mercer</div>
+                        </div>
+                        <div class="sec-summary-item">
+                          <span class="sec-summary-label">Generation Cadence</span>
+                          <div class="sec-summary-value" id="sec-1-val-cadence">🔄 Weekly (Every Monday)</div>
+                        </div>
+                        <div class="sec-summary-item sec-summary-span-2">
+                          <span class="sec-summary-label">Description</span>
+                          <div class="sec-summary-value sec-summary-desc" id="sec-1-val-desc">Core sprint tracking, velocity, burndown, and cross-team dependencies.</div>
+                        </div>
+                        <div class="sec-summary-item sec-summary-span-2" id="sec-1-val-default-badge" style="display: none;">
+                          <span class="report-badge-default">⭐ Default Quick-Generate Template</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Section 1: Edit Form Mode -->
+                    <div class="section-edit-container" id="sec-1-edit" style="display: none;">
                       <div class="form-row-2">
                         <div class="form-group">
                           <label class="settings-label">Report Name *</label>
-                          <input type="text" id="pa-detail-name" class="settings-input" placeholder="e.g. Weekly TPM Sprint & Delivery Health" required />
+                          <input type="text" id="pa-detail-name" class="settings-input" placeholder="e.g. Weekly TPM Sprint &amp; Delivery Health" required />
                         </div>
                         <div class="form-group">
                           <label class="settings-label">Target Project Scope</label>
@@ -1291,31 +1380,77 @@
                         </div>
                       </div>
 
+                      <div class="form-row-2" style="margin-top: 12px;">
+                        <div class="form-group">
+                          <label class="settings-label">Owner / Creator</label>
+                          <select id="pa-detail-owner" class="settings-select">
+                            <option value="Alex Mercer">Alex Mercer (Lead Technical Program Manager)</option>
+                            <option value="David Kim">David Kim (VP of Engineering &amp; Executive Sponsor)</option>
+                            <option value="Rachel Green">Rachel Green (Core Platform Tech Lead)</option>
+                            <option value="Marcus Vance">Marcus Vance (Principal QA &amp; Release Architect)</option>
+                            <option value="Elena Rostova">Elena Rostova (Checkout &amp; Payments Group Product Manager)</option>
+                          </select>
+                        </div>
+                        <div class="form-group">
+                          <label class="settings-label">Generation Cadence</label>
+                          <select id="pa-detail-cadence" class="settings-select">
+                            <option value="manual">⚡ Manual / On-Demand Only</option>
+                            <option value="daily">📅 Daily Standup Digest</option>
+                            <option value="weekly" selected>🔄 Weekly (Every Monday)</option>
+                            <option value="bi-weekly">🔄 Bi-Weekly (Sprint-cadence)</option>
+                            <option value="monthly">🗓️ Monthly Executive Review</option>
+                          </select>
+                        </div>
+                      </div>
+
                       <div class="form-group" style="margin-top: 12px;">
                         <label class="settings-label">Description</label>
                         <textarea id="pa-detail-desc" class="settings-textarea" rows="2" placeholder="Brief summary of report purpose and target audience..."></textarea>
                       </div>
 
-                      <div class="form-group" style="margin-top: 10px;">
+                      <div id="pa-detail-is-default-container" class="form-group" style="margin-top: 10px;">
                         <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); cursor: pointer;">
                           <input type="checkbox" id="pa-detail-is-default" class="visual-block-checkbox" />
-                          <span>⭐ Set as Default Report Template</span>
+                          <span style="font-weight: 500;">Set as default report template for quick generation</span>
                         </label>
+                      </div>
+
+                      <div class="section-edit-footer">
+                        <button type="button" class="btn-secondary btn-section-cancel" data-section="1">Cancel</button>
+                        <button type="button" class="btn-primary btn-section-save" data-section="1"><svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Save Scope</button>
                       </div>
                     </div>
                   </div>
 
                   <!-- Step 2: Stakeholders -->
-                  <div class="process-step-card" data-step="2">
+                  <div class="process-step-card" id="section-card-2" data-step="2">
                     <div class="process-step-header">
                       <div class="process-step-badge">2</div>
                       <div class="process-step-info">
-                        <h3 class="process-step-title">Stakeholders & Audience</h3>
-                        <p class="process-step-sub">Select recipient personas to tailor AI perspective, priorities, and tone</p>
+                        <h3 class="process-step-title">Stakeholders &amp; Audience</h3>
+                        <p class="process-step-sub">Recipient personas tailored for AI perspective, risk thresholds, and tone</p>
                       </div>
-                      <span class="process-step-status" id="step2-status-badge">1 Selected</span>
+                      <div class="process-step-actions">
+                        <button type="button" class="btn-section-edit" id="btn-edit-sec-2" data-section="2">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                          Edit
+                        </button>
+                      </div>
                     </div>
-                    <div class="process-step-body">
+
+                    <!-- Section 2: View Presentation Mode -->
+                    <div class="section-view-container" id="sec-2-view">
+                      <div class="sec-stakeholders-view-grid" id="sec-2-val-stakeholders">
+                        <!-- Populated by JS -->
+                      </div>
+                      <div style="margin-top: 12px; font-size: 12.5px; color: var(--text-dim);">
+                        <span>Need to manage or add stakeholder roles? </span>
+                        <a href="#stakeholders" class="inline-link">Go to Stakeholder Settings →</a>
+                      </div>
+                    </div>
+
+                    <!-- Section 2: Edit Form Mode -->
+                    <div class="section-edit-container" id="sec-2-edit" style="display: none;">
                       <div class="studio-form-group">
                         <div class="searchable-multiselect" id="pa-stakeholders-multiselect">
                           <div class="ms-input-container" id="pa-sh-input-container">
@@ -1332,50 +1467,86 @@
                         <span>Need to manage or add stakeholder roles? </span>
                         <a href="#stakeholders" class="inline-link">Go to Stakeholder Settings →</a>
                       </div>
+                      <div class="section-edit-footer">
+                        <button type="button" class="btn-secondary btn-section-cancel" data-section="2">Cancel</button>
+                        <button type="button" class="btn-primary btn-section-save" data-section="2"><svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Save Audience</button>
+                      </div>
                     </div>
                   </div>
 
-                  <!-- Step 3: Content & Visuals (MODAL LAUNCHER) -->
-                  <div class="process-step-card" data-step="3">
+                  <!-- Step 3: Content & Visuals -->
+                  <div class="process-step-card" id="section-card-3" data-step="3">
                     <div class="process-step-header">
                       <div class="process-step-badge">3</div>
                       <div class="process-step-info">
-                        <h3 class="process-step-title">Content & Visuals</h3>
-                        <p class="process-step-sub">Select the visual charts, metrics, and sections to include in this report</p>
+                        <h3 class="process-step-title">Content &amp; Visuals</h3>
+                        <p class="process-step-sub">Visual charts, metrics, and analytics sections included in this digest</p>
                       </div>
-                      <span class="process-step-status" id="step3-status-badge">4 Sections</span>
+                      <div class="process-step-actions">
+                        <button type="button" class="btn-section-edit" id="btn-edit-sec-3" data-section="3">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                          Configure
+                        </button>
+                      </div>
                     </div>
-                    <div class="process-step-body">
-                      <div class="visuals-config-summary">
-                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px;">
-                          <span style="font-size: 13.5px; font-weight: 600; color: var(--text);">Configured Visual Sections:</span>
-                          <button type="button" id="btn-open-visuals-modal" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 13px;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                            Configure Visuals in Modal Window
-                          </button>
+
+                    <!-- Section 3: View Presentation Mode -->
+                    <div class="section-view-container" id="sec-3-view">
+                      <div class="sec-visuals-view-list" id="sec-3-val-visuals">
+                        <!-- Populated by JS -->
+                      </div>
+                    </div>
+
+                    <!-- Section 3: Edit Form Mode -->
+                    <div class="section-edit-container" id="sec-3-edit" style="display: none;">
+                      <div class="visuals-config-inline">
+                        <div id="pa-visual-blocks-grid" class="visual-blocks-list">
+                          <!-- Populated dynamically with interactive checkboxes/cards -->
                         </div>
-                        <div id="pa-selected-visuals-chips" class="selected-visuals-chips" style="display: flex; flex-wrap: wrap; gap: 6px; padding: 12px; background: rgba(0, 0, 0, 0.12); border-radius: 8px; border: 1px dashed var(--border); min-height: 48px; align-items: center;">
-                          <!-- Populated dynamically with active visual pills -->
-                        </div>
+                      </div>
+                      <div class="section-edit-footer">
+                        <button type="button" class="btn-secondary btn-section-cancel" data-section="3">Cancel</button>
+                        <button type="button" class="btn-primary btn-section-save" data-section="3"><svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Save Visuals</button>
                       </div>
                     </div>
                   </div>
 
                   <!-- Step 4: Format & Notes -->
-                  <div class="process-step-card" data-step="4">
+                  <div class="process-step-card" id="section-card-4" data-step="4">
                     <div class="process-step-header">
                       <div class="process-step-badge">4</div>
                       <div class="process-step-info">
-                        <h3 class="process-step-title">Format & Directives</h3>
-                        <p class="process-step-sub">Choose export format and optional custom instructions for AI synthesis</p>
+                        <h3 class="process-step-title">Format &amp; Directives</h3>
+                        <p class="process-step-sub">Export format and custom instructions for AI synthesis</p>
                       </div>
-                      <span class="process-step-status" id="step4-status-badge">HTML View</span>
+                      <div class="process-step-actions">
+                        <button type="button" class="btn-section-edit" id="btn-edit-sec-4" data-section="4">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                          Edit
+                        </button>
+                      </div>
                     </div>
-                    <div class="process-step-body">
+
+                    <!-- Section 4: View Presentation Mode -->
+                    <div class="section-view-container" id="sec-4-view">
+                      <div class="sec-summary-grid">
+                        <div class="sec-summary-item">
+                          <span class="sec-summary-label">Preferred Export Format</span>
+                          <div class="sec-summary-value" id="sec-4-val-format">🌐 Interactive HTML Document</div>
+                        </div>
+                        <div class="sec-summary-item sec-summary-span-2">
+                          <span class="sec-summary-label">Custom Directives &amp; Focus Instructions</span>
+                          <div class="sec-summary-value sec-summary-desc" id="sec-4-val-notes">None specified. Standard AI synthesis applied.</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Section 4: Edit Form Mode -->
+                    <div class="section-edit-container" id="sec-4-edit" style="display: none;">
                       <div class="studio-form-group" style="margin-bottom: 16px;">
                         <label class="studio-label">
-                          <span>📤 Preferred Export Format</span>
-                          <span class="studio-sublabel">Select instant export format</span>
+                          <span>Preferred Export Format</span>
+                          <span class="studio-sublabel">Select default export format</span>
                         </label>
                         <div class="format-pills" id="pa-format-pills">
                           <button type="button" class="format-pill active" data-format="html">
@@ -1395,19 +1566,33 @@
 
                       <div class="studio-form-group">
                         <label class="studio-label" for="pa-stakeholder-notes">
-                          <span>📝 Stakeholder Directives & Notes (Optional)</span>
+                          <span>📝 Stakeholder Directives &amp; Notes (Optional)</span>
                           <span class="studio-sublabel">Custom instructions for AI analysis, risk thresholds, and domain focus</span>
                         </label>
                         <textarea id="pa-stakeholder-notes" class="studio-textarea" rows="2" placeholder="e.g. Focus on milestone completion confidence, Black Friday critical path dependencies, and high-severity blocker escalations..."></textarea>
                       </div>
 
-                      <div class="process-flow-action-row">
-                        <button id="pa-btn-generate-bottom" class="btn-primary btn-lg" type="button" title="Generate report with current configuration">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                          Generate Report Digest
-                        </button>
+                      <div class="section-edit-footer">
+                        <button type="button" class="btn-secondary btn-section-cancel" data-section="4">Cancel</button>
+                        <button type="button" class="btn-primary btn-section-save" data-section="4"><svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Save Directives</button>
                       </div>
                     </div>
+                  </div>
+
+                  <!-- Creation Mode Action Footer (for reports/new) -->
+                  <div id="pa-new-report-actions" class="process-flow-action-row" style="display: none; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+                    <button type="button" id="pa-btn-new-cancel" class="btn-secondary">Cancel</button>
+                    <button type="button" id="pa-btn-new-save" class="btn-primary btn-lg">
+                      <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Create Report Template
+                    </button>
+                  </div>
+
+                  <!-- Bottom Generate Quick-Action -->
+                  <div class="process-flow-action-row" id="pa-bottom-generate-row" style="margin-top: 16px;">
+                    <button id="pa-btn-generate-bottom" class="btn-primary btn-lg" type="button" title="Generate report with current configuration" style="display: inline-flex; align-items: center; gap: 8px;">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                      Generate Report Digest
+                    </button>
                   </div>
 
                 </div>
@@ -1424,26 +1609,7 @@
               </div>
 
               <!-- ===== 4D. MODAL WINDOW: CONFIGURE VISUALS & CHARTS ===== -->
-              <div id="modal-visuals-picker" class="modal-overlay" style="display: none;">
-                <div class="modal-card">
-                  <div class="modal-header">
-                    <h3 class="modal-title">Select Visuals & Report Sections</h3>
-                    <button type="button" class="modal-close-btn" id="btn-close-visuals-modal">✕</button>
-                  </div>
-                  <div class="modal-body">
-                    <p style="font-size: 13px; color: var(--text-dim); margin: 0 0 14px 0;">
-                      Check or uncheck the charts, metrics, and AI breakdown sections to include in this report:
-                    </p>
-                    <div id="pa-visual-blocks-grid" class="visual-blocks-list">
-                      <!-- Populated dynamically with interactive checkboxes -->
-                    </div>
-                  </div>
-                  <div class="modal-footer">
-                    <button type="button" class="btn-secondary" id="btn-cancel-visuals-modal">Cancel</button>
-                    <button type="button" class="btn-primary" id="btn-apply-visuals-modal">Apply Selection</button>
-                  </div>
-                </div>
-              </div>
+
 
             </div>
           </section>
@@ -1461,6 +1627,10 @@
                     <p class="stakeholders-subtitle">Manage stakeholder personas, assigned project scopes, and AI perspective synthesis.</p>
                   </div>
                   <div class="stakeholders-header-actions">
+                    <button id="btn-reset-stakeholders" class="btn-secondary" title="Reset stakeholders to default standard personas">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                      Reset Defaults
+                    </button>
                     <button id="btn-add-stakeholder-main" class="btn-primary" title="Add a new stakeholder role">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                       Add Stakeholder
@@ -1526,67 +1696,292 @@
                 </div>
               </div>
 
-              <!-- 2. STAKEHOLDER DETAIL VIEW (DEDICATED FULL-PAGE) -->
+              <!-- 2. STAKEHOLDER DETAIL VIEW (SECTION-BASED WITH EDIT BUTTONS) -->
               <div id="stakeholder-detail-view" class="sh-subpage-view" style="display: none;">
-                <button id="btn-back-sh-detail" class="btn-secondary btn-back-sh" type="button">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                  Back to Stakeholders
-                </button>
+                <!-- Header with Back Button and Actions -->
+                <div class="report-detail-header-row">
+                  <div class="report-detail-title-wrap">
+                    <button type="button" id="btn-back-sh-detail" class="btn-secondary">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                      Back to Stakeholders
+                    </button>
+                    <div>
+                      <h2 class="reports-title" id="sh-detail-title" style="margin: 0; font-size: 20px;">Stakeholder Details</h2>
+                      <p class="reports-subtitle" id="sh-detail-subtitle" style="margin: 2px 0 0 0; font-size: 13px;">View or edit stakeholder parameters per section below.</p>
+                    </div>
+                  </div>
+                  <div class="reports-header-actions">
+                    <button type="button" id="btn-detail-delete-sh" class="btn-secondary btn-danger" style="display: inline-flex; align-items: center; gap: 6px;">
+                      <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Delete Stakeholder
+                    </button>
+                  </div>
+                </div>
 
-                <div class="sh-view-card">
-                  <div class="sh-detail-header-row">
-                    <div class="sh-detail-header-left">
-                      <div>
-                        <div class="sh-detail-title-row">
-                          <h2 id="sh-detail-title" class="sh-detail-main-title">Project Manager</h2>
-                          <div id="sh-detail-type-badge"></div>
-                        </div>
-                        <div id="sh-detail-people-count" class="sh-detail-role-lbl">2 Individual Stakeholders Assigned</div>
+                <!-- Process Flow Container for Sections -->
+                <div class="process-flow-container">
+
+                  <!-- Section 1: Persona & Role Overview -->
+                  <div class="process-step-card" id="sh-sec-card-1" data-step="1">
+                    <div class="process-step-header">
+                      <div class="process-step-info">
+                        <h3 class="process-step-title">Persona &amp; Role Overview</h3>
+                        <p class="process-step-sub">Stakeholder role title, category lens, and system ownership</p>
+                      </div>
+                      <div class="process-step-actions">
+                        <button type="button" class="btn-section-edit btn-sh-section-edit" id="btn-edit-sh-sec-1" data-section="1">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                          Edit
+                        </button>
                       </div>
                     </div>
-                    <div class="sh-detail-actions-top">
-                      <button id="btn-detail-edit-sh" class="btn-primary">Edit Role</button>
-                      <button id="btn-detail-delete-sh" class="btn-danger-outline">Delete Role</button>
+                    
+                    <!-- Section 1 View Mode -->
+                    <div class="section-view-container" id="sh-sec-1-view">
+                      <div class="sec-summary-grid">
+                        <div class="sec-summary-item">
+                          <span class="sec-summary-label">Role Title</span>
+                          <div class="sec-summary-value" id="sh-sec-1-val-role">Engineering Lead</div>
+                        </div>
+                        <div class="sec-summary-item">
+                          <span class="sec-summary-label">Role Category &amp; AI Perspective</span>
+                          <div class="sec-summary-value" id="sh-sec-1-val-category">⚙️ Engineering Lead</div>
+                        </div>
+                        <div class="sec-summary-item">
+                          <span class="sec-summary-label">Persona Type</span>
+                          <div class="sec-summary-value" id="sh-sec-1-val-type">Standard Persona</div>
+                        </div>
+                        <div class="sec-summary-item">
+                          <span class="sec-summary-label">Ownership</span>
+                          <div class="sec-summary-value" id="sh-sec-1-val-owner">Standard System Role</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Section 1 Edit Mode -->
+                    <div class="section-edit-container" id="sh-sec-1-edit" style="display: none;">
+                      <div class="form-row form-row-2">
+                        <div class="form-group">
+                          <label class="settings-label" for="sh-edit-role">Role Title <span class="required-star">*</span></label>
+                          <input type="text" id="sh-edit-role" class="settings-input" placeholder="e.g. Engineering Lead" required maxlength="80" />
+                        </div>
+                        <div class="form-group">
+                          <label class="settings-label" for="sh-edit-role-type">Role Category (AI Perspective Lens)</label>
+                          <select id="sh-edit-role-type" class="settings-select">
+                            <option value="project_manager">Project Manager (Delivery schedules, sprint health, cross-team blockers)</option>
+                            <option value="executive">Executive Sponsor (High-level milestones, strategic ROI, executive risks)</option>
+                            <option value="engineering_lead">Engineering Lead (Tech debt ratios, architecture, engineering capacity)</option>
+                            <option value="qa_lead">QA &amp; Release Lead (Test coverage, defect escape trends, release criteria)</option>
+                            <option value="product_owner">Product Owner (Feature scope, user journey conversion, backlog priorities)</option>
+                            <option value="security_lead">Security Lead (SOC2 compliance, audit trails, vuln remediation)</option>
+                            <option value="devops_lead">DevOps Lead (CI/CD pipeline throughput, infra reliability, deployment velocity)</option>
+                            <option value="custom">Custom Persona (Pure custom directives, no predefined AI bias)</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="section-edit-footer">
+                        <button type="button" class="btn-secondary btn-sh-sec-cancel" data-section="1">Cancel</button>
+                        <button type="button" class="btn-primary btn-sh-sec-save" data-section="1"><svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Save Overview</button>
+                      </div>
                     </div>
                   </div>
 
-                  <!-- Individual Stakeholders Section -->
-                  <div class="sh-detail-section">
-                    <div class="sh-detail-sec-title">Individual Stakeholders (Team Members)</div>
-                    <div id="sh-detail-people" class="sh-detail-people-grid"></div>
-                  </div>
+                  <!-- Section 2: Individual Stakeholders (Team Members) -->
+                  <div class="process-step-card" id="sh-sec-card-2" data-step="2">
+                    <div class="process-step-header">
+                      <div class="process-step-info">
+                        <h3 class="process-step-title">Individual Stakeholders (Team Members)</h3>
+                        <p class="process-step-sub" id="sh-sec-2-sub">Assigned individuals, team members, and emails</p>
+                      </div>
+                      <div class="process-step-actions">
+                        <button type="button" class="btn-section-edit btn-sh-section-edit" id="btn-edit-sh-sec-2" data-section="2">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                          Edit
+                        </button>
+                      </div>
+                    </div>
 
-                  <!-- Assigned Delivery Projects -->
-                  <div class="sh-detail-section">
-                    <div class="sh-detail-sec-title">Assigned Delivery Projects</div>
-                    <div id="sh-detail-projects" class="sh-detail-projects-grid"></div>
-                  </div>
+                    <!-- Section 2 View Mode -->
+                    <div class="section-view-container" id="sh-sec-2-view">
+                      <div id="sh-sec-2-val-people" class="sh-detail-people-grid"></div>
+                    </div>
 
-                  <!-- Priority Focus Areas -->
-                  <div class="sh-detail-section">
-                    <div class="sh-detail-sec-title">Priority Focus Areas</div>
-                    <div id="sh-detail-priorities" class="sh-detail-tags-row"></div>
-                  </div>
-
-                  <!-- Other Focus & Custom Directives -->
-                  <div class="sh-detail-section" id="sh-detail-other-section" style="display: none;">
-                    <div class="sh-detail-sec-title">Other Focus & Custom Directives</div>
-                    <div class="sh-detail-desc-card">
-                      <p id="sh-detail-other" class="sh-detail-desc-text"></p>
+                    <!-- Section 2 Edit Mode -->
+                    <div class="section-edit-container" id="sh-sec-2-edit" style="display: none;">
+                      <div class="form-group">
+                        <label class="settings-label">Team Members in this Role</label>
+                        <div class="sh-form-people-box">
+                          <div id="sh-sec-2-people-list" class="sh-form-people-chips"></div>
+                          <div class="sh-add-person-row">
+                            <input type="text" id="sh-sec-2-new-name" class="settings-input" placeholder="Person Name (e.g. Marcus Vance)" />
+                            <input type="email" id="sh-sec-2-new-email" class="settings-input" placeholder="Email (e.g. marcus@company.internal)" />
+                            <button type="button" id="btn-sh-sec-2-add-person" class="btn-secondary">+ Add Member</button>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="section-edit-footer">
+                        <button type="button" class="btn-secondary btn-sh-sec-cancel" data-section="2">Cancel</button>
+                        <button type="button" class="btn-primary btn-sh-sec-save" data-section="2"><svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Save Team Members</button>
+                      </div>
                     </div>
                   </div>
 
-                  <!-- AI Persona & Guidance -->
-                  <div class="sh-detail-section">
-                    <div class="sh-detail-sec-title">AI Persona & Synthesis Guidance</div>
-                    <div class="sh-detail-desc-card">
-                      <p id="sh-detail-desc" class="sh-detail-desc-text"></p>
+                  <!-- Section 3: Assigned Delivery Projects -->
+                  <div class="process-step-card" id="sh-sec-card-3" data-step="3">
+                    <div class="process-step-header">
+                      <div class="process-step-info">
+                        <h3 class="process-step-title">Assigned Delivery Projects</h3>
+                        <p class="process-step-sub">Delivery project scopes and RACI matrix configurations</p>
+                      </div>
+                      <div class="process-step-actions">
+                        <button type="button" class="btn-section-edit btn-sh-section-edit" id="btn-edit-sh-sec-3" data-section="3">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                          Edit
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Section 3 View Mode -->
+                    <div class="section-view-container" id="sh-sec-3-view">
+                      <div id="sh-sec-3-val-projects" class="sh-detail-projects-grid"></div>
+                    </div>
+
+                    <!-- Section 3 Edit Mode -->
+                    <div class="section-edit-container" id="sh-sec-3-edit" style="display: none;">
+                      <div class="form-group">
+                        <label class="settings-label">Assigned Delivery Projects</label>
+                        <div class="sh-form-projects-box">
+                          <div id="sh-sec-3-projects-list" class="sh-form-projects-chips"></div>
+                          <div class="sh-add-project-row">
+                            <select id="sh-sec-3-add-project-select" class="settings-select">
+                              <option value="CHK">CHK — Checkout &amp; Commerce Flow</option>
+                              <option value="CORE">CORE — Platform Core &amp; Analytics</option>
+                              <option value="MOB">MOB — Mobile Parity &amp; Security</option>
+                              <option value="HRZ">HRZ — Project Horizon</option>
+                            </select>
+                            <button type="button" id="btn-sh-sec-3-add-project" class="btn-secondary">+ Add Project</button>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="sh-project-assign-notice" style="margin-top: 10px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        <div>
+                          <strong>RACI &amp; Reporting Customization</strong>
+                          <p>You can fine-tune specific RACI roles (R/A/C/I) and reporting levels directly in each project's settings.</p>
+                        </div>
+                      </div>
+                      <div class="section-edit-footer">
+                        <button type="button" class="btn-secondary btn-sh-sec-cancel" data-section="3">Cancel</button>
+                        <button type="button" class="btn-primary btn-sh-sec-save" data-section="3"><svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Save Projects</button>
+                      </div>
                     </div>
                   </div>
+
+                  <!-- Section 4: Priority Focus Areas -->
+                  <div class="process-step-card" id="sh-sec-card-4" data-step="4">
+                    <div class="process-step-header">
+                      <div class="process-step-info">
+                        <h3 class="process-step-title">Priority Focus Areas</h3>
+                        <p class="process-step-sub">Key delivery metrics, risk themes, and focus pillars for this stakeholder</p>
+                      </div>
+                      <div class="process-step-actions">
+                        <button type="button" class="btn-section-edit btn-sh-section-edit" id="btn-edit-sh-sec-4" data-section="4">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                          Edit
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Section 4 View Mode -->
+                    <div class="section-view-container" id="sh-sec-4-view">
+                      <div id="sh-sec-4-val-priorities" class="sh-detail-tags-row"></div>
+                    </div>
+
+                    <!-- Section 4 Edit Mode -->
+                    <div class="section-edit-container" id="sh-sec-4-edit" style="display: none;">
+                      <div class="form-group">
+                        <label class="settings-label">Priority Focus Areas</label>
+                        <div class="sh-form-prios-box">
+                          <div id="sh-sec-4-prios-list" class="sh-form-prios-chips"></div>
+                          <div class="sh-add-prio-row">
+                            <select id="sh-sec-4-add-prio-select" class="settings-select">
+                              <option value="">-- Choose preset focus area --</option>
+                              <option value="Velocity & Burndown">Velocity &amp; Burndown</option>
+                              <option value="Sprint Health">Sprint Health</option>
+                              <option value="Milestone Forecasts">Milestone Forecasts</option>
+                              <option value="Risks & Blockers">Risks &amp; Blockers</option>
+                              <option value="Technical Debt">Technical Debt</option>
+                              <option value="Quality & Defects">Quality &amp; Defects</option>
+                              <option value="Architecture & Scale">Architecture &amp; Scale</option>
+                              <option value="Budget & ROI">Budget &amp; ROI</option>
+                              <option value="Security & Compliance">Security &amp; Compliance</option>
+                              <option value="Release Criteria">Release Criteria</option>
+                              <option value="Scope & User Flow">Scope &amp; User Flow</option>
+                            </select>
+                            <input type="text" id="sh-sec-4-custom-prio-input" class="settings-input" placeholder="Or custom focus..." maxlength="40" />
+                            <button type="button" id="btn-sh-sec-4-add-prio" class="btn-secondary">+ Add Focus Area</button>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="section-edit-footer">
+                        <button type="button" class="btn-secondary btn-sh-sec-cancel" data-section="4">Cancel</button>
+                        <button type="button" class="btn-primary btn-sh-sec-save" data-section="4"><svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Save Priorities</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Section 5: AI Persona & Synthesis Guidance -->
+                  <div class="process-step-card" id="sh-sec-card-5" data-step="5">
+                    <div class="process-step-header">
+                      <div class="process-step-info">
+                        <h3 class="process-step-title">AI Persona &amp; Synthesis Guidance</h3>
+                        <p class="process-step-sub">Guidance directives and custom instructions used by AI report generation and assistants</p>
+                      </div>
+                      <div class="process-step-actions">
+                        <button type="button" class="btn-section-edit btn-sh-section-edit" id="btn-edit-sh-sec-5" data-section="5">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                          Edit
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Section 5 View Mode -->
+                    <div class="section-view-container" id="sh-sec-5-view">
+                      <div class="sec-summary-grid">
+                        <div class="sec-summary-item sec-summary-span-2">
+                          <span class="sec-summary-label">AI Persona Description &amp; Perspective Lens</span>
+                          <div class="sec-summary-value sec-summary-desc" id="sh-sec-5-val-desc">Focuses on technical debt, architecture, engineering capacity, and defect ratios.</div>
+                        </div>
+                        <div class="sec-summary-item sec-summary-span-2" id="sh-sec-5-val-other-container">
+                          <span class="sec-summary-label">Other Custom Directives &amp; Focus</span>
+                          <div class="sec-summary-value sec-summary-desc" id="sh-sec-5-val-other">None</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Section 5 Edit Mode -->
+                    <div class="section-edit-container" id="sh-sec-5-edit" style="display: none;">
+                      <div class="form-group">
+                        <label class="settings-label" for="sh-edit-desc">Persona Description &amp; General AI Guidance</label>
+                        <textarea id="sh-edit-desc" class="settings-textarea" rows="2" placeholder="e.g. Focuses on technical debt, architecture, engineering capacity, and defect ratios."></textarea>
+                      </div>
+                      <div class="form-group" style="margin-top: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                          <label class="settings-label" for="sh-edit-other">Other Custom Directives (Max 500 characters)</label>
+                          <span class="char-counter" id="sh-edit-other-counter">0 / 500 characters</span>
+                        </div>
+                        <textarea id="sh-edit-other" class="settings-textarea" rows="2" maxlength="500" placeholder="e.g. Highlight SOC2 compliance, API latency SLAs, third-party payment gateway failover..."></textarea>
+                      </div>
+                      <div class="section-edit-footer">
+                        <button type="button" class="btn-secondary btn-sh-sec-cancel" data-section="5">Cancel</button>
+                        <button type="button" class="btn-primary btn-sh-sec-save" data-section="5"><svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Save Guidance</button>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
 
-              <!-- 3. STAKEHOLDER FORM VIEW (DEDICATED FULL-PAGE) -->
+              <!-- 3. STAKEHOLDER CREATION VIEW (FOR + ADD STAKEHOLDER) -->
               <div id="stakeholder-form-view" class="sh-subpage-view" style="display: none;">
                 <button id="btn-back-sh-form" class="btn-secondary btn-back-sh" type="button">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
@@ -1609,12 +2004,12 @@
                         <input type="text" id="sh-form-role" class="settings-input" placeholder="e.g. Engineering Lead" required maxlength="80" />
                       </div>
                       <div class="form-group">
-                        <label class="settings-label" for="sh-form-role-type">Role Category (AI Persona & Perspective Lens)</label>
+                        <label class="settings-label" for="sh-form-role-type">Role Category (AI Persona &amp; Perspective Lens)</label>
                         <select id="sh-form-role-type" class="settings-select">
                           <option value="project_manager">Project Manager (Delivery schedules, sprint health, cross-team blockers)</option>
                           <option value="executive">Executive Sponsor (High-level milestones, strategic ROI, executive risks)</option>
                           <option value="engineering_lead">Engineering Lead (Tech debt ratios, architecture, engineering capacity)</option>
-                          <option value="qa_lead">QA & Release Lead (Test coverage, defect escape trends, release criteria)</option>
+                          <option value="qa_lead">QA &amp; Release Lead (Test coverage, defect escape trends, release criteria)</option>
                           <option value="product_owner">Product Owner (Feature scope, user journey conversion, backlog priorities)</option>
                           <option value="security_lead">Security Lead (SOC2 compliance, audit trails, vuln remediation)</option>
                           <option value="devops_lead">DevOps Lead (CI/CD pipeline throughput, infra reliability, deployment velocity)</option>
@@ -1643,14 +2038,14 @@
                     <div class="sh-project-assign-notice">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                       <div>
-                        <strong>Project Assignments & RACI Customization</strong>
-                        <p>Projects are assigned to stakeholders directly in each <a href="#projects" class="inline-link">Project's Settings & RACI Matrix</a>. You can customize RACI responsibility (R/A/C/I) and reporting levels per project after saving.</p>
+                        <strong>Project Assignments &amp; RACI Customization</strong>
+                        <p>Projects are assigned to stakeholders directly in each <a href="#projects" class="inline-link">Project's Settings &amp; RACI Matrix</a>. You can customize RACI responsibility (R/A/C/I) and reporting levels per project after saving.</p>
                       </div>
                     </div>
 
                     <!-- Key Focus & Priority Areas (Dynamic Chip Manager) -->
                     <div class="form-group">
-                      <label class="settings-label">Key Focus & Priority Areas</label>
+                      <label class="settings-label">Key Focus &amp; Priority Areas</label>
                       <div id="sh-form-prios-container" class="sh-form-prios-box">
                         <div id="sh-form-prios-list" class="sh-form-prios-chips">
                           <!-- Focus tags with ✕ remove button populated via JS -->
@@ -1658,16 +2053,17 @@
                         <div class="sh-add-prio-row">
                           <select id="sh-add-prio-select" class="settings-select">
                             <option value="">-- Choose preset focus area --</option>
-                            <option value="Velocity & Burndown">Velocity & Burndown</option>
+                            <option value="Velocity & Burndown">Velocity &amp; Burndown</option>
                             <option value="Sprint Health">Sprint Health</option>
                             <option value="Milestone Forecasts">Milestone Forecasts</option>
-                            <option value="Risks & Blockers">Risks & Blockers</option>
+                            <option value="Risks & Blockers">Risks &amp; Blockers</option>
                             <option value="Technical Debt">Technical Debt</option>
-                            <option value="Quality & Defects">Quality & Defects</option>
-                            <option value="Budget & ROI">Budget & ROI</option>
-                            <option value="Security & Compliance">Security & Compliance</option>
+                            <option value="Quality & Defects">Quality &amp; Defects</option>
+                            <option value="Architecture & Scale">Architecture &amp; Scale</option>
+                            <option value="Budget & ROI">Budget &amp; ROI</option>
+                            <option value="Security & Compliance">Security &amp; Compliance</option>
                             <option value="Release Criteria">Release Criteria</option>
-                            <option value="Scope & User Flow">Scope & User Flow</option>
+                            <option value="Scope & User Flow">Scope &amp; User Flow</option>
                           </select>
                           <input type="text" id="sh-custom-prio-input" class="settings-input" placeholder="Or custom focus..." maxlength="40" />
                           <button type="button" id="btn-add-prio-item" class="btn-secondary">+ Add Focus Area</button>
@@ -1678,7 +2074,7 @@
                     <!-- Other Free Text Focus Area -->
                     <div class="form-group">
                       <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <label class="settings-label" for="sh-form-other">Other Focus Areas & Free-Text Directives</label>
+                        <label class="settings-label" for="sh-form-other">Other Focus Areas &amp; Free-Text Directives</label>
                         <span class="char-counter" id="sh-form-other-counter">0 / 500 characters</span>
                       </div>
                       <textarea id="sh-form-other" class="settings-textarea" rows="2" maxlength="500" placeholder="e.g. Highlight SOC2 compliance, API latency SLAs, third-party payment gateway failover..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
@@ -1687,13 +2083,13 @@
 
                     <!-- Persona Description / AI Notes -->
                     <div class="form-group">
-                      <label class="settings-label" for="sh-form-desc">Persona Description & General AI Guidance</label>
+                      <label class="settings-label" for="sh-form-desc">Persona Description &amp; General AI Guidance</label>
                       <textarea id="sh-form-desc" class="settings-textarea" rows="2" placeholder="e.g. Focus on high-level delivery schedules, sprint health, cross-team dependencies, and team velocity weekly." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
                     </div>
 
                     <div class="sh-form-actions">
                       <button type="button" id="btn-cancel-sh-form" class="btn-secondary">Cancel</button>
-                      <button type="submit" id="btn-sh-form-submit" class="btn-primary">Save Role</button>
+                      <button type="submit" id="btn-sh-form-submit" class="btn-primary">Create Role</button>
                     </div>
                   </form>
                 </div>
@@ -1716,7 +2112,7 @@
                     Restore Defaults
                   </button>
                   <button id="btn-page-save-settings" class="btn-primary" type="button">
-                    💾 Save Settings
+                    <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Save Settings
                   </button>
                 </div>
               </div>
@@ -1931,6 +2327,6 @@
     </div>
   </aside>
 
-  <script type="module" src="js/main.js?v=13"></script>
+  <script type="module" src="js/main.js?v=14"></script>
 </body>
 </html>

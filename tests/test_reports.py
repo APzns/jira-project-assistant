@@ -107,11 +107,52 @@ class TestReportsEndpoint(unittest.TestCase):
         res = self.client.get("/reports/non-existent-template-id")
         self.assertEqual(res.status_code, 404)
 
+    def test_default_templates_have_project_scopes(self):
+        res = self.client.get("/reports")
+        self.assertEqual(res.status_code, 200)
+        templates = res.json().get("templates", [])
+        scopes = {t["id"]: t.get("project_scope") for t in templates}
+        self.assertEqual(scopes.get("report-pm-weekly"), "CHK")
+        self.assertEqual(scopes.get("report-squad-quality"), "CORE")
+        self.assertEqual(scopes.get("report-milestone-forecast"), "MOB")
+        self.assertEqual(scopes.get("report-dependency-blocker"), "HRZ")
+        self.assertEqual(scopes.get("report-exec-brief"), "HRZ")
+
+    def test_get_reports_filtered_by_project_key(self):
+        # Filtering for CHK should return CHK scoped templates plus ALL
+        res_chk = self.client.get("/reports?project_key=CHK")
+        self.assertEqual(res_chk.status_code, 200)
+        data_chk = res_chk.json()
+        ids_chk = [t["id"] for t in data_chk["templates"]]
+        self.assertIn("report-pm-weekly", ids_chk)
+        self.assertNotIn("report-squad-quality", ids_chk)
+
+        # Filtering for CORE should return CORE scoped templates
+        res_core = self.client.get("/reports?project_key=CORE")
+        self.assertEqual(res_core.status_code, 200)
+        data_core = res_core.json()
+        ids_core = [t["id"] for t in data_core["templates"]]
+        self.assertIn("report-squad-quality", ids_core)
+        self.assertNotIn("report-pm-weekly", ids_core)
+
+    def test_default_templates_have_owner_and_cadence(self):
+        res = self.client.get("/reports")
+        self.assertEqual(res.status_code, 200)
+        templates = res.json().get("templates", [])
+        for t in templates:
+            self.assertIn("owner", t)
+            self.assertTrue(t["owner"])
+            self.assertIn("cadence", t)
+            self.assertIn(t["cadence"], ["manual", "daily", "weekly", "bi-weekly", "monthly"])
+
     def test_create_update_and_delete_template(self):
-        # 1. Create
+        # 1. Create with project_scope, owner, cadence
         create_payload = {
             "name": "Custom Test Sprint Report",
             "description": "A customized sprint health report for testing.",
+            "project_scope": "CHK",
+            "owner": "Marcus Vance",
+            "cadence": "bi-weekly",
             "is_default": False,
             "stakeholder_ids": ["pm-default"],
             "stakeholder_notes": "Focus on velocity",
@@ -125,11 +166,17 @@ class TestReportsEndpoint(unittest.TestCase):
         self.assertIsNotNone(created)
         tpl_id = created["id"]
         self.assertEqual(created["name"], "Custom Test Sprint Report")
+        self.assertEqual(created.get("project_scope"), "CHK")
+        self.assertEqual(created.get("owner"), "Marcus Vance")
+        self.assertEqual(created.get("cadence"), "bi-weekly")
 
         # 2. Update
         update_payload = {
             "name": "Updated Test Sprint Report",
             "description": "Updated description",
+            "project_scope": "CORE",
+            "owner": "David Kim",
+            "cadence": "monthly",
             "is_default": False,
             "stakeholder_ids": ["pm-default", "exec-sponsor"],
             "blocks": [
@@ -141,6 +188,9 @@ class TestReportsEndpoint(unittest.TestCase):
         self.assertEqual(res_update.status_code, 200)
         updated = res_update.json().get("template")
         self.assertEqual(updated["name"], "Updated Test Sprint Report")
+        self.assertEqual(updated.get("project_scope"), "CORE")
+        self.assertEqual(updated.get("owner"), "David Kim")
+        self.assertEqual(updated.get("cadence"), "monthly")
         self.assertEqual(len(updated["blocks"]), 2)
 
         # 3. Delete

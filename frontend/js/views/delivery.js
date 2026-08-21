@@ -632,7 +632,7 @@ export function drawDeliveryTable() {
         <td class="team-cell" style="padding-left: 20px;">
           <span class="tree-line">├──</span>
           ${swatch}
-          <span style="color: #ffffff; font-weight: 600; font-size: 13px;">${escapeHtml(t)}</span>
+          <span style="color: var(--text); font-weight: 600; font-size: 13px;">${escapeHtml(t)}</span>
         </td>
         <td>${c} SP</td>
         <td class="${teamCls}">${basis} SP</td>
@@ -646,7 +646,7 @@ export function drawDeliveryTable() {
         <td>
           <button type="button" class="tree-toggle-btn per-team-toggle" data-target="${rowId}">
             <span class="tree-icon">${isExp ? "▼" : "►"}</span>
-            <span style="color: #ffffff; font-weight: 600; font-size: 13px;">${escapeHtml(sprint)}</span>
+            <span style="color: var(--text); font-weight: 600; font-size: 13px;">${escapeHtml(sprint)}</span>
           </button>
           <span class="sprint-state s-${st}">${tag}</span>
         </td>

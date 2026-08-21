@@ -17,6 +17,7 @@ class Question(BaseModel):
     question: str
     history: Optional[list] = None   # list of {"question": ..., "answer": ...}
     context: Optional[str] = None    # active tab: assessment | status | delivery | quality
+    project_key: Optional[str] = None # active project filter e.g. "MOB", "CHK", "CORE"
 
 
 @router.post("")
@@ -29,7 +30,14 @@ def ask(payload: Question, request: Request, db: Session = Depends(get_db)):
         )
     log_ai_question(client_ip, payload.question, payload.context)
     try:
-        result = llm.answer_question(payload.question, db, payload.history, payload.context, client_ip=client_ip)
+        result = llm.answer_question(
+            payload.question,
+            db,
+            payload.history,
+            payload.context,
+            client_ip=client_ip,
+            project_key=payload.project_key
+        )
         log_ai_answer(client_ip, result.get("answer") if isinstance(result, dict) else str(result))
         return result
     except Exception as exc:

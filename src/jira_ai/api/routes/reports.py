@@ -2,11 +2,11 @@
 
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -29,6 +29,10 @@ class ReportTemplate(BaseModel):
     id: Optional[str] = None
     name: str
     description: Optional[str] = ""
+    project_scope: Optional[str] = Field(default="ALL", description="Target project key e.g. 'CHK', 'CORE', 'MOB', 'HRZ', or 'ALL'")
+    owner: Optional[str] = Field(default="Alex Mercer", description="Owner or creator of the report template")
+    cadence: Optional[str] = Field(default="weekly", description="Generation cadence: 'manual', 'daily', 'weekly', 'bi-weekly', 'monthly'")
+    last_generated_at: Optional[str] = Field(default=None, description="ISO timestamp of last report generation")
     is_default: bool = False
     stakeholder_ids: List[str] = Field(default_factory=lambda: ["pm-default"])
     stakeholder_notes: Optional[str] = ""
@@ -50,6 +54,10 @@ DEFAULT_TEMPLATES = [
         "id": "report-exec-brief",
         "name": "Executive Program Status Briefing",
         "description": "High-level strategic briefing on milestone delivery dates, schedule risks, and key strategic decisions for leadership.",
+        "project_scope": "HRZ",
+        "owner": "David Kim",
+        "cadence": "monthly",
+        "last_generated_at": "2026-08-20T14:30:00Z",
         "is_default": False,
         "stakeholder_ids": ["exec", "pm-default"],
         "stakeholder_notes": "Focus on overall milestone delivery dates, business risks, budget/scope tradeoffs, and required executive steering decisions.",
@@ -64,6 +72,10 @@ DEFAULT_TEMPLATES = [
         "id": "report-pm-weekly",
         "name": "Weekly TPM Sprint & Delivery Health",
         "description": "Operational sprint delivery tracking, sprint predictability, capacity drag, burnup velocity, and cross-team dependencies.",
+        "project_scope": "CHK",
+        "owner": "Alex Mercer",
+        "cadence": "weekly",
+        "last_generated_at": "2026-08-21T09:15:00Z",
         "is_default": True,
         "stakeholder_ids": ["pm-default"],
         "stakeholder_notes": "Highlight active sprint overcommitments, velocity bottlenecks, carryover risks, and immediate sprint-level action items.",
@@ -78,6 +90,10 @@ DEFAULT_TEMPLATES = [
         "id": "report-dependency-blocker",
         "name": "Cross-Team Dependency & Blocker Matrix",
         "description": "Deep-dive analysis on inter-team dependencies, critical path bottlenecks, upstream blockers, and alignment across squads.",
+        "project_scope": "HRZ",
+        "owner": "Rachel Green",
+        "cadence": "bi-weekly",
+        "last_generated_at": "2026-08-18T11:00:00Z",
         "is_default": False,
         "stakeholder_ids": ["pm-default", "eng-lead"],
         "stakeholder_notes": "Emphasize critical path dependencies, cross-team handoffs, and blocker mitigations across squads.",
@@ -92,6 +108,10 @@ DEFAULT_TEMPLATES = [
         "id": "report-squad-quality",
         "name": "Squad Quality & Defect Deep-Dive",
         "description": "Detailed view on defect density, bug escape rates, regression testing load, and engineering technical debt across squads.",
+        "project_scope": "CORE",
+        "owner": "Marcus Vance",
+        "cadence": "weekly",
+        "last_generated_at": "2026-08-19T16:45:00Z",
         "is_default": False,
         "stakeholder_ids": ["eng-lead", "qa-lead"],
         "stakeholder_notes": "Focus on team quality benchmarks, defect distribution across squads, and test automation coverage.",
@@ -106,6 +126,10 @@ DEFAULT_TEMPLATES = [
         "id": "report-milestone-forecast",
         "name": "Milestone Delivery & Monte Carlo Forecast",
         "description": "Probabilistic delivery forecasting for milestones (M0-M3), Monte Carlo throughput simulations, and completion date ranges.",
+        "project_scope": "MOB",
+        "owner": "Elena Rostova",
+        "cadence": "manual",
+        "last_generated_at": "2026-08-15T10:20:00Z",
         "is_default": False,
         "stakeholder_ids": ["exec", "eng-lead", "po-commerce"],
         "stakeholder_notes": "Focus on statistical completion confidence intervals, milestone slippage risk, and capacity forecasting.",
@@ -137,9 +161,20 @@ def _read_reports_from_disk() -> dict:
 
 
 @router.get("")
-def get_reports() -> dict:
-    """Return the current reports.json contents."""
-    return _read_reports_from_disk()
+def get_reports(project_key: Optional[str] = Query(None, description="Filter reports by project key or 'ALL'")) -> dict:
+    """Return the current reports.json contents, optionally filtered by project_key."""
+    data = _read_reports_from_disk()
+    templates = data.get("templates", [])
+
+    if project_key:
+        pkey = project_key.upper().strip()
+        filtered = [
+            t for t in templates
+            if (t.get("project_scope") or "ALL").upper() == pkey or (t.get("project_scope") or "ALL").upper() == "ALL"
+        ]
+        return {"templates": filtered, "total": len(filtered)}
+
+    return {"templates": templates, "total": len(templates)}
 
 
 @router.get("/{template_id}")
@@ -160,7 +195,7 @@ def save_reports(payload: ReportsData) -> dict:
         data = payload.model_dump(exclude_unset=True)
         templates = data.get("templates", [])
 
-        now = datetime.utcnow().isoformat() + "Z"
+        now = datetime.now(timezone.utc).isoformat()
 
         # Ensure every template has an id and timestamps
         for t in templates:
@@ -188,7 +223,7 @@ def create_report(template: ReportTemplate) -> dict:
     """Create a new report template."""
     data = _read_reports_from_disk()
     templates = data.get("templates", [])
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat()
 
     t_dict = template.model_dump(exclude_unset=True)
     if not t_dict.get("id"):
@@ -220,7 +255,7 @@ def update_report(template_id: str, template: ReportTemplate) -> dict:
     """Update an existing report template."""
     data = _read_reports_from_disk()
     templates = data.get("templates", [])
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat()
 
     idx = next((i for i, t in enumerate(templates) if t.get("id") == template_id), None)
     if idx is None:

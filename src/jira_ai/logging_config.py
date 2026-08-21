@@ -57,7 +57,12 @@ def setup_logging(log_level: str | int | None = None) -> logging.Logger:
         file_handler.setFormatter(formatter)
         file_handler.addFilter(quiet_filter)
 
-        # Console output stream handler
+        # Console output stream handler with unicode protection
+        if hasattr(sys.stdout, "reconfigure"):
+            try:
+                sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
+            except Exception:
+                pass
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(level)
         console_handler.setFormatter(formatter)

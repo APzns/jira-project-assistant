@@ -206,7 +206,7 @@ export function renderQualityDefects(bugStats, isNewData = true) {
         <td class="team-cell" style="padding-left: 20px;">
           <span class="tree-line">├──</span>
           ${swatch}
-          <span style="color: #ffffff; font-weight: 600; font-size: 13px;">${escapeHtml(tName)}</span>
+          <span style="color: var(--text); font-weight: 600; font-size: 13px;">${escapeHtml(tName)}</span>
         </td>
         <td class="${tRatioCls}">${tBugSp} SP</td>
         <td>${tOtherSp} SP</td>
@@ -229,7 +229,7 @@ export function renderQualityDefects(bugStats, isNewData = true) {
       <td>
         <button type="button" class="tree-toggle-btn per-team-toggle" data-target="${rowId}">
           <span class="tree-icon">${isExp ? "▼" : "►"}</span>
-          <span style="color: #ffffff; font-weight: 600; font-size: 13px;">${escapeHtml(sprintName)}</span>
+          <span style="color: var(--text); font-weight: 600; font-size: 13px;">${escapeHtml(sprintName)}</span>
         </button>
         <span class="sprint-state ${stateCls}">${stateTag}</span>
       </td>

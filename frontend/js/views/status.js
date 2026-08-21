@@ -346,7 +346,16 @@ export function renderStatusBreakdown() {
 
   let rowIdCounter = 0;
   
-  Object.keys(byFixVersion).sort().forEach((vName) => {
+  const sortedVersions = Object.keys(byFixVersion).sort((a, b) => {
+    if (a === "(none)") return 1;
+    if (b === "(none)") return -1;
+    const dateA = byFixVersion[a]?.release_date || "9999-99-99";
+    const dateB = byFixVersion[b]?.release_date || "9999-99-99";
+    if (dateA !== dateB) return dateA.localeCompare(dateB);
+    return a.localeCompare(b);
+  });
+
+  sortedVersions.forEach((vName) => {
     const vObj = byFixVersion[vName];
     const sId = "v-" + rowIdCounter++;
     const sTag = vObj.state === "closed" ? "completed" : vObj.state === "active" ? "active" : "planned";
@@ -375,7 +384,7 @@ export function renderStatusBreakdown() {
       <td>
         <button type="button" class="tree-toggle-btn tgl-btn" data-target="${sId}" data-child-class="row-team">
           <span class="tree-icon">${isExp ? "▼" : "►"}</span>
-          <span style="color: #ffffff; font-weight: 600; font-size: 13px;">${escapeHtml(vName)}</span>
+          <span style="color: var(--text); font-weight: 600; font-size: 13px;">${escapeHtml(vName)}</span>
         </button>
         <span class="sprint-state s-${vObj.state}">${sTag}</span>
         ${dateStr}${delayBadge}
@@ -396,7 +405,7 @@ export function renderStatusBreakdown() {
           <button type="button" class="tree-toggle-btn tgl-btn" data-target="${tId}" data-child-class="row-issue">
             <span class="tree-icon">${isExpT ? "▼" : "►"}</span>
             ${swatch}
-            <span style="color: #ffffff; font-weight: 600; font-size: 13px;">${escapeHtml(tName)}</span>
+            <span style="color: var(--text); font-weight: 600; font-size: 13px;">${escapeHtml(tName)}</span>
           </button>
         </td>
         <td>${getCountsStr(tObj.items)}</td>
