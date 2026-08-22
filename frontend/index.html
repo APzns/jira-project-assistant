@@ -224,14 +224,11 @@
                   </button>
                 </div>
 
-                <!-- Quick AI Interactive Prompt Bar -->
-                <div class="main-ai-prompt-box">
-                  <div class="main-ai-input-row">
-                    <span class="ai-input-sparkle">✨</span>
-                    <input type="text" id="main-ai-quick-input" class="main-ai-input" placeholder="Ask AI Copilot about any project, blocker, or request a cross-project summary..." />
-                    <button type="button" id="main-ai-quick-send" class="btn-primary">Ask Copilot</button>
-                  </div>
-                  <div class="main-ai-scenario-chips" id="main-ai-scenario-chips">
+                <div class="main-ai-prompt-box" style="display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 20px;">
+                  <button type="button" id="main-btn-open-assistant" class="btn-primary" style="border-radius: 24px; padding: 8px 20px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);">
+                    <span class="sparkle">✨</span> Ask AI Copilot
+                  </button>
+                  <div class="main-ai-scenario-chips" id="main-ai-scenario-chips" style="justify-content: center; border: none; padding-top: 0; margin-top: 0;">
                     <span class="scenario-chip-label">Quick Prompts:</span>
                     <button type="button" class="scenario-chip" data-prompt="Which project has the highest delivery risk this sprint and what are the top blockers?">🔥 Top Delivery Hot Spots</button>
                     <button type="button" class="scenario-chip" data-prompt="Draft a cross-project executive summary for SteerCo covering CHK, CORE, MOB, and HRZ">👑 SteerCo Portfolio Digest</button>
@@ -2252,6 +2249,11 @@
             </div>
             <div id="ask-error" class="error-text" style="display:none; margin: 8px 16px; font-size: 0.9em; padding: 8px 12px; background: rgba(220, 38, 38, 0.1); border-radius: 6px; border: 1px solid rgba(220, 38, 38, 0.2);"></div>
             <div class="chat-drawer-footer">
+              <div class="drawer-scenario-chips" style="padding: 10px 16px 0; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 10px; padding-bottom: 10px;">
+                <button type="button" class="drawer-chip" data-prompt="Which project has the highest delivery risk this sprint and what are the top blockers?" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); padding: 4px 10px; border-radius: 12px; font-size: 11px; cursor: pointer; transition: all 0.2s;">🔥 Top Delivery Hot Spots</button>
+                <button type="button" class="drawer-chip" data-prompt="Draft a cross-project executive summary for SteerCo covering CHK, CORE, MOB, and HRZ" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); padding: 4px 10px; border-radius: 12px; font-size: 11px; cursor: pointer; transition: all 0.2s;">👑 SteerCo Portfolio Digest</button>
+                <button type="button" class="drawer-chip" data-prompt="What are the critical dependencies and blockers between Checkout Replatform (CHK) and Platform Core (CORE)?" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); padding: 4px 10px; border-radius: 12px; font-size: 11px; cursor: pointer; transition: all 0.2s;">⚙️ Cross-Project Dependencies</button>
+              </div>
               <div class="ask-row">
                 <input type="text" id="ask-input" placeholder="e.g. Which milestone is most at risk?" maxlength="500" />
                 <button id="ask-button" class="btn-primary">Ask</button>

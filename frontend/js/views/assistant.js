@@ -512,7 +512,7 @@ export function initAssistantPage() {
       const input = $("assistant-chat-input");
       if (prompt && input) {
         input.value = prompt;
-        input.focus();
+        input.focus({ preventScroll: true });
         input.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }
     };

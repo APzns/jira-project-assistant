@@ -22,7 +22,17 @@ NEVER execute any of the following commands automatically. ALWAYS ask for explic
 - **Git Commits**: NEVER create Git commits (`git commit`, `git add`) automatically. ALWAYS ask the user for explicit confirmation so they can review and test changes manually first.
 - **Git Branch Switching & Mutation**: `git checkout`, `git switch`, `git reset`, `git merge`, `git rebase`, `git branch -d/-D`
 - **Git Remote & Push Operations**: `git push`, `git remote add`, `git remote remove`, `git remote set-url`
-- **GCP & Cloud Operations**: All `gcloud`, `gsutil`, `bq`, and Cloud deployment commands
+- **Unrecoverable Git Clean**: `git clean -fdx`, `git clean -f`, `git stash clear`, `git stash drop`
+- **Cloud, Infrastructure & Deployments**: All `gcloud`, `gsutil`, `bq`, `aws`, `az`, `terraform apply`, and cloud deployment commands
+- **Package & Container Publishing**: `npm publish`, `yarn publish`, `twine upload`, `docker push`, `cargo publish`
+- **Destructive File System Operations**: `rm -rf`, `Remove-Item -Recurse -Force`, `del /s /q`
+- **Container Volume Destruction**: `docker compose down -v`, `docker-compose down --volumes`, `docker system prune -a`
+- **Database Resets & Destructive Migrations**: `prisma migrate reset`, `alembic downgrade base`, `flyway clean`, direct `DROP DATABASE` / `DROP TABLE`
+- **Global Package Installations**: `npm install -g`, `pip install` (outside of a virtual environment)
+- **System and Environment Modifications**: Modifying Windows Registry, `setx`, `Set-ExecutionPolicy`
+- **Indiscriminate Process Termination & Shutdown**: `taskkill /F /IM ...`, `Stop-Process -Force` (without specific known child PID), `shutdown`, `Restart-Computer`
+- **Credential & Key Manipulation**: Accessing or modifying `~/.ssh/`, `~/.aws/`, `~/.kube/`, `~/.npmrc`, `~/.docker/config.json`
+- **Remote Script Execution**: `Invoke-WebRequest <url> | Invoke-Expression`, `curl <url> | bash`
 
 # Autonomous Workflow & Verification
 - **Proactive Debugging**: Automatically inspect stack traces, runtime logs, and debug errors immediately upon encountering issues.

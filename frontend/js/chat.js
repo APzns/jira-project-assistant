@@ -16,7 +16,7 @@ export function openChatDrawer() {
   if (fab) fab.classList.add("hidden");
   setTimeout(() => {
     const input = $("ask-input");
-    if (input) input.focus();
+    if (input) input.focus({ preventScroll: true });
     window.dispatchEvent(new Event("resize"));
   }, 150);
 }
@@ -226,5 +226,15 @@ export function initChatEvents(inputId = "ask-input", buttonId = "ask-button") {
 
   document.addEventListener("keydown", e => {
     if (e.key === "Escape" && document.activeElement === input) collapseChatDrawer();
+  });
+
+  document.querySelectorAll(".drawer-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      const prompt = chip.dataset.prompt;
+      if (prompt && input) {
+        input.value = prompt;
+        input.focus({ preventScroll: true });
+      }
+    });
   });
 }

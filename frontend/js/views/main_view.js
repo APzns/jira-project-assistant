@@ -576,51 +576,41 @@ export function initMainPageEvents() {
     };
   });
 
-  // Refresh AI Analysis Button
+  // Refresh AI Analysis Button -> routes to full analyze status skill
   const refreshAiBtn = $("main-refresh-ai-btn");
   if (refreshAiBtn) {
     refreshAiBtn.onclick = () => {
-      refreshAiBtn.disabled = true;
-      refreshAiBtn.textContent = "Analyzing…";
-      renderMainPage().finally(() => {
-        refreshAiBtn.disabled = false;
-        refreshAiBtn.textContent = "🔄 Re-analyze";
-      });
+      window.location.hash = "assistant";
+      setTimeout(() => {
+        const analyzeBtn = document.getElementById("pa-btn-analyze");
+        if (analyzeBtn) {
+          analyzeBtn.click();
+        }
+      }, 150);
     };
   }
 
-  // Inline AI Quick Input Send -> opens Ask AI Copilot drawer
-  const quickInput = $("main-ai-quick-input");
-  const quickSendBtn = $("main-ai-quick-send");
-
-  function handleQuickSend() {
-    if (!quickInput) return;
-    const q = quickInput.value.trim();
-    if (!q) return;
-    quickInput.value = "";
-    askAiCopilot(q);
-  }
-
-  if (quickSendBtn) {
-    quickSendBtn.onclick = handleQuickSend;
-  }
-
-  if (quickInput) {
-    quickInput.onkeydown = (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        handleQuickSend();
-      }
+  // Inline AI Open button -> opens Ask AI Copilot drawer
+  const openAssistantBtn = $("main-btn-open-assistant");
+  if (openAssistantBtn) {
+    openAssistantBtn.onclick = () => {
+      openChatDrawer();
     };
   }
 
-  // Quick scenario chips -> populate prompt suggestion into quick input box
+  // Quick scenario chips -> populate prompt suggestion into drawer
   document.querySelectorAll(".scenario-chip").forEach(chip => {
     chip.onclick = () => {
       const prompt = chip.dataset.prompt;
-      if (prompt && quickInput) {
-        quickInput.value = prompt;
-        quickInput.focus();
+      if (prompt) {
+        openChatDrawer();
+        setTimeout(() => {
+          const input = document.getElementById("ask-input");
+          if (input) {
+            input.value = prompt;
+            input.focus({ preventScroll: true });
+          }
+        }, 150);
       }
     };
   });

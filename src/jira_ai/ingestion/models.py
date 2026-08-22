@@ -107,6 +107,23 @@ class AssessmentCache(Base):
     )
 
 
+class ProjectSetting(Base):
+    """Stores user-configured display metadata, thresholds, and AI guidelines for tracked projects."""
+
+    __tablename__ = "project_settings"
+
+    key: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String)
+    description: Mapped[str] = mapped_column(String)
+    target_release: Mapped[str | None] = mapped_column(String, nullable=True)
+    tags: Mapped[str | None] = mapped_column(String, nullable=True) # Comma separated
+    ai_guidelines: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Thresholds
+    at_risk_blockers: Mapped[int | None] = mapped_column(Integer, nullable=True, default=2)
+    at_risk_delay_days: Mapped[int | None] = mapped_column(Integer, nullable=True, default=5)
+
+
 class MetricsSnapshot(Base):
     __tablename__ = "metrics_snapshots"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
