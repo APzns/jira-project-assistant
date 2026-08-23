@@ -480,6 +480,12 @@ export interface NextStepAction {
   rationale: string;
 }
 
+export interface StakeholderPerspectives {
+  executive?: string;
+  engineering?: string;
+  product?: string;
+}
+
 export interface ProposeNextStepsResponse {
   skill: 'propose-next-steps';
   project_key?: string;
@@ -489,6 +495,8 @@ export interface ProposeNextStepsResponse {
   cached_at?: string;
   actions: NextStepAction[];
   summary?: string;
+  profile_summary?: string;
+  stakeholder_perspectives?: StakeholderPerspectives;
 }
 
 /** generate-report response */

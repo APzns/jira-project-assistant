@@ -401,6 +401,11 @@ function _buildSprintPlanningHtml(data) {
 function _buildNextStepsHtml(data) {
   const actions = data.actions || [];
   const summary = data.summary || "";
+  const profileSummary = data.profile_summary || "";
+  const perspectives = data.stakeholder_perspectives || {};
+  const settings = data.settings_applied || {};
+  const profileName = settings.profile_name || "";
+  const stakeholder = settings.stakeholder || "";
   const pClass = p => p === "P1" ? "priority-p1" : p === "P2" ? "priority-p2" : "priority-p3";
 
   const actionRows = actions.map(a => `
@@ -413,14 +418,43 @@ function _buildNextStepsHtml(data) {
       <div class="skill-item-body">${escapeHtml(a.rationale || "")}</div>
     </div>`).join("");
 
+  const hasPerspectives = perspectives.executive || perspectives.engineering || perspectives.product;
+
   return `
     <div class="pa-result-header">
       <span class="pa-result-icon">▶</span>
-      <div>
+      <div style="flex:1;">
         <div class="pa-result-title">Proposed Next Steps</div>
-        ${summary ? `<p class="skill-summary">${escapeHtml(summary)}</p>` : ""}
+        ${summary ? `
+        <div class="skill-overview-box" style="margin-top:10px; padding:10px 14px; background:rgba(255,255,255,0.03); border-radius:6px; border-left:3px solid var(--accent-color, #4f46e5);">
+          <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; opacity:0.8; margin-bottom:4px;">🌐 General Program Overview</div>
+          <p class="skill-summary" style="margin:0; font-size:13px; line-height:1.5;">${escapeHtml(summary)}</p>
+        </div>` : ""}
+        ${profileSummary ? `
+        <div class="skill-profile-box" style="margin-top:8px; padding:10px 14px; background:rgba(99, 102, 241, 0.08); border-radius:6px; border-left:3px solid #818cf8;">
+          <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:#818cf8; margin-bottom:4px;">
+            🎯 Profile Context: ${escapeHtml(profileName || "Active Profile")} ${stakeholder ? `(${escapeHtml(stakeholder.replace('_', ' '))})` : ""}
+          </div>
+          <p class="skill-profile-summary" style="margin:0; font-size:13px; line-height:1.5;">${escapeHtml(profileSummary)}</p>
+        </div>` : ""}
+        ${hasPerspectives ? `
+        <div class="skill-perspectives-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-top:12px;">
+          <div class="skill-lens-card" style="padding:10px 12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:6px;">
+            <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:#f59e0b; margin-bottom:4px;">👔 Executive View</div>
+            <div style="font-size:12px; line-height:1.45; opacity:0.9;">${escapeHtml(perspectives.executive || "Milestone & schedule oversight.")}</div>
+          </div>
+          <div class="skill-lens-card" style="padding:10px 12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:6px;">
+            <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:#10b981; margin-bottom:4px;">⚙️ Engineering View</div>
+            <div style="font-size:12px; line-height:1.45; opacity:0.9;">${escapeHtml(perspectives.engineering || "Squad capacity & blocker triage.")}</div>
+          </div>
+          <div class="skill-lens-card" style="padding:10px 12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:6px;">
+            <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:#38bdf8; margin-bottom:4px;">📦 Product &amp; Scope View</div>
+            <div style="font-size:12px; line-height:1.45; opacity:0.9;">${escapeHtml(perspectives.product || "Scope alignment & MVP protection.")}</div>
+          </div>
+        </div>` : ""}
       </div>
     </div>
+    <h4 class="skill-section-title" style="margin-top:16px;">Prioritized Action Plan (${actions.length})</h4>
     ${actionRows || `<p class="skill-empty">No actions generated with your current settings.</p>`}`;
 }
 

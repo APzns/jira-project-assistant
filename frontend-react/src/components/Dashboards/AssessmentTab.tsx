@@ -141,32 +141,32 @@ export const AssessmentTab: React.FC<AssessmentTabProps> = ({ assessmentData, on
     const p80SeriesData = (mc.p80_line && mc.p80_line.length ? mc.p80_line : forecastData).map((p: any) => [new Date(p.x).getTime(), p.y]);
 
     const markLines = [];
-    if (mc.target_date) markLines.push({ xAxis: new Date(mc.target_date).getTime(), lineStyle: { color: 'rgba(239, 68, 68, 0.85)', type: 'dashed' }, label: { formatter: 'Target', position: 'start', color: '#f87171' }});
-    if (mc.p50_date) markLines.push({ xAxis: new Date(mc.p50_date).getTime(), lineStyle: { color: 'rgba(59, 130, 246, 0.85)', type: 'dashed' }, label: { formatter: 'P50', color: '#60a5fa' }});
-    if (mc.p80_date) markLines.push({ xAxis: new Date(mc.p80_date).getTime(), lineStyle: { color: 'rgba(234, 179, 8, 0.85)', type: 'dashed' }, label: { formatter: 'P80', color: '#facc15' }});
-    if (mc.total_scope) markLines.push({ yAxis: mc.total_scope, lineStyle: { color: 'rgba(230, 233, 239, 0.35)', type: 'dashed' }, label: { formatter: 'Target Scope', color: '#e6e9ef' }});
+    if (mc.target_date) markLines.push({ xAxis: new Date(mc.target_date).getTime(), lineStyle: { color: '#dc2626', width: 2, type: 'dashed' }, label: { formatter: 'Target', position: 'start', color: '#991b1b', fontWeight: 'bold' }});
+    if (mc.p50_date) markLines.push({ xAxis: new Date(mc.p50_date).getTime(), lineStyle: { color: '#2563eb', width: 2, type: 'dashed' }, label: { formatter: 'P50', position: 'start', color: '#1e40af', fontWeight: 'bold' }});
+    if (mc.p80_date) markLines.push({ xAxis: new Date(mc.p80_date).getTime(), lineStyle: { color: '#d97706', width: 2, type: 'dashed' }, label: { formatter: 'P80', position: 'start', color: '#92400e', fontWeight: 'bold' }});
+    if (mc.total_scope) markLines.push({ yAxis: mc.total_scope, lineStyle: { color: '#64748b', width: 1.5, type: 'dashed' }, label: { formatter: 'Target Scope', position: 'end', color: '#1e293b', fontWeight: 'bold' }});
 
     echartsOption = {
       tooltip: { trigger: 'axis' },
-      legend: { textStyle: { color: '#e2e8f0' } },
+      legend: { textStyle: { color: '#1e293b', fontWeight: 600, fontSize: 12 }, itemGap: 20 },
       grid: { left: '3%', right: '8%', bottom: '3%', containLabel: true },
       xAxis: { 
         type: 'time', 
-        axisLabel: { color: '#9aa4b2' }, 
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } }
+        axisLabel: { color: '#334155', fontWeight: 600 }, 
+        splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } }
       },
       yAxis: { 
         type: 'value', 
-        axisLabel: { color: '#9aa4b2' }, 
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } }
+        axisLabel: { color: '#334155', fontWeight: 600 }, 
+        splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } }
       },
       series: [
         {
           name: 'Delivered (Cumulative SP)',
           type: 'line',
           data: actualSeriesData,
-          itemStyle: { color: '#4c8dff' },
-          areaStyle: { color: 'rgba(76, 141, 255, 0.15)' },
+          itemStyle: { color: '#2563eb' },
+          areaStyle: { color: 'rgba(37, 99, 235, 0.12)' },
           smooth: true,
           showSymbol: true,
           symbolSize: 6,
@@ -176,8 +176,8 @@ export const AssessmentTab: React.FC<AssessmentTabProps> = ({ assessmentData, on
           name: 'P50 Likely Forecast',
           type: 'line',
           data: p50SeriesData,
-          itemStyle: { color: '#60a5fa' },
-          lineStyle: { type: 'dashed' },
+          itemStyle: { color: '#0284c7' },
+          lineStyle: { type: 'dashed', width: 2.5 },
           showSymbol: false,
           smooth: true,
         },
@@ -185,8 +185,8 @@ export const AssessmentTab: React.FC<AssessmentTabProps> = ({ assessmentData, on
           name: 'P80 Conservative Forecast',
           type: 'line',
           data: p80SeriesData,
-          itemStyle: { color: '#f5a623' },
-          lineStyle: { type: 'dashed' },
+          itemStyle: { color: '#d97706' },
+          lineStyle: { type: 'dashed', width: 2.5 },
           showSymbol: false,
           smooth: true,
         }
@@ -323,10 +323,10 @@ export const AssessmentTab: React.FC<AssessmentTabProps> = ({ assessmentData, on
             </div>
           )}
           <p id="mc-note" className="chart-note muted">
-            {mc?.target_date && <span style={{ color: '#f87171' }}>🎯 Target Date: <strong>{mc.target_date}</strong></span>}
-            {mc?.p50_date && <>&nbsp;|&nbsp;<span style={{ color: '#60a5fa' }}>🔵 P50 Est: <strong>{mc.p50_date}</strong></span></>}
-            {mc?.p80_date && <>&nbsp;|&nbsp;<span style={{ color: '#facc15' }}>🟡 P80 Est: <strong>{mc.p80_date}</strong></span></>}
-            {mc?.total_scope && <>&nbsp;|&nbsp;<span style={{ color: '#9aa4b2' }}>📊 Target Scope: <strong>{mc.total_scope} SP</strong></span></>}
+            {mc?.target_date && <span style={{ color: '#dc2626', fontWeight: 600 }}>🎯 Target Date: <strong>{mc.target_date}</strong></span>}
+            {mc?.p50_date && <>&nbsp;|&nbsp;<span style={{ color: '#2563eb', fontWeight: 600 }}>🔵 P50 Est: <strong>{mc.p50_date}</strong></span></>}
+            {mc?.p80_date && <>&nbsp;|&nbsp;<span style={{ color: '#d97706', fontWeight: 600 }}>🟡 P80 Est: <strong>{mc.p80_date}</strong></span></>}
+            {mc?.total_scope && <>&nbsp;|&nbsp;<span style={{ color: '#334155', fontWeight: 600 }}>📊 Target Scope: <strong>{mc.total_scope} SP</strong></span></>}
           </p>
 
           <div className="ai-summary forecast" id="a-forecast">

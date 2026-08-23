@@ -908,6 +908,32 @@ Return a valid JSON object matching the required schema.
 _NEXT_STEPS_SCHEMA = {
     "type": "object",
     "properties": {
+        "summary": {
+            "type": "string",
+            "description": "General program overview highlighting overall delivery situation across teams and milestones.",
+        },
+        "profile_summary": {
+            "type": "string",
+            "description": "Perspective summary tailored directly to the active stakeholder profile (persona, tone, focus teams/epics, and custom instructions).",
+        },
+        "stakeholder_perspectives": {
+            "type": "object",
+            "properties": {
+                "executive": {
+                    "type": "string",
+                    "description": "Executive takeaway focusing on release milestone target dates, key business schedule impacts, and required leadership decisions.",
+                },
+                "engineering": {
+                    "type": "string",
+                    "description": "Engineering takeaway focusing on squad capacity overload, critical ticket blockers, and defect triage priorities.",
+                },
+                "product": {
+                    "type": "string",
+                    "description": "Product and scope takeaway focusing on deliverable scope trade-offs, MVP feature protection, and sprint backlog hygiene.",
+                },
+            },
+            "required": ["executive", "engineering", "product"],
+        },
         "actions": {
             "type": "array",
             "items": {
@@ -921,9 +947,8 @@ _NEXT_STEPS_SCHEMA = {
                 "required": ["title", "priority", "rationale"],
             },
         },
-        "summary": {"type": "string"},
     },
-    "required": ["actions"],
+    "required": ["actions", "summary"],
 }
 
 
@@ -954,8 +979,49 @@ def _build_fallback_next_steps(snapshot: dict, settings: dict) -> dict:
             },
         ]
 
+    stakeholder = settings.get("stakeholder", "program_manager")
+    profile_name = settings.get("profile_name", "Default Report")
+    focus_teams = settings.get("focus_teams", [])
+    custom_inst = settings.get("custom_instructions", "")
+
+    if stakeholder == "executive":
+        profile_summary = f"Executive briefing ({profile_name}): High-level focus on milestone trajectory, critical blocker escalation, and strategic delivery assurance."
+    elif stakeholder == "engineer":
+        profile_summary = f"Engineering & Squad perspective ({profile_name}): Deep dive on ticket-level blockers, defect remediation, and team capacity balancing."
+    else:
+        profile_summary = f"Program Manager perspective ({profile_name}): Operational review tracking cross-team dependency links, sprint predictability, and execution risks."
+
+    if focus_teams:
+        profile_summary += f" Focused squads: {', '.join(focus_teams)}."
+    if custom_inst:
+        profile_summary += f" Applied directives: {custom_inst[:120]}{'...' if len(custom_inst) > 120 else ''}."
+
+    delayed = snapshot.get("forecast_delay_days", 0)
+    blockers = snapshot.get("blocked_issues", 0)
+    overcommit = snapshot.get("overcommit_next", 0)
+
+    exec_note = (
+        f"Milestone completion is currently at risk with ~{delayed} days forecast delay."
+        if delayed and delayed > 0
+        else "Milestone trajectory is on track; maintain active monitoring of critical path items."
+    )
+    eng_note = (
+        f"Address {blockers} blocked issue(s) and resolve overcommitment in next sprint ({overcommit} SP above velocity)."
+        if blockers or overcommit
+        else "Squad velocity and sprint allocations are balanced; focus on regular backlog burnup."
+    )
+    prod_note = "Review and protect MVP scope in current sprint; defer non-critical backlog items if capacity slips."
+
+    stakeholder_perspectives = {
+        "executive": exec_note,
+        "engineering": eng_note,
+        "product": prod_note,
+    }
+
     return {
-        "summary": "Prioritized tactical action plan addressing cross-team dependency blockers, sprint commitments, and milestone targets.",
+        "summary": "General delivery overview: Tactical action plan addressing cross-team dependency blockers, sprint commitments, and milestone targets across active delivery streams.",
+        "profile_summary": profile_summary,
+        "stakeholder_perspectives": stakeholder_perspectives,
         "actions": actions,
     }
 
@@ -987,6 +1053,10 @@ def skill_propose_next_steps(payload: SkillRequest, db: Session = Depends(get_db
 {settings_block}
 """
 
+    profile_name = settings.get("profile_name", "Default")
+    stakeholder_role = settings.get("stakeholder", "program_manager")
+    verbosity = settings.get("summary_verbosity", "brief")
+
     user_prompt = f"""You are performing a Propose Next Steps skill run.
 Project Scope: {payload.project_key or 'ALL (Global Portfolio)'}
 
@@ -995,7 +1065,15 @@ Project Scope: {payload.project_key or 'ALL (Global Portfolio)'}
 {metrics_ctx}
 </untrusted_data>
 
-Based strictly on the metrics above, generate 3–7 prioritized actions (P1/P2/P3).
+Based strictly on the metrics above, generate the response with:
+1. `summary`: General program delivery overview highlighting overall situation across teams and milestones (1-2 sentences).
+2. `profile_summary`: Perspective summary directly aligned with the active profile "{profile_name}" (Role: {stakeholder_role}, Verbosity: {verbosity}). Reflect the specific tone, focus squads/epics, and custom user instructions.
+3. `stakeholder_perspectives`: Concise 1-sentence takeaways for each key stakeholder lens:
+   - `executive`: Milestone trajectory, business schedule impact, leadership escalation points.
+   - `engineering`: Squad capacity overload, ticket-level blockers, defect drag.
+   - `product`: Scope trade-offs, sprint scope protection, delivery priorities.
+4. `actions`: 3–7 prioritized tactical actions (P1/P2/P3) with concrete owners, titles, and rationale backed by numbers from the data.
+
 Apply AI Settings filters (focus_teams, focus_epics, min_risk_severity) and custom instructions.
 Return a JSON object matching the required schema. Do not invent data not present in the metrics.
 """

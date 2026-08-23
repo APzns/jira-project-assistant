@@ -138,6 +138,13 @@ class TestSkillSuite(unittest.TestCase):
         data = res.json()
         self.assertEqual(data.get("skill"), "propose-next-steps")
         self.assertIn("actions", data)
+        self.assertIn("summary", data)
+        self.assertIn("profile_summary", data)
+        self.assertIn("stakeholder_perspectives", data)
+        perspectives = data.get("stakeholder_perspectives", {})
+        self.assertIn("executive", perspectives)
+        self.assertIn("engineering", perspectives)
+        self.assertIn("product", perspectives)
 
     def test_generate_report_endpoint(self):
         payload = {"project_key": "ALL", "force_refresh": True}
