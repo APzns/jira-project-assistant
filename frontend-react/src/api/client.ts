@@ -17,6 +17,9 @@ import type {
   SaveReportsResponse,
   SkillRequest,
   AnalyzeStatusResponse,
+  AssessRisksResponse,
+  ForecastDeliveryResponse,
+  SprintPlanningResponse,
   ProposeNextStepsResponse,
   GenerateReportResponse,
   AskResponse,
@@ -244,6 +247,33 @@ export async function analyzeStatus(
   payload: SkillRequest = {},
 ): Promise<AnalyzeStatusResponse> {
   return callSkill<AnalyzeStatusResponse>('analyze-status', payload);
+}
+
+/**
+ * Run the "Assess Risks" skill.
+ */
+export async function assessRisks(
+  payload: SkillRequest = {},
+): Promise<AssessRisksResponse> {
+  return callSkill<AssessRisksResponse>('assess-risks', payload);
+}
+
+/**
+ * Run the "Forecast Delivery" skill.
+ */
+export async function forecastDelivery(
+  payload: SkillRequest = {},
+): Promise<ForecastDeliveryResponse> {
+  return callSkill<ForecastDeliveryResponse>('forecast-delivery', payload);
+}
+
+/**
+ * Run the "Sprint Planning" skill.
+ */
+export async function sprintPlanning(
+  payload: SkillRequest = {},
+): Promise<SprintPlanningResponse> {
+  return callSkill<SprintPlanningResponse>('sprint-planning', payload);
 }
 
 /**

@@ -421,10 +421,22 @@ When querying metrics or database for '{detected_pkey}', filter issues by `key L
     skill_ctx = ""
     skill_used = None
     _SKILL_INTENT_MAP = {
+        "assess-risks": [
+            "risk", "risks", "blocker", "blockers", "blocked", "dependency", "dependencies",
+            "overcommitment", "overcommitted", "capacity drag", "defect ratio", "bug ratio",
+        ],
+        "forecast-delivery": [
+            "forecast", "monte carlo", "projection", "when will we finish", "p50", "p85", "p95",
+            "delivery date", "simulation", "what if", "critical path", "lead time",
+        ],
+        "sprint-planning": [
+            "sprint planning", "backlog hygiene", "missing estimates", "unestimated", "unassigned",
+            "capacity balance", "workload", "sprint readiness", "definition of ready",
+        ],
         "analyze-status": [
             "delay", "delays", "slipping", "overdue", "at risk", "analyze status",
             "status analysis", "find delays", "what's behind", "monitoring",
-            "health", "blocker", "blockers", "blocked",
+            "health", "pacing", "milestone progress", "predictability",
         ],
         "propose-next-steps": [
             "next steps", "what should we do", "actions", "recommendations",

@@ -107,6 +107,24 @@ class AssessmentCache(Base):
     )
 
 
+class SkillCache(Base):
+    """Stores generated skill analyses (e.g. analyze-status, assess-risks, forecast-delivery,
+    sprint-planning, propose-next-steps, generate-report) keyed by deterministic signature
+    (skill_name, project_key, settings_hash) so repeated UI views or assistant inquiries return instantly."""
+
+    __tablename__ = "skill_cache"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    cache_key: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    skill_name: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    project_key: Mapped[str] = mapped_column(String, index=True, nullable=False, default="ALL")
+    settings_hash: Mapped[str] = mapped_column(String, nullable=False)
+    payload: Mapped[str] = mapped_column(Text, nullable=False)  # JSON payload
+    generated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)
+    )
+
+
 class ProjectSetting(Base):
     """Stores user-configured display metadata, thresholds, and AI guidelines for tracked projects."""
 

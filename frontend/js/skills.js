@@ -114,6 +114,18 @@ export async function analyzeStatus(extraPayload = {}) {
   return callSkill("analyze-status", extraPayload);
 }
 
+export async function assessRisks(extraPayload = {}) {
+  return callSkill("assess-risks", extraPayload);
+}
+
+export async function forecastDelivery(extraPayload = {}) {
+  return callSkill("forecast-delivery", extraPayload);
+}
+
+export async function sprintPlanning(extraPayload = {}) {
+  return callSkill("sprint-planning", extraPayload);
+}
+
 export async function proposeNextSteps(extraPayload = {}) {
   return callSkill("propose-next-steps", extraPayload);
 }
@@ -250,9 +262,11 @@ function _buildGenerateReportHtml(data) {
 function _buildAnalyzeStatusHtml(data) {
   const summary = data.summary || "";
   const delays = data.delays || [];
-  const risks = data.risks || [];
-  const forecast = data.forecast_summary || data.program_health || "";
-  const sevIcon = s => s === "high" ? "🔴" : s === "medium" ? "🟡" : "🟢";
+  const milestones = data.milestones || [];
+  const healthScore = data.program_health_score || "";
+  const overallStatus = (data.overall_status || "on_track").toLowerCase();
+  const pacing = data.sprint_pacing?.pacing_verdict || "";
+  const riskOverview = data.risk_overview || {};
 
   const delayRows = delays.map(d => `
     <div class="skill-item">
@@ -263,26 +277,125 @@ function _buildAnalyzeStatusHtml(data) {
         : ""}
     </div>`).join("");
 
-  const riskRows = risks.map(r => `
-    <div class="skill-item skill-item--${escapeHtml(r.severity || "low")}">
-      <div class="skill-item-title">${sevIcon(r.severity)} <strong>${escapeHtml(r.title || "")}</strong></div>
-      <div class="skill-item-meta">${escapeHtml(r.area || "")} — ${escapeHtml(r.evidence || "")}</div>
-      <div class="skill-item-body">💡 ${escapeHtml(r.mitigation || "")}</div>
+  const milestoneRows = milestones.map(m => `
+    <div class="skill-item">
+      <div class="skill-item-title">
+        <strong>${escapeHtml(m.name || "")}</strong>
+        <span class="badge ${escapeHtml(m.status || "on_track")}" style="margin-left:8px; font-size:11px; padding:2px 8px;">${escapeHtml((m.status || "").replace("_", " "))}</span>
+      </div>
+      <div class="skill-item-meta">${escapeHtml(m.progress || "")} ${m.forecast ? `· 📅 ${escapeHtml(m.forecast)}` : ""}</div>
+      ${m.details ? `<div class="skill-item-body">${escapeHtml(m.details)}</div>` : ""}
     </div>`).join("");
 
   return `
     <div class="pa-result-header">
       <span class="pa-result-icon">🔍</span>
       <div>
-        <div class="pa-result-title">Analyze Status</div>
+        <div class="pa-result-title">Analyze Status <span class="pa-report-status-badge ${overallStatus}">${escapeHtml(overallStatus.replace("_", " "))}</span></div>
         ${summary ? `<p class="skill-summary">${escapeHtml(summary)}</p>` : ""}
-        ${forecast ? `<p class="skill-forecast">📊 ${escapeHtml(forecast)}</p>` : ""}
+        ${pacing ? `<p class="skill-forecast">⚡ <strong>Sprint Pacing:</strong> ${escapeHtml(pacing)}</p>` : ""}
+        ${healthScore ? `<p class="skill-item-meta">📊 Program Health Score: <strong>${escapeHtml(healthScore)}</strong> · Active Blockers: <strong>${escapeHtml(String(riskOverview.blockers_count || 0))}</strong></p>` : ""}
       </div>
     </div>
-    ${delays.length ? `<h4 class="skill-section-title">Delays (${delays.length})</h4>${delayRows}` : ""}
-    ${risks.length ? `<h4 class="skill-section-title">Risks &amp; Mitigations (${risks.length})</h4>${riskRows}` : ""}
-    ${!delays.length && !risks.length
-      ? `<p class="skill-empty">✅ No delays or risks found with your current settings.</p>` : ""}`;
+    ${milestones.length ? `<h4 class="skill-section-title">Milestones (${milestones.length})</h4>${milestoneRows}` : ""}
+    ${delays.length ? `<h4 class="skill-section-title">Delays &amp; Slippages (${delays.length})</h4>${delayRows}` : ""}
+    ${!milestones.length && !delays.length ? `<p class="skill-empty">✅ Program is tracking smoothly on schedule.</p>` : ""}`;
+}
+
+function _buildAssessRisksHtml(data) {
+  const summary = data.summary || "";
+  const risks = data.risks || [];
+  const riskLevel = (data.overall_risk_level || "medium").toLowerCase();
+  const blockersCount = data.blockers_count || 0;
+  const overcommit = data.overcommitment_summary || "";
+  const quality = data.quality_drag_summary || "";
+  const sevIcon = s => s === "high" || s === "critical" ? "🔴" : s === "medium" ? "🟡" : "🟢";
+
+  const riskRows = risks.map(r => `
+    <div class="skill-item skill-item--${escapeHtml(r.severity || "low")}">
+      <div class="skill-item-title">${sevIcon(r.severity)} <strong>${escapeHtml(r.title || "")}</strong></div>
+      <div class="skill-item-meta">${escapeHtml(r.area || "")} ${r.evidence ? `— ${escapeHtml(r.evidence)}` : ""} ${r.owner ? `(Owner: ${escapeHtml(r.owner)})` : ""}</div>
+      <div class="skill-item-body">💡 <em>Mitigation:</em> ${escapeHtml(r.mitigation || "")}</div>
+    </div>`).join("");
+
+  return `
+    <div class="pa-result-header">
+      <span class="pa-result-icon">⚠️</span>
+      <div>
+        <div class="pa-result-title">Assess Risks &amp; Blockers <span class="badge ${riskLevel === "critical" || riskLevel === "high" ? "delayed" : "at_risk"}">${escapeHtml(riskLevel.toUpperCase())}</span></div>
+        ${summary ? `<p class="skill-summary">${escapeHtml(summary)}</p>` : ""}
+        <p class="skill-item-meta">🔗 Active Dependency Blockers: <strong>${escapeHtml(String(blockersCount))}</strong></p>
+        ${overcommit ? `<p class="skill-item-meta">⚖️ <em>Capacity:</em> ${escapeHtml(overcommit)}</p>` : ""}
+        ${quality ? `<p class="skill-item-meta">🧪 <em>Quality:</em> ${escapeHtml(quality)}</p>` : ""}
+      </div>
+    </div>
+    ${risks.length ? `<h4 class="skill-section-title">Identified Risks &amp; Mitigations (${risks.length})</h4>${riskRows}` : "<p class=\"skill-empty\">✅ No critical blockers or capacity risks detected.</p>"}`;
+}
+
+function _buildForecastDeliveryHtml(data) {
+  const summary = data.summary || "";
+  const mc = data.monte_carlo || {};
+  const delayDays = data.forecast_delay_days || 0;
+  const scenarios = data.trade_off_scenarios || [];
+  const criticalPath = data.critical_path || [];
+
+  const scenarioRows = scenarios.map(sc => `
+    <div class="skill-item">
+      <div class="skill-item-title"><strong>${escapeHtml(sc.name || "")}</strong></div>
+      <div class="skill-item-meta">Scope Delta: <strong>${sc.scope_delta_sp > 0 ? `+${sc.scope_delta_sp}` : sc.scope_delta_sp} SP</strong> · Schedule Delta: <strong>${sc.schedule_delta_days > 0 ? `+${sc.schedule_delta_days}` : sc.schedule_delta_days} Days</strong></div>
+      <div class="skill-item-body">${escapeHtml(sc.description || "")} ${sc.recommendation ? `— <em>${escapeHtml(sc.recommendation)}</em>` : ""}</div>
+    </div>`).join("");
+
+  const cpRows = criticalPath.map(cp => `
+    <div class="skill-item ${cp.bottleneck ? "skill-item--high" : ""}">
+      <div class="skill-item-title">${cp.bottleneck ? "🚨 " : "⛓️ "}<strong>${escapeHtml(cp.step || "")}</strong> (${escapeHtml(cp.team || "")})</div>
+      ${cp.duration_estimate ? `<div class="skill-item-meta">Estimated Lead Time: ${escapeHtml(cp.duration_estimate)}</div>` : ""}
+    </div>`).join("");
+
+  return `
+    <div class="pa-result-header">
+      <span class="pa-result-icon">🎲</span>
+      <div>
+        <div class="pa-result-title">Forecast Delivery &amp; Monte Carlo</div>
+        ${summary ? `<p class="skill-summary">${escapeHtml(summary)}</p>` : ""}
+        <p class="skill-item-meta">📅 <strong>P50 (Expected):</strong> ${escapeHtml(mc.p50_date || "N/A")} · <strong>P85 (Commit):</strong> ${escapeHtml(mc.p85_date || "N/A")} · Delay Variance: <strong>${delayDays} day(s)</strong></p>
+      </div>
+    </div>
+    ${criticalPath.length ? `<h4 class="skill-section-title">Critical Path &amp; Gating Dependencies</h4>${cpRows}` : ""}
+    ${scenarios.length ? `<h4 class="skill-section-title">What-If Trade-Off Scenarios</h4>${scenarioRows}` : ""}`;
+}
+
+function _buildSprintPlanningHtml(data) {
+  const summary = data.summary || "";
+  const score = data.readiness_score || "N/A";
+  const hygiene = data.backlog_hygiene || {};
+  const capacity = data.capacity_analysis || [];
+  const recs = data.balancing_recommendations || [];
+
+  const capRows = capacity.map(c => `
+    <div class="skill-item ${c.status === "overcommitted" ? "skill-item--high" : ""}">
+      <div class="skill-item-title"><strong>${escapeHtml(c.team || "")}</strong> <span class="badge ${c.status === "overcommitted" ? "delayed" : "on_track"}">${escapeHtml(c.status || "balanced")}</span></div>
+      <div class="skill-item-meta">Committed: <strong>${c.committed_sp} SP</strong> vs Velocity: <strong>${c.historical_velocity} SP</strong> (${c.overcommit_pct ? `${c.overcommit_pct > 0 ? "+" : ""}${c.overcommit_pct}%` : "0%"})</div>
+    </div>`).join("");
+
+  const recRows = recs.map(r => `
+    <div class="skill-item">
+      <div class="skill-item-title"><span class="skill-priority priority-p1">${escapeHtml(r.priority || "P1")}</span> <strong>${escapeHtml(r.action || "")}</strong></div>
+      ${r.candidate_issue_key ? `<div class="skill-item-meta">Target Issue: <code>${escapeHtml(r.candidate_issue_key)}</code></div>` : ""}
+      <div class="skill-item-body">${escapeHtml(r.rationale || "")}</div>
+    </div>`).join("");
+
+  return `
+    <div class="pa-result-header">
+      <span class="pa-result-icon">📋</span>
+      <div>
+        <div class="pa-result-title">Sprint Planning &amp; Backlog Hygiene <span class="badge on_track">Readiness: ${escapeHtml(score)}</span></div>
+        ${summary ? `<p class="skill-summary">${escapeHtml(summary)}</p>` : ""}
+        <p class="skill-item-meta">🔍 Unestimated Tickets: <strong>${hygiene.unestimated_count || 0}</strong> · Unassigned Critical Work: <strong>${hygiene.unassigned_high_priority_count || 0}</strong></p>
+      </div>
+    </div>
+    ${capacity.length ? `<h4 class="skill-section-title">Team Capacity vs. Commitments</h4>${capRows}` : ""}
+    ${recs.length ? `<h4 class="skill-section-title">Balancing Recommendations</h4>${recRows}` : ""}`;
 }
 
 function _buildNextStepsHtml(data) {

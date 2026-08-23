@@ -312,10 +312,12 @@ export const AVAILABLE_BLOCKS: ComposerBlockDef[] = [
 
 export interface SkillRequest {
   context?: string;
+  project_key?: string;
   profile_id?: string;
   template_id?: string;
   custom_instructions?: string;
   settings_override?: Record<string, unknown>;
+  force_refresh?: boolean;
   // Report-composer fields passed by readPaSettingsForm
   name?: string;
   description?: string;
@@ -332,23 +334,142 @@ export interface AnalyzeStatusDelay {
   confidence?: string;
 }
 
-export interface SkillRisk {
-  title: string;
-  severity: string;
-  area?: string;
-  evidence?: string;
-  impact?: string;
-  mitigation: string;
+export interface SprintPacing {
+  completed_sp?: number;
+  committed_sp?: number;
+  pacing_verdict: string;
+}
+
+export interface RiskOverview {
+  blockers_count: number;
+  high_risks_count?: number;
+  brief: string;
 }
 
 export interface AnalyzeStatusResponse {
   skill: 'analyze-status';
+  project_key?: string;
   settings_applied: Record<string, unknown>;
+  generated_at?: string;
+  cached?: boolean;
+  cached_at?: string;
   summary: string;
+  overall_status: string; // "on_track" | "at_risk" | "delayed"
+  program_health_score: string;
+  sprint_pacing?: SprintPacing;
+  milestones: ReportMilestone[];
   delays: AnalyzeStatusDelay[];
+  predictability_summary?: string;
+  risk_overview: RiskOverview;
+}
+
+/** assess-risks response */
+export interface SkillRisk {
+  title: string;
+  severity: 'critical' | 'high' | 'medium' | 'low' | string;
+  area: string;
+  evidence: string;
+  impact?: string;
+  mitigation: string;
+  owner?: string;
+}
+
+export interface AssessRisksResponse {
+  skill: 'assess-risks';
+  project_key?: string;
+  settings_applied: Record<string, unknown>;
+  generated_at?: string;
+  cached?: boolean;
+  cached_at?: string;
+  summary: string;
+  overall_risk_level: 'critical' | 'high' | 'medium' | 'low' | string;
+  blockers_count: number;
   risks: SkillRisk[];
-  program_health?: string;
-  forecast_summary?: string;
+  overcommitment_summary: string;
+  quality_drag_summary?: string;
+}
+
+/** forecast-delivery response */
+export interface MonteCarloForecast {
+  p50_date: string;
+  p85_date: string;
+  p95_date?: string;
+  confidence: string;
+}
+
+export interface CriticalPathStep {
+  step: string;
+  team: string;
+  duration_estimate?: string;
+  bottleneck?: boolean;
+}
+
+export interface TradeOffScenario {
+  name: string;
+  scope_delta_sp: number;
+  schedule_delta_days: number;
+  description: string;
+  recommendation?: string;
+}
+
+export interface ForecastDeliveryResponse {
+  skill: 'forecast-delivery';
+  project_key?: string;
+  settings_applied: Record<string, unknown>;
+  generated_at?: string;
+  cached?: boolean;
+  cached_at?: string;
+  summary: string;
+  target_release_date?: string;
+  monte_carlo: MonteCarloForecast;
+  forecast_delay_days: number;
+  critical_path: CriticalPathStep[];
+  trade_off_scenarios: TradeOffScenario[];
+}
+
+/** sprint-planning response */
+export interface BacklogHygiene {
+  unestimated_count: number;
+  unassigned_high_priority_count: number;
+  missing_epic_count?: number;
+  observations: string;
+}
+
+export interface TeamCapacityAnalysis {
+  team: string;
+  historical_velocity: number;
+  committed_sp: number;
+  overcommit_pct?: number;
+  status: 'balanced' | 'overcommitted' | 'undercommitted' | string;
+}
+
+export interface OverloadedAssignee {
+  assignee: string;
+  team?: string;
+  assigned_sp: number;
+  risk_level: string;
+}
+
+export interface BalancingRecommendation {
+  priority: string;
+  action: string;
+  candidate_issue_key?: string;
+  rationale: string;
+}
+
+export interface SprintPlanningResponse {
+  skill: 'sprint-planning';
+  project_key?: string;
+  settings_applied: Record<string, unknown>;
+  generated_at?: string;
+  cached?: boolean;
+  cached_at?: string;
+  summary: string;
+  readiness_score: string;
+  backlog_hygiene: BacklogHygiene;
+  capacity_analysis: TeamCapacityAnalysis[];
+  overloaded_assignees?: OverloadedAssignee[];
+  balancing_recommendations: BalancingRecommendation[];
 }
 
 /** propose-next-steps response */
@@ -361,7 +482,11 @@ export interface NextStepAction {
 
 export interface ProposeNextStepsResponse {
   skill: 'propose-next-steps';
+  project_key?: string;
   settings_applied: Record<string, unknown>;
+  generated_at?: string;
+  cached?: boolean;
+  cached_at?: string;
   actions: NextStepAction[];
   summary?: string;
 }
@@ -391,9 +516,12 @@ export interface VelocityAndCapacity {
 
 export interface GenerateReportResponse {
   skill: 'generate-report';
+  project_key?: string;
   settings_applied: Record<string, unknown>;
   profile_used?: string;
   generated_at?: string;
+  cached?: boolean;
+  cached_at?: string;
   title: string;
   executive_summary: string;
   overall_status: string;
@@ -406,6 +534,9 @@ export interface GenerateReportResponse {
 
 export type SkillResponse =
   | AnalyzeStatusResponse
+  | AssessRisksResponse
+  | ForecastDeliveryResponse
+  | SprintPlanningResponse
   | ProposeNextStepsResponse
   | GenerateReportResponse;
 

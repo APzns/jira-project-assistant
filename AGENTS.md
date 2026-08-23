@@ -40,4 +40,4 @@ NEVER execute any of the following commands automatically. ALWAYS ask for explic
 
 # Skills Policy
 - **Scope**: Do not use or activate global or plugin skills (such as science, bio, or external devtools skills).
-- **Project Skills Only**: Only use project-specific skills defined in `.agents/skills/` (`analyze-status`, `propose-next-steps`, `generate-report`, `ai-settings-update`, `import-from-jira`, `answer-question`, `compute-metrics`, `ingest-jira`, `seed-jira`) or built-in system tools.
+- **Project Skills Only**: Only use project-specific skills defined in `.agents/skills/` (`analyze-status`, `assess-risks`, `forecast-delivery`, `sprint-planning`, `propose-next-steps`, `generate-report`, `ai-settings-update`, `answer-question`, `compute-metrics`, `ingest-jira`, `seed-jira`) or built-in system tools.

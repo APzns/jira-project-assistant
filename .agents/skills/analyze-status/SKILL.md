@@ -1,69 +1,66 @@
 ---
 name: analyze-status
-description: Performs comprehensive program and project status analysis, detecting delayed work, evaluating milestone health, discovering delivery & dependency risks, and generating actionable mitigations based on active AI settings.
+description: Evaluates program and project delivery health, sprint pacing, milestone progress toward target releases, and team predictability metrics based on verified Jira operational data.
 ---
 
 # Skill: Analyze Status
 
-You are a senior Technical Program Manager performing a comprehensive status analysis of Project Horizon. Your goal is to examine program health, identify delivery bottlenecks, discover risks across teams and epics, and propose concrete mitigations grounded strictly in verified Jira operational data.
+You are a senior Technical Program Manager performing a comprehensive status and delivery health analysis of Project Horizon. Your goal is to assess overall program health, evaluate active sprint progress and pacing, track milestone delivery trajectories, and verify team predictability grounded strictly in verified Jira operational data.
 
 ## Workflow & Hierarchy
 
 ```
 Analyze Status
-├── 1. Find Delays
-│   ├── Overdue issues (due_date in past, status != Done)
-│   ├── Sprint pacing (velocity vs. time elapsed)
-│   └── Milestone completion forecasts
-├── 2. Monitoring Levels
-│   ├── Program Monitoring (cross-team, aggregate milestones M0-M3)
-│   └── Project / Team Monitoring (team-specific velocity, epic progress)
-└── 3. Discover Risks & Propose Mitigations
-    ├── Dependency blockers & cross-sprint conflicts
-    ├── Sprint overcommitment vs. historical average
-    └── Concrete mitigation actions (one per identified risk)
+├── 1. Program & Project Health Score
+│   ├── Overall program verdict (On Track / At Risk / Delayed)
+│   ├── Quantitative health score (e.g. 8.5/10)
+│   └── Executive delivery summary
+├── 2. Sprint Progress & Pacing
+│   ├── Completed vs. committed story points across active sprints
+│   ├── Sprint pacing (progress % vs. elapsed sprint timeline)
+│   └── Team-by-team throughput breakdown
+├── 3. Milestone Completion Trajectory (M0–M3)
+│   ├── Story point completion percentage per milestone
+│   ├── Target release date vs. pacing forecast
+│   └── Identified schedule delays & slippages
+└── 4. Team Predictability & Velocity Trends
+    ├── Closed sprint predictability % (Done SP / Committed SP)
+    └── High-level summary of active blockers (referenced from assess-risks)
 ```
 
-## Step 1: Find Delays
+## Step 1: Program Health Evaluation
 
-Identify slipping work by analyzing:
-1. **Overdue Issues**: Issues with `due_date` in the past and `status_category != 'Done'`.
-2. **Active Sprint Pacing**: Incomplete story points in active sprints where progress is behind schedule (e.g. < 50% completed past the sprint midpoint).
-3. **Milestone Targets**: Fix-versions or milestones with substantial unfinished work approaching target release dates.
+Evaluate the overarching delivery health:
+- Assign an overall status:
+  - `on_track`: Predictability $\ge 80\%$, milestones tracking on schedule, low overdue points.
+  - `at_risk`: Milestones within 14 days with $< 50\%$ completed work, or team predictability $< 70\%$.
+  - `delayed`: Target release dates in the past with unfinished work, or negative forecast margin.
+- Provide a clear, 2–3 sentence executive summary of the program trajectory.
 
-For each delay found:
-- Provide a **smart summary**: what slipped, by how much, and root cause from the data.
-- Provide a **predictive forecast**: projected completion date based on team velocity (`Done SP / Committed SP`). Note confidence (High / Medium / Low).
+## Step 2: Active Sprint Progress & Pacing
 
-## Step 2: Program vs. Project Monitoring
+Analyze active sprints:
+- Calculate completed story points vs. total committed points.
+- Compare progress percentage against time elapsed in the sprint (e.g. behind schedule if $< 50\%$ done past sprint midpoint).
+- Identify teams pacing ahead of schedule vs. teams pacing behind.
 
-Frame findings at two distinct scopes:
-- **Program level**: Cross-team perspective — overall milestone health (M0–M3), total overdue story points, Monte Carlo P50 completion forecast, aggregate predictability.
-- **Project level**: Per-team and per-epic breakdown — identify specific teams or epics facing capacity constraints or blocker backlogs.
+## Step 3: Milestone Trajectory & Schedule Delays
 
-## Step 3: Discover Risks
+Review major milestones (M0 through M3):
+- Track progress (% of story points marked `Done`).
+- Identify slipping work:
+  - **Overdue Issues**: Issues with `due_date` in the past and `status_category != 'Done'`.
+  - **Milestone Gaps**: Milestones approaching target release dates with remaining backlog.
+- State smart summaries for any delay: what is behind, by how much (days/points), and estimated delivery.
 
-Surface delivery risks using these signals in priority order:
+## Step 4: Predictability & Team Velocity Trends
 
-1. **Blocked Dependencies (Highest Priority)**:
-   - `HIGH`: A blocked issue has a blocker scheduled in a later sprint or unscheduled (no sprint).
-   - `MEDIUM`: Blocker and blocked issue are in the same sprint.
-2. **Sprint Overcommitment**:
-   - Committed story points for the next/current sprint substantially exceed the team's historical average velocity (closed sprint Done SP average).
-   - Present as percentage overcommitted (e.g. `+35% over historical velocity`).
-3. **Capacity Drag & Quality Degradation**:
-   - High defect ratios or carry-over spikes impacting feature delivery.
-
-## Step 4: Propose Risk Mitigations
-
-For every risk identified, propose one concrete, actionable mitigation:
-- **Specific**: Name the exact issue key, team, assignee, or sprint.
-- **Action-Oriented**: Prioritize unblocking blockers (reassigning, swapping sprint order) over general scope reduction.
-- **Settings-Aware**: Respect the active AI Settings (`focus_teams`, `focus_epics`, `min_risk_severity`, `risk_categories`).
+- Review closed sprint delivery predictability across squads.
+- Highlight squads with stable high predictability vs. squads experiencing volatility.
+- Provide a concise summary of active blocker counts and refer to the `assess-risks` skill for granular dependency triage.
 
 ## Output Format
 
-When interacting directly with users or returning structured responses:
-- Ground every claim with numbers (points, dates, percentages).
-- Never fabricate issue keys or data points.
-- Highlight the single most critical finding first.
+- Ground every finding in verified figures from the metrics snapshot (percentages, story point counts, dates).
+- Never fabricate ticket keys or metrics.
+- Keep output concise, scannable, and structured with clear sections and Markdown bullet points.

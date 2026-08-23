@@ -27,6 +27,7 @@ from src.jira_ai.ingestion.models import (
     Issue, IssueLink, FixVersion, Sprint, SessionLocal, init_db,
 )
 from src.jira_ai.api.services.assessment import warmup_assessment_cache
+from src.jira_ai.api.services.skill_cache import invalidate_skill_cache, prune_stale_cache
 
 _PROJECTS_SETTINGS_FILE = Path(__file__).resolve().parents[3] / ".agents" / "settings" / "projects.json"
 
@@ -266,6 +267,11 @@ def main() -> None:
         print("Pre-computing metrics & warming assessment cache for all projects...")
         warmed = warmup_assessment_cache(session, mode="real", force=True)
         print(f"Done. Assessment cache warmed for projects: {', '.join(warmed)}")
+
+        # Clear skill analysis cache so subsequent skill runs pick up the new data
+        invalidated_count = invalidate_skill_cache(session)
+        pruned_count = prune_stale_cache(session, max_age_days=7, max_rows=150)
+        print(f"Done. Cache refreshed: cleared {invalidated_count} active entries, pruned {pruned_count} stale records.")
     finally:
         session.close()
 
