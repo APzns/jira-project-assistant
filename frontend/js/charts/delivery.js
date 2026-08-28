@@ -1,9 +1,11 @@
 import { $, hexToRgba, teamColor } from "../utils.js";
 import { state } from "../state.js";
 
-Chart.defaults.color = "#475569";
-Chart.defaults.font.family = "-apple-system, 'Segoe UI', Roboto, sans-serif";
-Chart.defaults.font.size = 12;
+if (typeof Chart !== "undefined") {
+  Chart.defaults.color = "#475569";
+  Chart.defaults.font.family = "-apple-system, 'Segoe UI', Roboto, sans-serif";
+  Chart.defaults.font.size = 12;
+}
 
 export function renderMonteCarloChart(mc) {
   const canvas = $("monteCarloChart");
