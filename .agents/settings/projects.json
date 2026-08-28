@@ -20,7 +20,7 @@
       "owner": "system",
       "is_builtin": true,
       "created_at": "2026-01-10T08:00:00Z",
-      "updated_at": "2026-08-23T07:27:51.671210+00:00"
+      "updated_at": "2026-08-24T08:08:04.546918+00:00"
     },
     {
       "key": "CORE",
@@ -69,18 +69,17 @@
     },
     {
       "key": "HRZ",
-      "name": "Project Horizon",
-      "description": "The overarching program coordinating all enterprise software delivery initiatives, dependency management, and release trains.",
+      "name": "Horizon",
+      "description": "R&D initiative to modernize the commerce platform and unify delivery capabilities.",
       "lead": "Elena Rostova",
-      "target_release": "FY27 Program Go-Live (Delayed)",
+      "target_release": "FY27 Go-Live (Delayed)",
       "status": "at-risk",
       "progress_pct": 70,
       "progress_sp": "1045 / 1500 SP",
       "blockers_count": 3,
       "tags": [
-        "Program",
-        "Portfolio",
-        "Delivery",
+        "Commerce",
+        "R&D",
         "Horizon"
       ],
       "archived": false,

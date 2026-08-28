@@ -843,7 +843,9 @@ export async function openSettingsDrawer() {
   const overlay = document.getElementById("settings-drawer-overlay");
   if (!drawer) return;
   const settings = await loadSettings();
-  _populateSettingsForm(settings);
+  const { fetchTeams } = await import("./api.js");
+  const allTeams = await fetchTeams();
+  _populateSettingsForm(settings, allTeams);
   drawer.classList.add("open");
   if (overlay) overlay.classList.add("visible");
 }
@@ -855,19 +857,39 @@ export function closeSettingsDrawer() {
   if (overlay) overlay.classList.remove("visible");
 }
 
-function _populateSettingsForm(settings) {
+function _populateSettingsForm(settings, allTeams) {
   _setVal("settings-stakeholder", settings.stakeholder || "program_manager");
   _setVal("settings-min-severity", settings.min_risk_severity || "medium");
   _setVal("settings-verbosity", settings.summary_verbosity || "brief");
   const t = document.getElementById("settings-focus-teams");
-  if (t) t.value = (settings.focus_teams || []).join(", ");
-  const e = document.getElementById("settings-focus-epics");
-  if (e) e.value = (settings.focus_epics || []).join(", ");
+  if (t) {
+    if (t.tomselect) t.tomselect.destroy();
+    const options = allTeams.map(team => ({ value: team, text: team }));
+    const initialTeams = settings.focus_teams || [];
+    initialTeams.forEach(team => {
+        if (!allTeams.includes(team)) options.push({ value: team, text: team });
+    });
+    new window.TomSelect(t, {
+      plugins: ['remove_button'],
+      options: options,
+      items: initialTeams,
+      create: true,
+    });
+  }
+  window.currentSettingsData = settings;
   const cats = settings.risk_categories || ["dependency", "velocity", "overcommitment"];
-  ["dependency", "velocity", "overcommitment"].forEach(cat => {
-    const cb = document.getElementById(`settings-risk-${cat}`);
-    if (cb) cb.checked = cats.includes(cat);
-  });
+  const allAvailableCats = [
+    { id: "dependency", name: "Dependency blocks" },
+    { id: "velocity", name: "Velocity gaps" },
+    { id: "overcommitment", name: "Overcommitment" },
+    ...(settings.available_custom_risk_categories || [])
+  ];
+  const container = document.getElementById("drawer-settings-risk-container");
+  if (container) {
+    container.innerHTML = allAvailableCats.map(c => 
+      `<label class="settings-check"><input type="checkbox" class="dynamic-risk-cb-drawer" value="${c.id}" ${cats.includes(c.id) ? "checked" : ""} /> ${c.name}</label>`
+    ).join("");
+  }
 }
 
 function _setVal(id, val) {
@@ -876,17 +898,22 @@ function _setVal(id, val) {
 }
 
 export function readSettingsForm() {
-  const teamsRaw = (document.getElementById("settings-focus-teams")?.value || "").trim();
-  const epicsRaw = (document.getElementById("settings-focus-epics")?.value || "").trim();
-  const cats = ["dependency", "velocity", "overcommitment"].filter(cat => {
-    const cb = document.getElementById(`settings-risk-${cat}`);
-    return cb && cb.checked;
-  });
+  const t = document.getElementById("settings-focus-teams");
+  const teamsRaw = t && t.tomselect ? t.tomselect.items : [];
+  const cats = [];
+  const container = document.getElementById("drawer-settings-risk-container");
+  if (container) {
+    const cbs = container.querySelectorAll('.dynamic-risk-cb-drawer');
+    cbs.forEach(cb => { if (cb.checked) cats.push(cb.value); });
+  }
+  
+  const finalCats = cats.length ? cats : [];
   return {
     stakeholder: document.getElementById("settings-stakeholder")?.value || "program_manager",
-    focus_teams: teamsRaw ? teamsRaw.split(",").map(s => s.trim()).filter(Boolean) : [],
-    focus_epics: epicsRaw ? epicsRaw.split(",").map(s => s.trim()).filter(Boolean) : [],
-    risk_categories: cats.length ? cats : ["dependency", "velocity", "overcommitment"],
+    focus_teams: teamsRaw,
+    focus_epics: [],
+    risk_categories: finalCats,
+    available_custom_risk_categories: window.currentSettingsData?.available_custom_risk_categories || [],
     min_risk_severity: document.getElementById("settings-min-severity")?.value || "medium",
     summary_verbosity: document.getElementById("settings-verbosity")?.value || "brief",
   };
@@ -1096,15 +1123,6 @@ function _updateReportsStats() {
   const templates = _cachedReports?.templates || FALLBACK_TEMPLATES;
   const defaultTpl = templates.find(t => t.is_default) || templates[0];
 
-  const statTpl = document.getElementById("rep-stat-templates");
-  if (statTpl) statTpl.textContent = String(templates.length);
-
-  const statActive = document.getElementById("rep-stat-active-tpl");
-  if (statActive) statActive.textContent = defaultTpl ? defaultTpl.name.split(" ")[0] : "Weekly TPM";
-
-  const statBlocks = document.getElementById("rep-stat-blocks-count");
-  if (statBlocks) statBlocks.textContent = `${AVAILABLE_REPORT_BLOCKS.length} Visuals`;
-
   // Step Status Badges (Option 2: Process Flow)
   const step1 = document.getElementById("step1-status-badge");
   if (step1) {
@@ -1134,7 +1152,7 @@ const KNOWN_PROJECTS = {
   "CHK": { name: "Checkout Flow Replatform", icon: "🛒" },
   "CORE": { name: "Platform Core & Analytics Foundation", icon: "⚙️" },
   "MOB": { name: "Mobile Parity & Security Guild", icon: "📱" },
-  "HRZ": { name: "Project Horizon", icon: "🚀" },
+  "HRZ": { name: "Horizon", icon: "🚀" },
   "ALL": { name: "Portfolio-wide / Cross-Project", icon: "🌐" }
 };
 
@@ -1256,7 +1274,7 @@ function _renderReportsGrid() {
     const isDefault = Boolean(t.is_default);
     const shIds = t.stakeholder_ids || [];
     const scope = (t.project_scope || "ALL").toUpperCase();
-    const owner = escapeHtml(t.owner || "Alex Mercer");
+    const owner = escapeHtml(t.owner || window.currentUser || "demo");
     const cadenceKey = (t.cadence || "weekly").toLowerCase();
     const cadenceCfg = CADENCE_MAP[cadenceKey] || { label: t.cadence || "Weekly", icon: "🔄", tagClass: "cadence-weekly" };
     const lastGenFormatted = formatLastGenerated(t.last_generated_at);
@@ -1298,12 +1316,12 @@ function _renderReportsGrid() {
 
         <!-- Column 2: Scope & Stakeholders -->
         <div class="rep-col-scope">
-          <div class="rep-meta-tag" title="Target Scope: ${escapeHtml(scope)}">
+          <div class="rep-scope-line">
             ${scopeHtml}
           </div>
-          <div class="rep-meta-tag" title="Audience: ${escapeHtml(shNames)}" style="margin-top: 5px;">
-            <span class="rep-meta-icon">👥</span>
-            <span>${escapeHtml(shNames)}</span>
+          <div class="rep-audience-line" title="Audience: ${escapeHtml(shNames)}">
+            <span class="rep-audience-icon">👥</span>
+            <span class="rep-audience-label">${escapeHtml(shNames)}</span>
           </div>
         </div>
 
@@ -1365,6 +1383,9 @@ export function openReportDetail(templateId, defaultProjectScope = null) {
   const newActions = document.getElementById("pa-new-report-actions");
   const bottomGen = document.getElementById("pa-bottom-generate-row");
 
+  const startDateInput = document.getElementById("pa-detail-start-date");
+  const endDateInput = document.getElementById("pa-detail-end-date");
+
   if (template) {
     // When viewing an existing report: Read-Only Section Cards by default
     _isReportDetailEditing = false;
@@ -1376,8 +1397,10 @@ export function openReportDetail(templateId, defaultProjectScope = null) {
     if (descInput) descInput.value = template.description || "";
     if (defaultCheck) defaultCheck.checked = Boolean(template.is_default);
     if (notesText) notesText.value = template.stakeholder_notes || "";
-    if (ownerSelect) ownerSelect.value = template.owner || "Alex Mercer";
+    if (ownerSelect) ownerSelect.value = template.owner || window.currentUser || "demo";
     if (cadenceSelect) cadenceSelect.value = template.cadence || "weekly";
+    if (startDateInput) startDateInput.value = template.start_date || "";
+    if (endDateInput) endDateInput.value = template.end_date || "";
 
     _selectedStakeholders = [...(template.stakeholder_ids || ["pm-default"])];
     _selectedBlockTypes = (template.blocks || [])
@@ -1388,20 +1411,27 @@ export function openReportDetail(templateId, defaultProjectScope = null) {
     }
     _selectedProjectScope = template.project_scope || "ALL";
 
+    const isOwner = !template.owner || template.owner === (window.currentUser || "demo");
+
     // Delete button: visible only for custom non-default templates
-    if (deleteBtn) deleteBtn.style.display = (!isDefault) ? "inline-flex" : "none";
+    if (deleteBtn) deleteBtn.style.display = (!isDefault && isOwner) ? "inline-flex" : "none";
 
     // Hide creation actions, show bottom generate
     if (newActions) newActions.style.display = "none";
     if (bottomGen) bottomGen.style.display = "flex";
 
+    // Hide edit buttons if not owner
+    document.querySelectorAll('#report-detail-view .btn-section-edit').forEach(btn => {
+      btn.style.display = isOwner ? '' : 'none';
+    });
+
     // Show view containers, hide edit containers for all 4 sections
     [1, 2, 3, 4].forEach(sec => _toggleSectionEdit(sec, false));
     _renderAllSectionViews(template);
   } else {
-    // When creating a new report template: All Sections in Edit Mode
+    // When creating a new report template: Start in View Mode same as Edit
     _currentEditingTemplateId = null;
-    _isReportDetailEditing = true;
+    _isReportDetailEditing = false;
 
     if (titleEl) titleEl.textContent = "Create New Report Template";
     if (subTitle) subTitle.textContent = "Configure report archetype, audience, visuals, and synthesis directives.";
@@ -1410,19 +1440,41 @@ export function openReportDetail(templateId, defaultProjectScope = null) {
     if (descInput) descInput.value = "Custom program delivery digest";
     if (defaultCheck) defaultCheck.checked = false;
     if (notesText) notesText.value = "";
-    if (ownerSelect) ownerSelect.value = "Alex Mercer";
+    if (ownerSelect) ownerSelect.value = window.currentUser || "demo";
     if (cadenceSelect) cadenceSelect.value = "weekly";
+    if (startDateInput) startDateInput.value = "";
+    if (endDateInput) endDateInput.value = "";
 
     _selectedStakeholders = ["pm-default"];
     _selectedBlockTypes = ["exec_summary", "health_kpis", "burndown", "action_plan"];
     _selectedProjectScope = defaultProjectScope || "ALL";
 
     if (deleteBtn) deleteBtn.style.display = "none";
-    if (newActions) newActions.style.display = "flex";
-    if (bottomGen) bottomGen.style.display = "none";
+    
+    // Ensure edit buttons are visible for new templates
+    document.querySelectorAll('#report-detail-view .btn-section-edit').forEach(btn => {
+      btn.style.display = '';
+    });
+    
+    // Hide newActions, show bottomGen
+    if (newActions) newActions.style.display = "none";
+    if (bottomGen) bottomGen.style.display = "flex";
 
-    // Open all 4 sections for editing
-    [1, 2, 3, 4].forEach(sec => _toggleSectionEdit(sec, true));
+    // Open all 4 sections in view mode
+    [1, 2, 3, 4].forEach(sec => _toggleSectionEdit(sec, false));
+
+    const defaultTemplate = {
+      name: "Custom Program Report",
+      description: "Custom program delivery digest",
+      owner: "Alex Mercer",
+      cadence: "weekly",
+      start_date: "",
+      end_date: "",
+      project_scope: _selectedProjectScope,
+      stakeholder_ids: _selectedStakeholders,
+      blocks: _selectedBlockTypes.map(b => ({block_type: b}))
+    };
+    _renderAllSectionViews(defaultTemplate);
   }
 
   _renderProjectSelect(_cachedProjects);
@@ -1450,6 +1502,8 @@ function _renderSection1View(template) {
   const scopeVal = document.getElementById("sec-1-val-scope");
   const ownerVal = document.getElementById("sec-1-val-owner");
   const cadenceVal = document.getElementById("sec-1-val-cadence");
+  const startDateVal = document.getElementById("sec-1-val-start-date");
+  const endDateVal = document.getElementById("sec-1-val-end-date");
   const descVal = document.getElementById("sec-1-val-desc");
   const defaultBadge = document.getElementById("sec-1-val-default-badge");
 
@@ -1457,6 +1511,8 @@ function _renderSection1View(template) {
   const scope = (template?.project_scope || _selectedProjectScope || "ALL").toUpperCase();
   const owner = template?.owner || document.getElementById("pa-detail-owner")?.value || "Alex Mercer";
   const cadenceKey = (template?.cadence || document.getElementById("pa-detail-cadence")?.value || "weekly").toLowerCase();
+  const startDate = template?.start_date || document.getElementById("pa-detail-start-date")?.value || "N/A";
+  const endDate = template?.end_date || document.getElementById("pa-detail-end-date")?.value || "N/A";
   const desc = template?.description || document.getElementById("pa-detail-desc")?.value || "No description provided.";
   const isDefault = template ? Boolean(template.is_default) : (document.getElementById("pa-detail-is-default")?.checked || false);
 
@@ -1471,6 +1527,8 @@ function _renderSection1View(template) {
   if (cadenceVal) {
     cadenceVal.innerHTML = `<span class="rep-cadence-tag ${cadenceCfg.tagClass}"><span>${cadenceCfg.icon}</span> ${escapeHtml(cadenceCfg.label)}</span>`;
   }
+  if (startDateVal) startDateVal.textContent = startDate;
+  if (endDateVal) endDateVal.textContent = endDate;
   if (descVal) descVal.textContent = desc;
   if (defaultBadge) defaultBadge.style.display = isDefault ? "block" : "none";
 }
@@ -1590,6 +1648,12 @@ async function _saveSection(secNumber) {
     return;
   }
 
+  const existing = (_cachedReports?.templates || []).find(t => t.id === _currentEditingTemplateId);
+  if (existing && existing.owner !== (window.currentUser || "demo")) {
+    alert("You cannot edit a report template owned by someone else.");
+    return;
+  }
+
   const saveBtn = document.querySelector(`#sec-${secNumber}-edit .btn-section-save`);
   const origHtml = saveBtn ? saveBtn.innerHTML : "";
   if (saveBtn) {
@@ -1666,6 +1730,8 @@ function _cancelSection(secNumber) {
       const projSelect = document.getElementById("pa-project-select");
       const ownerSelect = document.getElementById("pa-detail-owner");
       const cadenceSelect = document.getElementById("pa-detail-cadence");
+      const startDateInput = document.getElementById("pa-detail-start-date");
+      const endDateInput = document.getElementById("pa-detail-end-date");
       const defaultCheck = document.getElementById("pa-detail-is-default");
 
       if (nameInput) nameInput.value = template.name || "";
@@ -1673,6 +1739,8 @@ function _cancelSection(secNumber) {
       if (projSelect) projSelect.value = template.project_scope || "ALL";
       if (ownerSelect) ownerSelect.value = template.owner || "Alex Mercer";
       if (cadenceSelect) cadenceSelect.value = template.cadence || "weekly";
+      if (startDateInput) startDateInput.value = template.start_date || "";
+      if (endDateInput) endDateInput.value = template.end_date || "";
       if (defaultCheck) defaultCheck.checked = Boolean(template.is_default);
     } else if (secNumber === 2) {
       _selectedStakeholders = [...(template.stakeholder_ids || ["pm-default"])];
@@ -1919,6 +1987,11 @@ export function readPaSettingsForm() {
   const isDefault = document.getElementById("pa-detail-is-default")?.checked || false;
   const stakeholderNotes = document.getElementById("pa-stakeholder-notes")?.value || "";
   
+  const owner = document.getElementById("pa-detail-owner")?.value || window.currentUser || "demo";
+  const cadence = document.getElementById("pa-detail-cadence")?.value || "weekly";
+  const startDate = document.getElementById("pa-detail-start-date")?.value || "";
+  const endDate = document.getElementById("pa-detail-end-date")?.value || "";
+  
   const blocks = _selectedBlockTypes.map((type, index) => {
     const def = AVAILABLE_REPORT_BLOCKS.find(b => b.type === type) || { title: type };
     return {
@@ -1938,6 +2011,10 @@ export function readPaSettingsForm() {
     name: name.trim() || "Custom Program Report",
     description: desc.trim(),
     project_scope: projectScope,
+    owner: owner,
+    cadence: cadence,
+    start_date: startDate,
+    end_date: endDate,
     is_default: isDefault,
     stakeholder_ids: _selectedStakeholders,
     stakeholder_notes: stakeholderNotes,
@@ -2027,7 +2104,7 @@ function _suggestReportTemplate(forceNew = false) {
     const historyDiv = document.getElementById("pa-ai-chat-history");
     if (historyDiv) {
       historyDiv.innerHTML = `<div style="background: rgba(99, 102, 241, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.2);">
-        <strong>AI Assistant:</strong> Tell me what project, milestone, or stakeholder group you are building this report for. I will synthesize our project charter, decisions (D1–D3), risk triggers, and stakeholder priorities into an optimal report template.
+        <strong>AI Assistant:</strong> Tell me what project, milestone, or stakeholder group you are building this report for. I will synthesize our project charter, risk triggers, and stakeholder priorities into an optimal report template.
       </div>`;
     }
     _reportChatHistory = [];
@@ -2233,6 +2310,14 @@ function _applyAiTemplate() {
  * Save report template from detail editor.
  */
 async function _saveCurrentTemplate() {
+  if (_currentEditingTemplateId && !_currentEditingTemplateId.startsWith("new") && _currentEditingTemplateId !== "custom") {
+    const existing = (_cachedReports?.templates || []).find(t => t.id === _currentEditingTemplateId);
+    if (existing && existing.owner !== (window.currentUser || "demo")) {
+      alert("You cannot edit a report template owned by someone else.");
+      return;
+    }
+  }
+
   const btn = document.getElementById("pa-btn-new-save") || document.getElementById("pa-btn-detail-save");
   const form = readPaSettingsForm();
 
@@ -2348,7 +2433,10 @@ export async function executeReportGeneration(templateOrPayload) {
         stakeholder_ids: templateOrPayload.stakeholder_ids,
         stakeholder_notes: templateOrPayload.stakeholder_notes,
         blocks: templateOrPayload.blocks,
-        focus_epics: templateOrPayload.project_scope === "ALL" ? [] : [templateOrPayload.project_scope]
+        focus_epics: templateOrPayload.project_scope === "ALL" ? [] : [templateOrPayload.project_scope],
+        start_date: templateOrPayload.start_date,
+        end_date: templateOrPayload.end_date,
+        cadence: templateOrPayload.cadence
       }
     };
   } else {
@@ -2358,7 +2446,10 @@ export async function executeReportGeneration(templateOrPayload) {
       settings_override: {
         stakeholder_ids: templateOrPayload.stakeholder_ids,
         stakeholder_notes: templateOrPayload.stakeholder_notes,
-        blocks: templateOrPayload.blocks
+        blocks: templateOrPayload.blocks,
+        start_date: templateOrPayload.start_date,
+        end_date: templateOrPayload.end_date,
+        cadence: templateOrPayload.cadence
       }
     };
   }
@@ -2472,9 +2563,12 @@ function _bindPaSettingsEvents() {
     window.location.hash = "reports";
   });
 
-  // AI Report Assistant button in details view -> Navigate to Reports AI Assistant
+  // AI Report Assistant button in details view -> Open inline AI chat panel
   document.getElementById("pa-btn-detail-suggest")?.addEventListener("click", () => {
-    window.location.hash = "assistant";
+    const chatPanel = document.getElementById("pa-ai-chat-panel");
+    if (chatPanel) {
+      chatPanel.style.display = chatPanel.style.display === "none" ? "block" : "none";
+    }
   });
 
   // AI Chat Panel bindings
@@ -2514,58 +2608,65 @@ function _bindPaSettingsEvents() {
 
   // Visuals Modal Picker
 
-
-  // Reset profiles
-  const resetBtn = document.getElementById("pa-btn-reset-profiles");
-  if (resetBtn) {
-    resetBtn.addEventListener("click", async () => {
-      if (confirm("Restore all 5 default report templates? Any custom modifications will be reset.")) {
-        try {
-          const res = await fetchWithTimeout(`${API_BASE}/reports/reset`, {
-            method: "POST",
-            credentials: "include",
-          });
-          if (res.ok) {
-            const resData = await res.json();
-            _cachedReports = resData.data || resData;
-            await renderReportsPage();
-          }
-        } catch (e) {
-          console.error("Failed to restore default reports:", e);
-        }
-      }
-    });
-  }
 }
 
 export async function populatePaSettings() {
   const settings = await loadSettings();
+  const { fetchTeams } = await import("./api.js");
+  const allTeams = await fetchTeams();
   _setVal("pa-stakeholder", settings.stakeholder || "program_manager");
   _setVal("pa-min-severity", settings.min_risk_severity || "medium");
   _setVal("pa-verbosity", settings.summary_verbosity || "brief");
   const t = document.getElementById("pa-focus-teams");
-  if (t) t.value = (settings.focus_teams || []).join(", ");
-  const e = document.getElementById("pa-focus-epics");
-  if (e) e.value = (settings.focus_epics || []).join(", ");
+  if (t) {
+    if (t.tomselect) t.tomselect.destroy();
+    const options = allTeams.map(team => ({ value: team, text: team }));
+    const initialTeams = settings.focus_teams || [];
+    initialTeams.forEach(team => {
+        if (!allTeams.includes(team)) options.push({ value: team, text: team });
+    });
+    new window.TomSelect(t, {
+      plugins: ['remove_button'],
+      options: options,
+      items: initialTeams,
+      create: true,
+    });
+  }
+  window.currentSettingsData = settings;
   const cats = settings.risk_categories || ["dependency", "velocity", "overcommitment"];
-  ["dependency", "velocity", "overcommitment"].forEach(cat => {
-    const cb = document.getElementById(`pa-risk-${cat}`);
-    if (cb) cb.checked = cats.includes(cat);
-  });
+  const allAvailableCats = [
+    { id: "dependency", name: "Dependency blocks" },
+    { id: "velocity", name: "Velocity gaps" },
+    { id: "overcommitment", name: "Overcommitment" },
+    ...(settings.available_custom_risk_categories || [])
+  ];
+  const container = document.getElementById("pa-settings-risk-container");
+  if (container) {
+    container.innerHTML = allAvailableCats.map(c => 
+      `<label class="settings-check"><input type="checkbox" class="dynamic-risk-cb-pa" value="${c.id}" ${cats.includes(c.id) ? "checked" : ""} disabled /> ${c.name}</label>`
+    ).join("");
+  }
 }
 
 export function readPaAiSettingsForm() {
-  const teamsRaw = (document.getElementById("pa-focus-teams")?.value || "").trim();
-  const epicsRaw = (document.getElementById("pa-focus-epics")?.value || "").trim();
-  const cats = ["dependency", "velocity", "overcommitment"].filter(cat => {
-    const cb = document.getElementById(`pa-risk-${cat}`);
-    return cb && cb.checked;
-  });
+  const t = document.getElementById("pa-focus-teams");
+  const teamsRaw = t && t.tomselect ? t.tomselect.items : [];
+  const cats = [];
+  const container = document.getElementById("pa-settings-risk-container");
+  if (container) {
+    const cbs = container.querySelectorAll('.dynamic-risk-cb-pa');
+    cbs.forEach(cb => { if (cb.checked) cats.push(cb.value); });
+  }
+  
+  // We respect if the user unchecks them! Do not forcefully inject defaults unless empty.
+  const finalCats = cats.length ? cats : [];
+  
   return {
     stakeholder: document.getElementById("pa-stakeholder")?.value || "program_manager",
-    focus_teams: teamsRaw ? teamsRaw.split(",").map(s => s.trim()).filter(Boolean) : [],
-    focus_epics: epicsRaw ? epicsRaw.split(",").map(s => s.trim()).filter(Boolean) : [],
-    risk_categories: cats.length ? cats : ["dependency", "velocity", "overcommitment"],
+    focus_teams: teamsRaw,
+    focus_epics: [],
+    risk_categories: finalCats,
+    available_custom_risk_categories: window.currentSettingsData?.available_custom_risk_categories || [],
     min_risk_severity: document.getElementById("pa-min-severity")?.value || "medium",
     summary_verbosity: document.getElementById("pa-verbosity")?.value || "brief",
   };
@@ -2574,3 +2675,38 @@ export function readPaAiSettingsForm() {
 export async function saveComposerTemplate() {
   await _saveCurrentTemplate();
 }
+
+// Handle adding custom risk category on drawer settings
+document.getElementById("btn-add-custom-risk-drawer")?.addEventListener("click", () => {
+    const nameInput = document.getElementById("new-custom-risk-name-drawer");
+    const descInput = document.getElementById("new-custom-risk-desc-drawer");
+    const name = nameInput.value.trim();
+    const desc = descInput.value.trim();
+    if (!name) return;
+    
+    const newId = "custom-" + Date.now();
+    window.currentSettingsData = window.currentSettingsData || {};
+    window.currentSettingsData.available_custom_risk_categories = window.currentSettingsData.available_custom_risk_categories || [];
+    window.currentSettingsData.available_custom_risk_categories.push({ id: newId, name: name, instruction: desc });
+    
+    window.currentSettingsData.risk_categories = window.currentSettingsData.risk_categories || ["dependency", "velocity", "overcommitment"];
+    window.currentSettingsData.risk_categories.push(newId); // Auto-check the new one
+    
+    nameInput.value = "";
+    descInput.value = "";
+    
+    // re-render checkboxes
+    const cats = window.currentSettingsData.risk_categories;
+    const allAvailableCats = [
+      { id: "dependency", name: "Dependency blocks" },
+      { id: "velocity", name: "Velocity gaps" },
+      { id: "overcommitment", name: "Overcommitment" },
+      ...(window.currentSettingsData.available_custom_risk_categories || [])
+    ];
+    const container = document.getElementById("drawer-settings-risk-container");
+    if (container) {
+      container.innerHTML = allAvailableCats.map(c => 
+        `<label class="settings-check"><input type="checkbox" class="dynamic-risk-cb-drawer" value="${c.id}" ${cats.includes(c.id) ? "checked" : ""} /> ${c.name}</label>`
+      ).join("");
+    }
+});

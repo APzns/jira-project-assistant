@@ -140,11 +140,16 @@ def _forecast_delay_days(metrics: dict) -> int | None:
     return (d_p50 - d_target).days
 
 
-def _load_risk_lenses() -> str:
+def _load_risk_lenses(project_key: str = None) -> str:
     """Load the risk-lens descriptions the agent reasons through."""
-    lens_path = Path(__file__).resolve().parents[4] / "project_data" / "risks.md"
-    try:
-        with open(lens_path, encoding="utf-8") as f:
-            return f.read()
-    except FileNotFoundError:
-        return "Risk lenses: milestone deadline slip; project deadline slip; dependency risk."
+    lens_dir = Path(__file__).resolve().parents[4] / "project_data"
+    if project_key and project_key.upper() not in ("ALL", "GLOBAL"):
+        lens_dir = lens_dir / project_key.upper()
+    risks_files = list(lens_dir.rglob("risks.md"))
+    if risks_files:
+        try:
+            with open(risks_files[0], encoding="utf-8") as f:
+                return f.read()
+        except Exception:
+            pass
+    return "Risk lenses: milestone deadline slip; project deadline slip; dependency risk."

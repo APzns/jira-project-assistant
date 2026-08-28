@@ -300,6 +300,11 @@ export const StatusTab = ({ assessmentData }: { assessmentData: Assessment }) =>
   const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set(allTeams));
   const [avgMode, setAvgMode] = useState(false);
 
+  React.useEffect(() => {
+    setSelectedTeams(new Set(allTeams));
+    setAvgMode(false);
+  }, [allTeams]);
+
   // Health KPIs calculation
   let maxDelayDays = 0;
   const fvMap: Record<string, { release_date: string, items: any[] }> = {};

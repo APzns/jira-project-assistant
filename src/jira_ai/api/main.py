@@ -97,6 +97,10 @@ app.include_router(assistant.router)
 def health() -> dict:
     return {"status": "ok", "service": "jira-ai-api"}
 
+@app.get("/me")
+def get_me() -> dict:
+    return {"username": _AUTH_USER}
+
 
 # ---- Frontend (served from the same app, so one URL / one password) ----
 FRONTEND_DIR = Path(__file__).resolve().parents[3] / "frontend"

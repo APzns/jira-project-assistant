@@ -42,6 +42,12 @@ export async function fetchStatsSummary(mode = "real", projectKey = null) {
   return await resp.json();
 }
 
+export async function fetchTeams() {
+  const resp = await fetchWithTimeout(`${API_BASE}/stats/teams`, {}, 15000);
+  if (!resp.ok) return [];
+  return await resp.json();
+}
+
 export async function fetchProjects(includeArchived = false) {
   const resp = await fetchWithTimeout(`${API_BASE}/projects?include_archived=${includeArchived}`, {}, 15000);
   if (!resp.ok) {
@@ -62,3 +68,8 @@ export async function postAsk(question) {
   return await resp.json();
 }
 
+export async function fetchCurrentUser() {
+  const resp = await fetchWithTimeout(`${API_BASE}/me`, {}, 15000);
+  if (!resp.ok) return { username: "demo" };
+  return await resp.json();
+}

@@ -45,6 +45,18 @@ _RESPONSE_SCHEMA = {
         "ai_summary": {"type": "string"},
         "predictability_comment": {"type": "string"},
         "predictability_summary": {"type": "string"},
+        "telemetry_breakdown": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "metric": {"type": "string"},
+                    "value": {"type": "string"},
+                    "ai_comment": {"type": "string"}
+                },
+                "required": ["metric", "value", "ai_comment"]
+            }
+        },
         "milestones": {
             "type": "array",
             "items": {
@@ -78,6 +90,7 @@ _RESPONSE_SCHEMA = {
     },
     "required": ["overall_status", "headline", "reasoning", "ai_summary",
                  "predictability_comment", "predictability_summary",
+                 "telemetry_breakdown",
                  "quality_summary", "quality_actions",
                  "milestones", "risks", "forecast", "recommended_actions"],
 }
@@ -237,6 +250,33 @@ def _build_fallback_assessment(metrics: dict, mode: str) -> dict:
         "ai_summary": f"Program metrics have been updated. Overall status is {overall_status.replace('_', ' ')}. Data reflects {metrics.get('total_issues', 0)} total issues across {len(milestones_data)} milestones.",
         "predictability_comment": pred_comment,
         "predictability_summary": pred_summary,
+        "telemetry_breakdown": [
+            {
+                "metric": "Overall Status",
+                "value": overall_status.replace("_", " ").title(),
+                "ai_comment": "Based on deterministic metric calculation rules (LLM offline)."
+            },
+            {
+                "metric": "Predictability",
+                "value": f"{pred_pct}%" if pred_pct is not None else "N/A",
+                "ai_comment": "Average completed vs committed ratio across closed sprints."
+            },
+            {
+                "metric": "Unresolved Defects",
+                "value": f"{open_bugs}",
+                "ai_comment": "Total open bug tickets currently tracked in the backlog."
+            },
+            {
+                "metric": "Cross-Team Blockers",
+                "value": f"{metrics.get('cross_team_blockers', 0)}",
+                "ai_comment": "Number of unresolved blocking dependencies between teams."
+            },
+            {
+                "metric": "Scope Delivery",
+                "value": f"{100 - overdue_pct}% on track",
+                "ai_comment": "Percentage of story points not sitting in overdue milestones."
+            }
+        ],
         "quality_summary": quality_summary,
         "quality_actions": quality_actions,
         "milestones": ms_list,

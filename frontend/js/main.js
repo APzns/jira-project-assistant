@@ -424,7 +424,6 @@ function applyDashboardsDirectoryFilter() {
         <div class="telemetry-card-top">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="p-key-badge">${escapeHtml(p.key)}</span>
-            <span class="muted" style="font-size: 12px; font-weight: 600;">${escapeHtml(p.lead || "Unassigned")}</span>
           </div>
           <span class="p-status-tag ${statusCfg.badgeClass}">
             <span class="p-status-dot"></span>
@@ -481,16 +480,11 @@ function applyDashboardsDirectoryFilter() {
           </div>
         </div>
 
-        <div class="telemetry-card-footer">
-          <div class="main-proj-tags">${tagsHtml}</div>
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <button type="button" class="btn-secondary btn-p-goto-details" data-key="${escapeHtml(p.key)}" title="View Project Charter & RACI">
-              📁 Charter &amp; RACI
-            </button>
-            <button type="button" class="btn-open-project-dashboard" data-key="${escapeHtml(p.key)}" title="Open ${escapeHtml(p.key)} Live Dashboard">
-              📊 Open Dashboard →
-            </button>
-          </div>
+        <div class="main-proj-tags" style="margin-bottom: 16px;">${tagsHtml}</div>
+        <div class="p-card-quick-actions">
+          <button type="button" class="btn-proj-goto btn-p-goto-details" data-key="${escapeHtml(p.key)}" title="View AI Assessment & Telemetry Details">
+            Details →
+          </button>
         </div>
       </div>
     `;
@@ -515,7 +509,7 @@ function applyDashboardsDirectoryFilter() {
       e.stopPropagation();
       const key = btn.dataset.key;
       if (key) {
-        window.location.hash = `projects/${key}`;
+        window.location.hash = `dashboards/${key}/assessment`;
       }
     });
   });

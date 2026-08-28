@@ -33,6 +33,12 @@ export default function PredictabilityTab({ assessmentData }: PredictabilityTabP
   const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set(pt?.teams || []));
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
+  React.useEffect(() => {
+    setSelectedTeams(new Set(pt?.teams || []));
+    setAvgMode(true);
+  }, [pt?.teams]);
+
+
   const stateBySprint: Record<string, string> = {};
   sprintProgress.forEach((s: any) => { stateBySprint[s.sprint] = s.state; });
 

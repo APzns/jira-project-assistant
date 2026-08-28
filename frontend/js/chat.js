@@ -11,7 +11,9 @@ export function openChatDrawer() {
   const fab = $("chat-fab-btn");
   if (drawer) {
     drawer.classList.add("open");
-    drawer.classList.remove("collapsed", "closed");
+    drawer.classList.remove("collapsed", "closed", "maximized");
+    document.body.classList.add("chat-open");
+    document.body.classList.remove("chat-collapsed", "chat-maximized");
   }
   if (fab) fab.classList.add("hidden");
   setTimeout(() => {
@@ -21,12 +23,27 @@ export function openChatDrawer() {
   }, 150);
 }
 
+export function maximizeChatDrawer() {
+  const drawer = $("chat-drawer");
+  if (drawer) {
+    drawer.classList.add("open", "maximized");
+    drawer.classList.remove("collapsed", "closed");
+    document.body.classList.add("chat-open", "chat-maximized");
+    document.body.classList.remove("chat-collapsed");
+  }
+  setTimeout(() => {
+    window.dispatchEvent(new Event("resize"));
+  }, 150);
+}
+
 export function collapseChatDrawer() {
   const drawer = $("chat-drawer");
   const fab = $("chat-fab-btn");
   if (drawer) {
     drawer.classList.add("collapsed");
-    drawer.classList.remove("open", "closed");
+    drawer.classList.remove("open", "closed", "maximized");
+    document.body.classList.add("chat-collapsed");
+    document.body.classList.remove("chat-open", "chat-maximized");
   }
   if (fab) fab.classList.add("hidden");
   setTimeout(() => {
@@ -39,7 +56,8 @@ export function closeChatDrawer() {
   const fab = $("chat-fab-btn");
   if (drawer) {
     drawer.classList.add("closed");
-    drawer.classList.remove("open", "collapsed");
+    drawer.classList.remove("open", "collapsed", "maximized");
+    document.body.classList.remove("chat-open", "chat-collapsed", "chat-maximized");
   }
   if (fab) fab.classList.remove("hidden");
   setTimeout(() => {
@@ -212,17 +230,108 @@ export function initChatEvents(inputId = "ask-input", buttonId = "ask-button") {
   if (btn) btn.addEventListener("click", () => askQuestion(inputId, buttonId));
   if (input) input.addEventListener("keydown", e => { if (e.key === "Enter") askQuestion(inputId, buttonId); });
 
+  
   const toggleBtn = $("chat-toggle-btn");
   const fabBtn = $("chat-fab-btn");
-  const collapseBtn = $("chat-collapse-btn");
+  const minimizeBtn = $("chat-minimize-btn");
+  const maximizeBtn = $("chat-maximize-btn");
   const expandRailBtn = $("chat-collapsed-rail");
   const closeBtn = $("chat-close-btn");
+  const drawer = $("chat-drawer");
 
   if (toggleBtn) toggleBtn.addEventListener("click", toggleChatSidebar);
   if (fabBtn) fabBtn.addEventListener("click", openChatDrawer);
-  if (collapseBtn) collapseBtn.addEventListener("click", collapseChatDrawer);
+  if (minimizeBtn) minimizeBtn.addEventListener("click", collapseChatDrawer);
+  if (maximizeBtn) maximizeBtn.addEventListener("click", maximizeChatDrawer);
   if (expandRailBtn) expandRailBtn.addEventListener("click", openChatDrawer);
   if (closeBtn) closeBtn.addEventListener("click", closeChatDrawer);
+
+  // Dragging logic
+  const header = document.querySelector(".chat-drawer-header");
+  let isDragging = false;
+  let dragStartX, dragStartY, initialLeft, initialTop;
+
+  if (header && drawer) {
+    header.addEventListener("mousedown", (e) => {
+      if (drawer.classList.contains("maximized")) return;
+      isDragging = true;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      const rect = drawer.getBoundingClientRect();
+      initialLeft = rect.left;
+      initialTop = rect.top;
+      document.body.style.userSelect = "none";
+    });
+  }
+
+  // Resizing logic
+  const resizers = document.querySelectorAll(".resizer");
+  let isResizing = false;
+  let currentResizer = null;
+  let initialWidth, initialHeight;
+
+  resizers.forEach(resizer => {
+    resizer.addEventListener("mousedown", (e) => {
+      if (drawer.classList.contains("maximized")) return;
+      isResizing = true;
+      currentResizer = e.target;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      const rect = drawer.getBoundingClientRect();
+      initialLeft = rect.left;
+      initialTop = rect.top;
+      initialWidth = rect.width;
+      initialHeight = rect.height;
+      document.body.style.userSelect = "none";
+      e.stopPropagation();
+    });
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (isDragging) {
+      const dx = e.clientX - dragStartX;
+      const dy = e.clientY - dragStartY;
+      drawer.style.left = `${initialLeft + dx}px`;
+      drawer.style.top = `${initialTop + dy}px`;
+      drawer.style.right = 'auto';
+      drawer.style.bottom = 'auto';
+    } else if (isResizing && currentResizer) {
+      const dx = e.clientX - dragStartX;
+      const dy = e.clientY - dragStartY;
+      const classList = currentResizer.classList;
+
+      if (classList.contains("resizer-e") || classList.contains("resizer-ne") || classList.contains("resizer-se")) {
+        drawer.style.width = `${Math.max(300, initialWidth + dx)}px`;
+      }
+      if (classList.contains("resizer-s") || classList.contains("resizer-se") || classList.contains("resizer-sw")) {
+        drawer.style.height = `${Math.max(300, initialHeight + dy)}px`;
+      }
+      if (classList.contains("resizer-w") || classList.contains("resizer-nw") || classList.contains("resizer-sw")) {
+        const newWidth = Math.max(300, initialWidth - dx);
+        if (newWidth > 300) {
+          drawer.style.width = `${newWidth}px`;
+          drawer.style.left = `${initialLeft + dx}px`;
+          drawer.style.right = 'auto';
+        }
+      }
+      if (classList.contains("resizer-n") || classList.contains("resizer-ne") || classList.contains("resizer-nw")) {
+        const newHeight = Math.max(300, initialHeight - dy);
+        if (newHeight > 300) {
+          drawer.style.height = `${newHeight}px`;
+          drawer.style.top = `${initialTop + dy}px`;
+          drawer.style.bottom = 'auto';
+        }
+      }
+    }
+  });
+
+  document.addEventListener("mouseup", () => {
+    isDragging = false;
+    isResizing = false;
+    currentResizer = null;
+    document.body.style.userSelect = "";
+  });
+
 
   document.addEventListener("keydown", e => {
     if (e.key === "Escape" && document.activeElement === input) collapseChatDrawer();

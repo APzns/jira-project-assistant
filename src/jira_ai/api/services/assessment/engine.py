@@ -57,48 +57,7 @@ def get_instant_assessment(db, mode: str = "real", project_key: str | None = Non
         return cached
 
     cache_id = _get_cache_id(mode, project_key)
-    if mode == "synthetic":
-        metrics = _synthetic_metrics()
-        metrics["project_key"] = project_key or "ALL"
-    else:
-        metrics = _compute_metrics(db, project_key=project_key)
-
-    assessment = _build_fallback_assessment(metrics, mode=mode)
-    assessment.setdefault("predictability_comment", "")
-    assessment.setdefault("predictability_summary", "")
-    assessment.setdefault("quality_summary", "")
-    assessment.setdefault("quality_actions", [])
-    assessment["project_key"] = project_key or "ALL"
-    assessment["metrics"] = metrics
-    assessment["mode"] = mode
-    assessment["generated_at"] = datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
-    assessment["monte_carlo"] = _build_monte_carlo(metrics)
-    metrics["forecast_delay_days"] = _forecast_delay_days(metrics)
-
-    overdue_pct = metrics.get("overdue_points_pct", 0)
-    milestones_data = metrics.get("milestone_completion", {})
-    any_milestone_delayed = False
-    for name, info in milestones_data.items():
-        pct = info.get("percent_done", 0)
-        days = info.get("days_to_release")
-        if days is not None and days < 0 and pct < 100:
-            any_milestone_delayed = True
-            break
-
-    progress_behind = (overdue_pct > 0) or any_milestone_delayed
-    mc_behind = metrics.get("forecast_delay_days") is not None and metrics["forecast_delay_days"] > 0
-
-    if mc_behind and progress_behind:
-        calculated_status = "delayed"
-    elif mc_behind or progress_behind:
-        calculated_status = "at_risk"
-    else:
-        calculated_status = "on_track"
-
-    assessment["overall_status"] = calculated_status
-
-    _save_to_cache(db, assessment, cache_id=cache_id)
-    return assessment
+    return assess(db, mode=mode, project_key=project_key)
 
 
 def warmup_assessment_cache(db, mode: str = "real", force: bool = False) -> list[str]:
@@ -142,10 +101,25 @@ def assess(db, mode: str = "real", project_key: str | None = None) -> dict:
     else:
         metrics = _compute_metrics(db, project_key=project_key)
 
-    lenses = _load_risk_lenses()
-    context = load_project_context()
+    lenses = _load_risk_lenses(project_key)
+    context = load_project_context(project_key)
 
     project_header = f"Project Scope: {project_key.upper()}" if project_key and project_key.upper() not in ("ALL", "GLOBAL") else "Project Scope: ALL (Global Portfolio / All Projects)"
+
+    project_milestone = metrics.get('project_milestone')
+    if project_milestone:
+        milestone_instructions = f"""4. For the project-deadline lens, the final milestone is '{project_milestone}'
+   (the one with the latest release date). Judge whether the project will ship
+   on time based on its completion and everything feeding it.
+
+For milestones: base each milestone's status on the MILESTONE COMPLETION data
+(completion % plus days-to-release). Use the milestone names exactly as they
+appear. Do not invent milestones absent from that data. The statuses must be 'on_track', 'at_risk', or 'delayed'."""
+    else:
+        milestone_instructions = """4. For the project-deadline lens, there are no predefined milestones. Judge whether the project will ship
+   on time based on overall completion and forecast metrics.
+
+Note: There are no milestones defined for this project. Do not invent any milestones."""
 
     prompt = f"""You are an experienced Technical Program Manager writing a
 status assessment for stakeholders.
@@ -162,14 +136,8 @@ Reason in this order:
    and rating risks is YOUR judgment — there are no pre-set verdicts.
 3. ALWAYS cross-check the DECISION LOG before flagging anything: if a data
    pattern is explained by a deliberate decision, do NOT call it a risk.
-4. For the project-deadline lens, the final milestone is '{metrics.get('project_milestone')}'
-   (the one with the latest release date). Judge whether the project will ship
-   on time based on its completion and everything feeding it.
+{milestone_instructions}
 5. Every point must carry an implication and, where warranted, an action.
-
-For milestones: base each milestone's status on the MILESTONE COMPLETION data
-(completion % plus days-to-release). Use the milestone names exactly as they
-appear. Do not invent milestones absent from that data. The statuses must be 'on_track', 'at_risk', or 'delayed'.
 
 CRITICAL FORMATTING INSTRUCTIONS FOR ALL SUMMARIES:
 - DO NOT write walls of text or long paragraphs.
@@ -192,6 +160,8 @@ For 'quality_summary', write a structured, insightful analysis using bullet poin
 - Quality Impact: Evaluate how bug backlog and defect drag affect feature velocity.
 
 For 'quality_actions', write 2-4 actionable next steps suggestions specifically targeting defect reduction, quality improvement, test automation, and bug remediation.
+
+For 'telemetry_breakdown', provide an array of exactly 5 objects representing the high-level dashboard box metrics: "Overall Status", "Predictability", "Unresolved Defects", "Cross-Team Blockers", and "Scope Delivery". For each metric, provide its current 'value' (from the metrics snapshot) and an 'ai_comment' explaining exactly WHY that metric is what it is (e.g. why is predictability at 85%? why are there 2 blockers? why is scope delivery delayed?). Keep the ai_comment to 1-2 punchy sentences explaining the underlying data logic.
 
 EXAMPLE tone and depth (do not copy verbatim — adapt to the actual data):
 - headline: "M2 at risk — compliance work 38% complete with 14 days to release"

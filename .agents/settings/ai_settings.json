@@ -54,16 +54,14 @@
       "name": "QA & Defect Deep Dive",
       "is_default": false,
       "stakeholder": "engineer",
-      "focus_teams": [
-        "Checkout Squad"
-      ],
-      "focus_epics": [
-        "Mobile Parity"
-      ],
+      "focus_teams": [],
+      "focus_epics": [],
       "risk_categories": [
-        "dependency"
+        "dependency",
+        "velocity",
+        "overcommitment"
       ],
-      "min_risk_severity": "high",
+      "min_risk_severity": "medium",
       "summary_verbosity": "detailed",
       "custom_instructions": "Focus on high-severity unassigned bugs."
     },
@@ -807,16 +805,14 @@
     }
   ],
   "stakeholder": "engineer",
-  "focus_teams": [
-    "Checkout Squad"
-  ],
-  "focus_epics": [
-    "Mobile Parity"
-  ],
+  "focus_teams": [],
+  "focus_epics": [],
   "risk_categories": [
-    "dependency"
+    "dependency",
+    "velocity",
+    "overcommitment"
   ],
-  "min_risk_severity": "high",
+  "min_risk_severity": "medium",
   "summary_verbosity": "detailed",
   "custom_instructions": "Focus on high-severity unassigned bugs."
 }

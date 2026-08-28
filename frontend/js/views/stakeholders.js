@@ -27,7 +27,7 @@ let PROJECT_MAP = {
   "CHK": { name: "Checkout & Commerce Flow", color: "#4c8dff" },
   "CORE": { name: "Platform Core & Analytics", color: "#2fbf71" },
   "MOB": { name: "Mobile Parity & Security", color: "#9b6bff" },
-  "HRZ": { name: "Project Horizon", color: "#f5a623" }
+  "HRZ": { name: "Horizon", color: "#f5a623" }
 };
 
 const ROLE_ICONS = {
@@ -834,13 +834,6 @@ export function applyStakeholderFilters() {
     });
   });
 
-  container.querySelectorAll(".btn-sh-edit").forEach(btn => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      window.location.hash = `stakeholders/${btn.dataset.id}`;
-    });
-  });
-
   container.querySelectorAll(".btn-sh-delete").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -915,9 +908,6 @@ function renderStakeholderRow(s) {
       <div class="sh-col sh-col-actions">
         <button class="btn-sh-details" data-id="${escapeHtml(s.id)}" title="View stakeholder details">
           Details
-        </button>
-        <button class="btn-icon-action btn-sh-edit" data-id="${escapeHtml(s.id)}" title="Edit stakeholder sections">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
         </button>
         <button class="btn-icon-action btn-icon-delete btn-sh-delete" data-id="${escapeHtml(s.id)}" data-name="${roleName}" title="Delete role">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>

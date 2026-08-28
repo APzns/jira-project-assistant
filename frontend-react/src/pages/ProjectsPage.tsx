@@ -43,7 +43,7 @@ export default function ProjectsPage() {
           <div className="projects-header">
             <div className="projects-title-area">
               <h2>Projects</h2>
-              <p className="muted">Active enterprise software delivery projects under Program Horizon.</p>
+              <p className="muted">Active enterprise software delivery projects under the enterprise portfolio.</p>
             </div>
             <div className="projects-stats-strip">
               <div className="stats-item">

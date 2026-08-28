@@ -51,7 +51,7 @@ DEFAULT_PROJECTS = [
     },
     {
         "key": "HRZ",
-        "name": "Project Horizon",
+        "name": "Horizon",
         "description": "Next-generation AI features and predictive modeling for user recommendations.",
         "target_release": "2025-Q1",
         "tags": "AI,Experimental",
@@ -75,7 +75,9 @@ def main():
                 db.add(new_setting)
                 print(f"Added project: {p['key']}")
             else:
-                print(f"Project already exists: {p['key']}")
+                for k, v in p.items():
+                    setattr(existing, k, v)
+                print(f"Updated project: {p['key']}")
         db.commit()
         print("Done!")
 

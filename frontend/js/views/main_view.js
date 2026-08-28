@@ -43,7 +43,7 @@ const PROJECT_NAME_MAP = {
   "CHK": "Checkout Flow",
   "CORE": "Platform Core",
   "MOB": "Mobile Guild",
-  "HRZ": "Project Horizon",
+  "HRZ": "Horizon",
   "ALL": "Portfolio-wide"
 };
 
@@ -149,151 +149,102 @@ function renderAIIntelligence() {
   // --- 1. Critical Hot Spots ---
   const hotSpotsList = $("main-hot-spots-list");
   if (hotSpotsList) {
-    hotSpotsList.innerHTML = `
+    const topProjects = [..._projectsList].sort((a, b) => (b.blockers_count || 0) - (a.blockers_count || 0)).slice(0, 3);
+    let html = "";
+    topProjects.forEach(p => {
+      const statusClass = p.status === 'delayed' ? 'tag-high' : (p.status === 'at-risk' ? 'tag-warn' : 'tag-ok');
+      const statusText = p.status === 'delayed' ? 'Delayed' : (p.status === 'at-risk' ? 'At Risk' : 'On Track');
+      const blockers = p.blockers_count || 0;
+      html += `
       <div class="insight-item-card hot-spot-card">
         <div class="insight-card-top">
-          <span class="project-pill pill-chk">CHK</span>
-          <span class="insight-tag tag-high">Critical Path</span>
+          <span class="project-pill pill-${p.key.toLowerCase()}">${escapeHtml(p.key)}</span>
+          <span class="insight-tag ${statusClass}">${statusText}</span>
         </div>
-        <div class="insight-card-title">Payment Gateway API Latency & Multi-currency SLA</div>
+        <div class="insight-card-title">${escapeHtml(p.name)}</div>
         <div class="insight-card-desc">
-          3rd-party latency spikes (>380ms) causing checkout drop-offs. Affecting <strong>M1 Core Checkout</strong> launch readiness.
+          ${escapeHtml(p.description || "No description.")}
         </div>
         <div class="insight-card-footer">
-          <span>⚠️ 2 Blockers</span>
-          <a href="#projects/CHK" class="insight-card-link">Inspect CHK →</a>
+          <span>${blockers > 0 ? `⚠️ ${blockers} Blockers` : '✓ 0 Blockers'}</span>
+          <a href="#dashboards/${escapeHtml(p.key)}" class="insight-card-link">Inspect ${escapeHtml(p.key)} →</a>
         </div>
-      </div>
-
-      <div class="insight-item-card hot-spot-card">
-        <div class="insight-card-top">
-          <span class="project-pill pill-mob">MOB</span>
-          <span class="insight-tag tag-warn">Regulatory SLA</span>
-        </div>
-        <div class="insight-card-title">SSO Authentication & PCI-DSS Audit Carryover</div>
-        <div class="insight-card-desc">
-          Security audit findings for iOS auth flow require 2 dedicated senior backend engineers to prevent M2 regulatory slip.
-        </div>
-        <div class="insight-card-footer">
-          <span>⚠️ 1 Blocker</span>
-          <a href="#projects/MOB" class="insight-card-link">Inspect MOB →</a>
-        </div>
-      </div>
-
-      <div class="insight-item-card hot-spot-card">
-        <div class="insight-card-top">
-          <span class="project-pill pill-core">CORE</span>
-          <span class="insight-tag tag-ok">High Velocity</span>
-        </div>
-        <div class="insight-card-title">Database Horizontal Partitioning & Kafka Streams</div>
-        <div class="insight-card-desc">
-          Architecture migration running ahead of plan (82% done), providing 15% spare capacity to support other squads.
-        </div>
-        <div class="insight-card-footer">
-          <span>✓ 0 Blockers</span>
-          <a href="#projects/CORE" class="insight-card-link">Inspect CORE →</a>
-        </div>
-      </div>
-    `;
+      </div>`;
+    });
+    hotSpotsList.innerHTML = html || '<div class="muted" style="padding: 10px;">No hot spots detected.</div>';
   }
 
   // --- 2. Prioritized Suggested Actions (P1 / P2 / P3) ---
   const actionsList = $("main-suggested-actions-list");
   if (actionsList) {
-    actionsList.innerHTML = `
-      <div class="insight-item-card action-card">
-        <div class="insight-card-top">
-          <span class="priority-badge priority-p1">P1 · Immediate</span>
-          <span class="action-owner-tag">Alex Mercer (CHK)</span>
-        </div>
-        <div class="insight-card-title">Enforce D3 Scope Freeze on Checkout Replatform</div>
-        <div class="insight-card-desc">
-          Lock feature additions on APS-1 and defer secondary coupon optimizations to protect M1 production cutover date.
-        </div>
-        <div class="insight-card-footer">
-          <span>⚡ Impact: Milestone M1</span>
-          <button type="button" class="btn-text-action" data-action-prompt="Propose detailed execution steps to enforce Decision D3 scope freeze on Checkout Flow">Draft Action →</button>
-        </div>
-      </div>
+    const actions = [];
+    if (_assessmentData?.recommended_actions) {
+      actions.push(..._assessmentData.recommended_actions);
+    }
+    if (_assessmentData?.quality_actions) {
+      actions.push(..._assessmentData.quality_actions);
+    }
+    
+    let html = "";
+    actions.slice(0, 3).forEach((actionText, idx) => {
+      const pLevel = idx === 0 ? "P1" : (idx === 1 ? "P2" : "P3");
+      const pClass = idx === 0 ? "priority-p1" : (idx === 1 ? "priority-p2" : "priority-p3");
+      const pLabel = idx === 0 ? "Immediate" : (idx === 1 ? "High" : "Medium");
+      const owner = _assessmentData?.project_key && _assessmentData.project_key !== "ALL" 
+          ? `Lead TPM (${escapeHtml(_assessmentData.project_key)})` 
+          : "Portfolio TPM";
 
+      html += `
       <div class="insight-item-card action-card">
         <div class="insight-card-top">
-          <span class="priority-badge priority-p2">P2 · High</span>
-          <span class="action-owner-tag">Marcus Vance (CORE)</span>
+          <span class="priority-badge ${pClass}">${pLevel} · ${pLabel}</span>
+          <span class="action-owner-tag">${escapeHtml(owner)}</span>
         </div>
-        <div class="insight-card-title">Reallocate 2 Senior Engineers from CORE to MOB</div>
+        <div class="insight-card-title">AI Suggested Action</div>
         <div class="insight-card-desc">
-          Leverage CORE's velocity surplus to accelerate mobile zero-trust SSO authentication and clear SOC2 audit criteria.
+          ${escapeHtml(actionText)}
         </div>
         <div class="insight-card-footer">
-          <span>⚡ Impact: Milestone M2</span>
-          <button type="button" class="btn-text-action" data-action-prompt="Analyze capacity reallocation trade-offs between CORE and MOB squads">Simulate Load →</button>
+          <span>⚡ Impact: Portfolio Alignment</span>
+          <button type="button" class="btn-text-action" data-action-prompt="Propose detailed execution steps for: ${escapeHtml(actionText)}">Draft Action →</button>
         </div>
-      </div>
-
-      <div class="insight-item-card action-card">
-        <div class="insight-card-top">
-          <span class="priority-badge priority-p3">P3 · Medium</span>
-          <span class="action-owner-tag">Lead TPM</span>
-        </div>
-        <div class="insight-card-title">Brief SteerCo & VP Product on Monte Carlo P80 Buffer</div>
-        <div class="insight-card-desc">
-          Present 6-day regulatory audit buffer scenario to steer stakeholders ahead of upcoming Q4 release train alignment.
-        </div>
-        <div class="insight-card-footer">
-          <span>⚡ Impact: SteerCo Alignment</span>
-          <button type="button" class="btn-text-action" data-action-prompt="Generate an executive 1-pager for SteerCo presenting Monte Carlo P80 completion dates">Create Brief →</button>
-        </div>
-      </div>
-    `;
+      </div>`;
+    });
+    actionsList.innerHTML = html || '<div class="muted" style="padding: 10px;">No actions suggested at this time.</div>';
   }
 
   // --- 3. Cross-Project Risk Radar ---
   const risksList = $("main-risk-radar-list");
   if (risksList) {
-    risksList.innerHTML = `
-      <div class="insight-item-card risk-card">
-        <div class="insight-card-top">
-          <span class="risk-code-badge">R1</span>
-          <span class="risk-status-tag tag-high">Active / High</span>
-        </div>
-        <div class="insight-card-title">Regulatory Compliance Deadline (SOC2 / PCI-DSS)</div>
-        <div class="insight-card-desc">
-          <strong>Trigger:</strong> M2 security audit findings unresolved within 5 business days of sprint review.
-        </div>
-        <div class="risk-meter-bar">
-          <div class="risk-meter-fill fill-danger" style="width: 78%;"></div>
-        </div>
-      </div>
+    const risks = _assessmentData?.risks || [];
+    let html = "";
+    risks.slice(0, 3).forEach((risk, idx) => {
+      const isHigh = risk.severity === "critical" || risk.severity === "high";
+      const isWarn = risk.severity === "medium";
+      const statusClass = isHigh ? "tag-high" : (isWarn ? "tag-warn" : "tag-ok");
+      const statusText = isHigh ? "Active / High" : (isWarn ? "Triggered / Amber" : "Monitored / Green");
+      const fillClass = isHigh ? "fill-danger" : (isWarn ? "fill-warn" : "fill-ok");
+      const fillWidth = isHigh ? "85%" : (isWarn ? "60%" : "30%");
+      const scopeBadge = _assessmentData?.project_key && _assessmentData.project_key !== "ALL" 
+          ? escapeHtml(_assessmentData.project_key) 
+          : `R${idx + 1}`;
 
+      html += `
       <div class="insight-item-card risk-card">
         <div class="insight-card-top">
-          <span class="risk-code-badge">R2</span>
-          <span class="risk-status-tag tag-warn">Triggered / Amber</span>
+          <span class="risk-code-badge">${scopeBadge}</span>
+          <span class="risk-status-tag ${statusClass}">${statusText}</span>
         </div>
-        <div class="insight-card-title">Cross-Team Carryover Drag & Dependency Lock</div>
+        <div class="insight-card-title">${escapeHtml(risk.finding || risk.lens || "Detected Risk")}</div>
         <div class="insight-card-desc">
-          <strong>Trigger:</strong> Spillover story points exceed 15% across 2 consecutive sprint cycles.
+          <strong>Evidence:</strong> ${escapeHtml(risk.evidence || "No evidence provided.")}
         </div>
         <div class="risk-meter-bar">
-          <div class="risk-meter-fill fill-warn" style="width: 62%;"></div>
+          <div class="risk-meter-fill ${fillClass}" style="width: ${fillWidth};"></div>
         </div>
-      </div>
-
-      <div class="insight-item-card risk-card">
-        <div class="insight-card-top">
-          <span class="risk-code-badge">R3</span>
-          <span class="risk-status-tag tag-ok">Monitored / Green</span>
-        </div>
-        <div class="insight-card-title">Payment Gateway API Latency Spike (>350ms)</div>
-        <div class="insight-card-desc">
-          <strong>Trigger:</strong> Multi-gateway automated failover circuits trigger under peak transaction volume.
-        </div>
-        <div class="risk-meter-bar">
-          <div class="risk-meter-fill fill-ok" style="width: 30%;"></div>
-        </div>
-      </div>
-    `;
+      </div>`;
+    });
+    risksList.innerHTML = html || '<div class="muted" style="padding: 10px;">No critical risks detected.</div>';
   }
 
   // Wire AI action buttons inside cards

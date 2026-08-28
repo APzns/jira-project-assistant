@@ -46,7 +46,7 @@ export const AssessmentTab: React.FC<AssessmentTabProps> = ({ assessmentData, on
       <section id="tab-assessment" className="tab-panel active">
         <div className="panel-head">
           <div className="program-summary">
-            <h2>Program Horizon - Status summary</h2>
+            <h2>Project Status summary</h2>
             <p className="program-desc">
               A program to modernize the commerce platform: redesigning checkout,
               achieving mobile parity, hardening security, compliance, and performance,
@@ -248,7 +248,7 @@ export const AssessmentTab: React.FC<AssessmentTabProps> = ({ assessmentData, on
     <section id="tab-assessment" className="tab-panel active">
       <div className="panel-head">
         <div className="program-summary">
-          <h2>Program Horizon - Status summary</h2>
+          <h2>Project Status summary</h2>
           <p className="program-desc">
             A program to modernize the commerce platform: redesigning checkout,
             achieving mobile parity, hardening security, compliance, and performance,
@@ -293,7 +293,7 @@ export const AssessmentTab: React.FC<AssessmentTabProps> = ({ assessmentData, on
                 <div className="kpi-value warn" id="c-overdue">
                   {overdue === undefined || overdue === null ? "–" : `${overdue}%`}
                 </div>
-                <div className="kpi-sub">% of delayed work (story points in completed versions)</div>
+                <div className="kpi-sub">% of delayed work (story points in versions with past release date)</div>
               </div>
               <div className="kpi">
                 <div className="kpi-label">Completion forecast</div>

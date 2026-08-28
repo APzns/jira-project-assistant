@@ -15,7 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 
-# Standard Strategic Program Pillars / OKRs for Project Horizon
+# Standard Strategic Program Pillars / OKRs for Horizon
 OKR_PILLARS = {
     "OKR-1: Modernize Checkout & Conversion": ["Checkout", "Payment", "Cart", "Conversion"],
     "OKR-2: Enterprise Security & Compliance": ["Security", "Compliance", "Audit", "Auth", "GDPR"],

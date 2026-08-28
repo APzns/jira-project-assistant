@@ -46,13 +46,13 @@
       "stakeholder_id": "exec",
       "raci": "A",
       "reporting_level": "executive",
-      "project_notes": "Executive sponsor for FY27 portfolio delivery, budget allocation, and strategic milestones."
+      "project_notes": "Executive sponsor for FY27 project delivery, budget allocation, and strategic milestones."
     },
     {
       "stakeholder_id": "pm-default",
       "raci": "R",
       "reporting_level": "standard",
-      "project_notes": "Leads program-level dependency tracking, cross-team risk log, and aggregate sprint predictability."
+      "project_notes": "Leads project-level dependency tracking, cross-team risk log, and aggregate sprint predictability."
     }
   ]
 }

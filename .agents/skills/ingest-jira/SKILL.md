@@ -5,7 +5,7 @@ description: Ingests and synchronizes issues, sprints, epics, fix-versions, and 
 
 # Skill: Ingest Jira Data
 
-This skill defines the data ingestion, synchronization, and caching workflow for Jira project data used in Project Horizon analytics.
+This skill defines the data ingestion, synchronization, and caching workflow for Jira project data used in the requested project or portfolio analytics.
 
 ## Responsibilities & Workflow
 

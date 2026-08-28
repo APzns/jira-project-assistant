@@ -220,6 +220,18 @@ export async function resetReports(): Promise<SaveReportsResponse> {
   return parseJsonResponse<SaveReportsResponse>(resp);
 }
 
+/**
+ * Generate a report template from the dashboard dataset.
+ */
+export async function createReportFromDashboard(projectKey: string = 'ALL'): Promise<any> {
+  const resp = await fetchWithTimeout(
+    `${API_BASE}/reports/from-dashboard`,
+    postJson({ project_key: projectKey }),
+    10_000,
+  );
+  return parseJsonResponse<any>(resp);
+}
+
 // ---------------------------------------------------------------------------
 // Skills (AI skill runner)
 // ---------------------------------------------------------------------------

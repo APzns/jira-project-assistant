@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SettingsPanel from '../components/SettingsPanel';
 import { AssessmentTab } from '../components/Dashboards/AssessmentTab';
 import { StatusTab } from '../components/Dashboards/StatusTab';
 import PredictabilityTab from '../components/Dashboards/PredictabilityTab';
 import { QualityTab } from '../components/Dashboards/QualityTab';
-import { fetchAssessment } from '../api/client';
+import { fetchAssessment, createReportFromDashboard } from '../api/client';
 import type { Assessment } from '../types';
 
 export default function DashboardsPage() {
   const [activeTab, setActiveTab] = useState('assessment');
   const [assessmentData, setAssessmentData] = useState<Assessment | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchAssessment('real', false)
@@ -17,13 +20,36 @@ export default function DashboardsPage() {
       .catch(err => console.error(err));
   }, []);
 
+  const handleGenerateReport = async () => {
+    try {
+      setIsGenerating(true);
+      const projectKey = (assessmentData as any)?.project_key || 'ALL';
+      await createReportFromDashboard(projectKey);
+      navigate('/reports');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to generate report.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <section className="nav-page active">
       <div className="dashboards-container">
         
         {/* Sub-tabs header */}
         <div className="sub-tabs-header">
-          <h2>Program Overview</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2>Program Overview</h2>
+            <button 
+              className="btn btn-primary" 
+              onClick={handleGenerateReport} 
+              disabled={isGenerating || !assessmentData}
+            >
+              {isGenerating ? 'Generating...' : 'Export as Report'}
+            </button>
+          </div>
           <div className="sub-tabs" id="sub-tabs">
             <button 
               className={`tab ${activeTab === 'assessment' ? 'active' : ''}`}

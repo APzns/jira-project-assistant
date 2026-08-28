@@ -46,6 +46,11 @@ export const QualityTab: React.FC<QualityTabProps> = ({ assessmentData }) => {
   const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set(allTeams));
   const [expandedSprints, setExpandedSprints] = useState<Set<string>>(new Set());
 
+  React.useEffect(() => {
+    setSelectedTeams(new Set(allTeams));
+    setAvgMode(false);
+  }, [allTeams]);
+
   // Update selected teams if allTeams change (like on mount)
   // To avoid infinite loops, we just initialize the state with allTeams once, 
   // but if new data arrives, we might want to reset. We'll leave it as is for simplicity.

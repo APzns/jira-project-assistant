@@ -5,7 +5,7 @@ description: Calculates core program metrics including sprint predictability, te
 
 # Skill: Compute Program Metrics
 
-This skill calculates quantitative health and delivery metrics for Project Horizon from PostgreSQL sprint and issue tables.
+This skill calculates quantitative health and delivery metrics for the requested project or portfolio from PostgreSQL sprint and issue tables.
 
 ## Metrics Formulations
 

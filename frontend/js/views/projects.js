@@ -296,16 +296,10 @@ function renderProjectsGrid(filtered) {
           </div>
           <div class="p-card-quick-actions">
             <button type="button" class="btn-p-view-dashboard" data-key="${key}" title="Open ${key} Live Dashboard">
-              📊 Dashboard
+              Dashboard
             </button>
-            <button type="button" class="btn-p-icon-action btn-p-archive-quick" data-key="${key}" data-archived="${isArchived}" title="${isArchived ? 'Restore / Unarchive Project' : 'Archive Project'}">
-              ${isArchived ? '📤' : '📦'}
-            </button>
-            <button type="button" class="btn-p-icon-action btn-p-del btn-p-delete-quick" data-key="${key}" data-name="${name}" title="Delete Project">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>
-            <button type="button" class="btn-p-action btn-p-view-details" data-key="${key}" title="View Full Charter & RACI Matrix">
-              Charter &amp; RACI →
+            <button type="button" class="btn-p-action btn-p-view-details" data-key="${key}" title="View Project Details">
+              Details
             </button>
           </div>
         </div>

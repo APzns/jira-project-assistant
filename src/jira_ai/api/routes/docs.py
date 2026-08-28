@@ -16,7 +16,7 @@ _ORDER = ["charter", "risks", "decisions", "definitions", "stakeholders"]
 def get_docs():
     files = []
     if _DIR.exists():
-        md = {p.stem: p for p in _DIR.glob("*.md")}
+        md = {p.stem: p for p in _DIR.rglob("*.md")}
         for stem in _ORDER + [s for s in md if s not in _ORDER]:
             if stem in md:
                 files.append({"name": stem, "content": md[stem].read_text(encoding="utf-8")})

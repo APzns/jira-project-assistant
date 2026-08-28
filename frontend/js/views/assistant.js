@@ -1,6 +1,6 @@
 /**
  * assistant.js — Dedicated Full-Page Conversational AI Assistant View
- * Interacts with backend LLM services, ingesting Jira data, Project Horizon charter,
+ * Interacts with backend LLM services, ingesting Jira data, Horizon charter,
  * decisions (D1–D3), risk triggers (R1–R4), and stakeholder personas to propose
  * and generate optimal delivery reports.
  */
@@ -15,7 +15,7 @@ let _isThinking = false;
 let _lastProposedTemplate = null;
 
 const DEFAULT_WELCOME_MESSAGE = `
-Hello! I am your **Smart Project & Delivery Assistant** for **Project Horizon** and assigned portfolio initiatives.
+Hello! I am your **Smart Project & Delivery Assistant** for **Horizon** and assigned portfolio initiatives.
 
 I synthesize live Jira metrics, Project Charters (Milestones M0–M3), Decision Logs (D1–D3), Risk Registers (R1–R4), and team velocity to give you instant answers, strategic advice, actionable next steps, and delivery reports.
 
@@ -173,7 +173,7 @@ function renderProposedCard(tpl, messageIndex) {
               <option value="CHK" ${scope === "CHK" ? "selected" : ""}>CHK — Checkout & Commerce Flow</option>
               <option value="CORE" ${scope === "CORE" ? "selected" : ""}>CORE — Platform Core & Analytics</option>
               <option value="MOB" ${scope === "MOB" ? "selected" : ""}>MOB — Mobile Parity & Security</option>
-              <option value="HRZ" ${scope === "HRZ" ? "selected" : ""}>HRZ — Project Horizon</option>
+              <option value="HRZ" ${scope === "HRZ" ? "selected" : ""}>HRZ — Horizon</option>
             </select>
           </div>
         </div>
