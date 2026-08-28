@@ -30,13 +30,26 @@ def get_summary(
 @router.get("/telemetry")
 def get_telemetry_summary(
     mode: str = "real",
+    force_refresh: bool = False,
     db: Session = Depends(get_db),
 ) -> dict:
     """Return comparative engineering telemetry across all active projects for Dashboards Hub."""
     from src.jira_ai.api.routes.projects import _read_projects_from_disk
     from src.jira_ai.api.services.assessment.context import _compute_metrics
     from src.jira_ai.api.services.assessment.evaluators import _build_monte_carlo
+    from src.jira_ai.ingestion.models import AssessmentCache
     from datetime import datetime
+    import json
+
+    TELEMETRY_CACHE_ID = 30000 if mode == "real" else 40000
+
+    if not force_refresh:
+        row = db.get(AssessmentCache, TELEMETRY_CACHE_ID)
+        if row:
+            try:
+                return json.loads(row.payload)
+            except Exception:
+                pass
 
     proj_data = _read_projects_from_disk()
     projects = [p for p in proj_data.get("projects", []) if not p.get("archived", False)]
@@ -105,9 +118,19 @@ def get_telemetry_summary(
                 "total_issues": 0
             })
 
-    return {
+    result = {
         "telemetry": telemetry,
         "total_projects": len(telemetry),
         "timestamp": datetime.now().isoformat()
     }
+
+    row = db.get(AssessmentCache, TELEMETRY_CACHE_ID)
+    if row:
+        row.payload = json.dumps(result)
+        row.generated_at = datetime.now()
+    else:
+        db.add(AssessmentCache(id=TELEMETRY_CACHE_ID, payload=json.dumps(result)))
+    db.commit()
+
+    return result
 

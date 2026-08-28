@@ -1323,3 +1323,37 @@ Strictly follow all custom instructions and settings provided in the system inst
     # Save to Cache
     save_skill_cache(db, "generate-report", payload.project_key, settings, out)
     return out
+
+def warmup_skills_cache(db: Session, force: bool = False) -> list[str]:
+    from pathlib import Path
+    import json
+    project_keys = ['ALL', 'HRZ', 'CORE', 'CHK', 'MOB']
+    try:
+        settings_file = Path(__file__).resolve().parents[4] / '.agents' / 'settings' / 'projects.json'
+        if settings_file.exists():
+            data = json.loads(settings_file.read_text(encoding='utf-8'))
+            for p in data.get('projects', []):
+                k = p.get('key')
+                if k and k not in project_keys and not p.get('archived', False):
+                    project_keys.append(k)
+    except Exception:
+        pass
+
+    skills_to_run = [
+        skill_analyze_status,
+        skill_assess_risks,
+        skill_forecast_delivery,
+        skill_sprint_planning,
+        skill_propose_next_steps,
+        skill_generate_report,
+    ]
+    warmed = []
+    for pkey in project_keys:
+        payload = SkillRequest(project_key=pkey, force_refresh=force)
+        for skill_func in skills_to_run:
+            try:
+                skill_func(payload, db)
+            except Exception as e:
+                logger.warning(f'Failed to warmup skill {skill_func.__name__} for {pkey}: {e}')
+        warmed.append(pkey)
+    return warmed

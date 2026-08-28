@@ -268,10 +268,21 @@ def main() -> None:
         warmed = warmup_assessment_cache(session, mode="real", force=True)
         print(f"Done. Assessment cache warmed for projects: {', '.join(warmed)}")
 
-        # Clear skill analysis cache so subsequent skill runs pick up the new data
+        # Warm up telemetry cache for dashboards
+        print("Pre-computing dashboard telemetry...")
+        from src.jira_ai.api.routes.stats import get_telemetry_summary
+        get_telemetry_summary(mode="real", force_refresh=True, db=session)
+        print("Done. Dashboards telemetry cached.")
+
+        # Clear old skill analysis cache and pre-compute skills
         invalidated_count = invalidate_skill_cache(session)
         pruned_count = prune_stale_cache(session, max_age_days=7, max_rows=150)
         print(f"Done. Cache refreshed: cleared {invalidated_count} active entries, pruned {pruned_count} stale records.")
+
+        print("Pre-computing all AI Project Assistant Skills...")
+        from src.jira_ai.api.routes.skills import warmup_skills_cache
+        warmed_skills = warmup_skills_cache(session, force=True)
+        print(f"Done. AI skills pre-computed for projects: {', '.join(warmed_skills)}")
     finally:
         session.close()
 
