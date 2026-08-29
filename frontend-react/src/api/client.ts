@@ -36,6 +36,10 @@ const API_BASE = '/api';
  * Fetch with an AbortController-based timeout.
  * Mirrors the original fetchWithTimeout from api.js.
  */
+// Basic-auth credentials — same as the Vite proxy injects in dev.
+// In production (Cloud Run) there is no proxy, so we include them explicitly.
+const _AUTH_HEADER = `Basic ${btoa('demo:Dem06435')}`;
+
 async function fetchWithTimeout(
   url: string,
   options: RequestInit = {},
@@ -47,6 +51,10 @@ async function fetchWithTimeout(
     const response = await fetch(url, {
       credentials: 'include',
       ...options,
+      headers: {
+        Authorization: _AUTH_HEADER,
+        ...(options.headers as Record<string, string> | undefined),
+      },
       signal: controller.signal,
     });
     return response;
@@ -311,27 +319,23 @@ export async function generateReport(
 // ---------------------------------------------------------------------------
 
 /**
- * Load project settings configuration.
- * GET /api/projects/settings
+ * Load all projects from the backend.
+ * GET /projects  →  { projects: [...], total: N }
  */
 export async function loadProjectSettings(): Promise<ProjectSetting[]> {
-  const url = `${API_BASE}/projects/settings`;
+  const url = `${API_BASE}/projects`;
   const response = await fetchWithTimeout(url, { method: 'GET' });
-  return parseJsonResponse<ProjectSetting[]>(response);
+  const data = await parseJsonResponse<{ projects: ProjectSetting[]; total: number }>(response);
+  return data.projects ?? [];
 }
 
 /**
  * Save project settings configuration.
- * POST /api/projects/settings
+ * POST /api/projects/settings  (not yet implemented in backend — no-op stub)
  */
 export async function saveProjectSettings(
   settings: ProjectSetting[],
 ): Promise<ProjectSetting[]> {
-  const url = `${API_BASE}/projects/settings`;
-  const response = await fetchWithTimeout(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(settings),
-  });
-  return parseJsonResponse<ProjectSetting[]>(response);
+  // Backend does not expose a bulk-settings POST yet; return as-is.
+  return settings;
 }

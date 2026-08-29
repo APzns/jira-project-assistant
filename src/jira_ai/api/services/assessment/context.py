@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timezone, date
 from sqlalchemy import text
 
-from src.jira_ai.api.services.metrics import MILESTONE_RELEASE_DATES
+
 from src.jira_ai.seeder import synthetic_metrics, forecast
 
 logger = logging.getLogger("jira_ai")
@@ -95,8 +95,21 @@ def _compute_metrics(db, project_key: str | None = None) -> dict:
         return db.execute(text(sql), params).scalar()
 
     proj_cond_i = _project_sql_condition(project_key, "i")
+    proj_cond_i2 = _project_sql_condition(project_key, "i2")
     proj_cond_s = _project_sql_condition(project_key, "s")
     proj_cond_t = _project_sql_condition(project_key, "t")
+    global_fv_cond = f"""(
+        {proj_cond_i}
+        OR (
+            (i.fix_version_id IS NOT NULL OR i.fix_version IS NOT NULL)
+            AND coalesce(v.name, i.fix_version) IN (
+                SELECT coalesce(v2.name, i2.fix_version)
+                FROM issues i2
+                LEFT JOIN fix_versions v2 ON (v2.version_id = i2.fix_version_id OR v2.name = i2.fix_version)
+                WHERE (i2.fix_version_id IS NOT NULL OR i2.fix_version IS NOT NULL) AND {proj_cond_i2}
+            )
+        )
+    )"""
     def_team = _default_team_for_project(project_key)
 
     total = scalar(f"SELECT count(*) FROM issues i WHERE {proj_cond_i}") or 0
@@ -112,13 +125,14 @@ def _compute_metrics(db, project_key: str | None = None) -> dict:
         FROM issues i
         LEFT JOIN fix_versions v ON (v.version_id = i.fix_version_id OR v.name = i.fix_version)
         WHERE (i.fix_version_id IS NOT NULL OR i.fix_version IS NOT NULL) AND i.issue_type <> 'Epic'
-          AND {proj_cond_i}
+          AND {global_fv_cond}
         GROUP BY coalesce(v.name, i.fix_version), v.release_date
         ORDER BY v.release_date NULLS LAST, name
     """)).fetchall()
+    
     milestone_completion = {}
     for r in milestone_rows:
-        rd = r[1] or MILESTONE_RELEASE_DATES.get(r[0])
+        rd = r[1]
         t = int(r[2])
         milestone_completion[r[0]] = {
             "release_date": rd,
@@ -364,7 +378,7 @@ def _compute_metrics(db, project_key: str | None = None) -> dict:
         LEFT JOIN fix_versions v ON (v.version_id = i.fix_version_id OR v.name = i.fix_version)
         WHERE (i.fix_version_id IS NOT NULL OR i.fix_version IS NOT NULL)
           AND i.issue_type <> 'Epic'
-          AND {proj_cond_i}
+          AND {global_fv_cond}
         ORDER BY v.release_date NULLS LAST, name, i.key
     """), {"def_team": def_team}).fetchall()
 
@@ -372,7 +386,7 @@ def _compute_metrics(db, project_key: str | None = None) -> dict:
     _unrel_groups: dict[str, dict] = {}
     _today = datetime.now(timezone.utc).date()
     for name, rdate, released, key, summary, team, resolved, status_cat, sprint, status in delayed_rows:
-        rd = rdate or MILESTONE_RELEASE_DATES.get(name)
+        rd = rdate
         if not rd:
             continue
         try:
@@ -433,7 +447,7 @@ def _compute_metrics(db, project_key: str | None = None) -> dict:
         JOIN fix_versions v ON (v.version_id = i.fix_version_id OR v.name = i.fix_version)
         WHERE v.overdue = true
           AND i.issue_type <> 'Epic'
-          AND {proj_cond_i}
+          AND {global_fv_cond}
     """)).fetchone()
     _total_pts = float(overdue_row[0] or 0)
     _late_pts = float(overdue_row[1] or 0)
@@ -461,7 +475,7 @@ def _compute_metrics(db, project_key: str | None = None) -> dict:
         FROM issues i
         LEFT JOIN fix_versions v ON (v.version_id = i.fix_version_id OR v.name = i.fix_version)
         WHERE i.issue_type <> 'Epic'
-          AND {proj_cond_i}
+          AND {global_fv_cond}
         GROUP BY coalesce(v.name, i.fix_version, '(none)'), coalesce(i.team, :def_team), i.issue_type
         ORDER BY fixversion, team, i.issue_type
     """), {"def_team": def_team}).fetchall()
@@ -491,12 +505,12 @@ def _compute_metrics(db, project_key: str | None = None) -> dict:
         LEFT JOIN sprints s ON s.name = i.sprint
         LEFT JOIN fix_versions v ON (v.version_id = i.fix_version_id OR v.name = i.fix_version)
         WHERE i.issue_type <> 'Epic'
-          AND {proj_cond_i}
+          AND {global_fv_cond}
         ORDER BY sprint, team, i.issue_type, i.key
     """), {"def_team": def_team}).fetchall()
     progress_issues = []
     for sp, sp_state, fv, fv_state, rdate, tm, itype, k, sm, st, stc, spoints in progress_rows:
-        rd = rdate or MILESTONE_RELEASE_DATES.get(fv)
+        rd = rdate
         progress_issues.append({
             "sprint": sp, "sprint_state": sp_state, 
             "fixversion": fv, "fixversion_state": fv_state,

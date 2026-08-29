@@ -1,5 +1,6 @@
 import { $, setText, show, hide, escapeHtml, fmtDate } from "./utils.js";
 import { API_BASE, ENV, state } from "./state.js";
+import { assessRisks, forecastDelivery, sprintPlanning } from "./skills.js";
 import { fetchWithTimeout, fetchAssessment, fetchStatsSummary, fetchProjects } from "./api.js";
 import { renderAssessmentTab } from "./views/assessment.js";
 import { renderStatusTab } from "./views/status.js";

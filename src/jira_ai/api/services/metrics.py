@@ -20,15 +20,7 @@ from src.jira_ai.ingestion.models import Issue, Sprint, FixVersion
 from src.jira_ai.seeder import synthetic_metrics  # NEW
 
 
-# NEW: known milestone target dates. Used as a fallback when a fix-version row
-# has no release_date (or no matching row at all), so the dashboard's
-# "release date" column is never empty for the M0-M3 program milestones.
-MILESTONE_RELEASE_DATES = {
-    "M0 - Preparation":          "2026-07-17",
-    "M1 - Checkout redesign":    "2026-07-31",
-    "M2 - Security & compliance": "2026-08-28",
-    "M3 - Launch-ready":         "2026-10-09",
-}
+# MILESTONE_RELEASE_DATES removed as requested.
 
 
 def _filter_by_project(query, project_key: str | None):
@@ -39,7 +31,15 @@ def _filter_by_project(query, project_key: str | None):
     if pkey == "HRZ":
         return query.filter(Issue.key.like("APS-%") | Issue.key.like("HRZ-%"))
     if pkey == "CORE":
-        return query.filter(Issue.key.like("CORE-%") | Issue.key.like("INF-%") | (Issue.team == "Platform Core") | (Issue.team == "Data Insights"))
+        return query.filter(
+            Issue.key.like("CORE-%") | 
+            Issue.key.like("INF-%") | 
+            (Issue.team == "Platform Core") | 
+            (Issue.team == "Data Insights")
+        ).filter(
+            ~Issue.key.like("APS-%"),
+            ~Issue.key.like("HRZ-%")
+        )
     return query.filter(Issue.key.like(f"{pkey}-%"))
 
 
@@ -64,10 +64,8 @@ def _default_team_for_project(project_key: str | None) -> str:
 
 
 def _milestone_release_date(name: str, db_value):
-    """Prefer the DB release_date; fall back to the known milestone map."""
-    if db_value:
-        return db_value
-    return MILESTONE_RELEASE_DATES.get(name)
+    """Return the DB release_date without relying on hardcoded fallback milestones."""
+    return db_value
 
 
 def _count_by(db: Session, column, project_key: str | None = None) -> dict:
@@ -241,13 +239,18 @@ def milestone_progress(db: Session, project_key: str | None = None) -> list[dict
         .filter(Issue.fix_version.isnot(None))
         .filter(Issue.issue_type != "Epic")
     )
-    q = _filter_by_project(q, project_key)
+    # We want global progress for the fix versions, but we ONLY want to list
+    # fix versions that the current project actually participates in.
+    if project_key and project_key.upper() not in ("ALL", "GLOBAL"):
+        subq = db.query(Issue.fix_version).filter(Issue.fix_version.isnot(None))
+        subq = _filter_by_project(subq, project_key)
+        q = q.filter(Issue.fix_version.in_(subq))
     rows = (
         q.group_by(Issue.fix_version, FixVersion.release_date, FixVersion.released)
         .order_by(FixVersion.release_date.nullslast(), Issue.fix_version)
         .all()
     )
-    return [
+    results = [
         {
             "fix_version": fix_version,
             "release_date": _milestone_release_date(fix_version, release_date),
@@ -258,6 +261,8 @@ def milestone_progress(db: Session, project_key: str | None = None) -> list[dict
         }
         for fix_version, total, done, release_date, released in rows
     ]
+    results.sort(key=lambda x: (str(x["release_date"]) if x["release_date"] else '9999-12-31', x["fix_version"]))
+    return results
 
 
 def overdue_count(db: Session, project_key: str | None = None) -> int:
@@ -334,6 +339,7 @@ def _synthetic_dashboard_summary(project_key: str | None = None) -> dict:
             "percent_done": info.get("percent_done",
                                      round(100 * done / total, 1) if total else 0.0),
         })
+    milestones.sort(key=lambda x: (str(x["release_date"]) if x["release_date"] else '9999-12-31', x["fix_version"]))
 
     sprints = [s["name"] for s in data.get("sprints", [])]
     teams = []
@@ -404,7 +410,12 @@ def issues_for_delivery(db: Session, project_key: str | None = None) -> list:
         Issue.key, Issue.summary, Issue.sprint, Issue.team,
         Issue.story_points, Issue.status, Issue.status_category, Issue.fix_version,
     ).filter(Issue.issue_type != "Epic", Issue.issue_type != "Sub-task")
-    q = _filter_by_project(q, project_key)
+    
+    if project_key and project_key.upper() not in ("ALL", "GLOBAL"):
+        subq = db.query(Issue.fix_version).filter(Issue.fix_version.isnot(None))
+        subq = _filter_by_project(subq, project_key)
+        q = q.filter(Issue.fix_version.in_(subq))
+        
     rows = q.all()
     default_team = _default_team_for_project(project_key)
     return [

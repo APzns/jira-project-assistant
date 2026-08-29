@@ -1,7 +1,8 @@
 import { $, setText, show, hide, escapeHtml, fmtDate, fmtDay, formatForecastDelay } from "../utils.js";
 import { renderMonteCarloChart } from "../charts/delivery.js";
 
-export function renderAssessmentTab(d, projectKey = "ALL", projectObj = null) {
+export function renderAssessmentTab(d, projectKey = "ALL", projectObj = null, origD = null) {
+  const fullData = origD || d;
   show("assess-result");
   hide("assess-empty");
   hide("assess-error");
@@ -40,10 +41,10 @@ export function renderAssessmentTab(d, projectKey = "ALL", projectObj = null) {
   }
 
 
-  const m = d.metrics || {};
+  const m = fullData.metrics || {};
   const ms = m.milestone_completion || {};
   const msKeys = Object.keys(ms);
-  const aiMilestones = d.milestones || [];
+  const aiMilestones = fullData.milestones || [];
 
   const normName = str => (str || "").toLowerCase().replace(/[–—−]/g, "-").replace(/\s+/g, " ").trim();
   const getPrefix = str => {
@@ -124,15 +125,15 @@ export function renderAssessmentTab(d, projectKey = "ALL", projectObj = null) {
 
   const badge = $("c-badge");
   if (badge) {
-    badge.textContent = (d.overall_status || "").replace("_", " ");
-    badge.className = "badge " + (d.overall_status || "");
+    badge.textContent = (fullData.overall_status || "").replace("_", " ");
+    badge.className = "badge " + (fullData.overall_status || "");
   }
 
   setText("assess-generated",
-    (d.generated_at ? "· Report generated " + fmtDate(d.generated_at) : "") +
-    (d.mode === "synthetic" ? " · SYNTHETIC" : ""));
+    (fullData.generated_at ? "· Report generated " + fmtDate(d.generated_at) : "") +
+    (fullData.mode === "synthetic" ? " · SYNTHETIC" : ""));
 
-  setText("a-forecast", d.forecast || "");
+  setText("a-forecast", d.overcommitment_summary || fullData.forecast || "");
 
   const delay = m.forecast_delay_days;
   const delayEl = $("c-delay");
@@ -144,7 +145,7 @@ export function renderAssessmentTab(d, projectKey = "ALL", projectObj = null) {
 
   const sumEl = $("a-ai-summary");
   if (sumEl) {
-    const summary = d.ai_summary || "";
+    const summary = d.summary || fullData.ai_summary || "";
     sumEl.innerHTML = summary
       ? (window.marked ? marked.parse(summary) : `<p>${escapeHtml(summary)}</p>`)
       : '<p class="muted">–</p>';
@@ -155,7 +156,7 @@ export function renderAssessmentTab(d, projectKey = "ALL", projectObj = null) {
   const mEl = $("a-milestones");
   if (mEl) {
     mEl.innerHTML = "";
-    (d.milestones || []).forEach(x => {
+    (fullData.milestones || []).forEach(x => {
       const bodyHtml = window.marked ? marked.parse(x.assessment || "") : escapeHtml(x.assessment || "");
       const st = x.status || '';
       mEl.insertAdjacentHTML("beforeend",
@@ -167,19 +168,20 @@ export function renderAssessmentTab(d, projectKey = "ALL", projectObj = null) {
   if (rEl) {
     rEl.innerHTML = "";
     if (!(d.risks || []).length) rEl.innerHTML = '<p class="item-body">No risks triggered.</p>';
-    (d.risks || []).forEach(x => {
-      const bodyHtml = window.marked ? marked.parse(x.evidence || "") : escapeHtml(x.evidence || "");
+    (d.risks || fullData.risks || []).forEach(x => {
+      const bodyText = x.mitigation ? `${x.evidence || ""}\n\n**Mitigation:** ${x.mitigation}` : (x.evidence || "");
+      const bodyHtml = window.marked ? marked.parse(bodyText) : escapeHtml(bodyText);
       const sev = (x.severity || '').toLowerCase();
       const badgeCls = sev === 'high' || sev === 'critical' ? 'off_track' : sev === 'medium' ? 'at_risk' : 'on_track';
       rEl.insertAdjacentHTML("beforeend",
-        `<div class="item ${sev}"><div class="item-title">${escapeHtml(x.finding)} <span class="badge ${badgeCls}" style="margin-left:8px; font-size:11px; padding:2px 8px;">${sev}</span></div><div class="item-body">${bodyHtml}</div></div>`);
+        `<div class="item ${sev}"><div class="item-title">${escapeHtml(x.title || x.finding || "Risk")} <span class="badge ${badgeCls}" style="margin-left:8px; font-size:11px; padding:2px 8px;">${sev}</span></div><div class="item-body">${bodyHtml}</div></div>`);
     });
   }
 
   const aEl = $("a-actions");
   if (aEl) {
     aEl.innerHTML = "";
-    (d.recommended_actions || []).forEach(a => {
+    (fullData.recommended_actions || []).forEach(a => {
       const li = document.createElement("li");
       li.className = "action-item";
       li.textContent = a;
@@ -187,8 +189,8 @@ export function renderAssessmentTab(d, projectKey = "ALL", projectObj = null) {
     });
   }
 
-  if (d.monte_carlo) {
-    renderMonteCarloChart(d.monte_carlo);
+  if (fullData.monte_carlo) {
+    renderMonteCarloChart(fullData.monte_carlo);
   }
 }
 

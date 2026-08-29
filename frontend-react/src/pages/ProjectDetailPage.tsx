@@ -20,10 +20,12 @@ export function ProjectDetailPage() {
             name: s.name,
             description: s.description,
             targetRelease: s.target_release || 'TBD',
-            tags: s.tags ? s.tags.split(',').map(t => t.trim()) : [],
-            status: Math.random() > 0.5 ? 'on-track' : 'at-risk', // Mock status
-            progress: Math.floor(Math.random() * 100), // Mock progress
-            blockers: Math.random() > 0.5 ? ['Mock blocker'] : [], // Mock blockers
+            tags: Array.isArray(s.tags)
+              ? s.tags
+              : (s.tags ? (s.tags as string).split(',').map((t: string) => t.trim()) : []),
+            status: s.status || 'on-track',
+            progress: s.progress_pct ?? 0,
+            blockers: s.blockers_count ?? 0,
             sp_completed: 0,
             sp_total: 0
           });

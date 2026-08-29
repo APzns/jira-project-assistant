@@ -586,8 +586,14 @@ export interface ProjectSetting {
   name: string;
   description: string;
   target_release?: string;
-  tags?: string;
+  tags?: string | string[];
   ai_guidelines?: string;
   at_risk_blockers?: number;
   at_risk_delay_days?: number;
+  status?: string;
+  progress_pct?: number;
+  blockers_count?: number;
+  archived?: boolean;
+  lead?: string;
+  progress_sp?: string;
 }

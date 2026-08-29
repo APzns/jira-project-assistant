@@ -13,11 +13,12 @@ function defectClass(pct) {
   return val >= 30 ? "delta-red" : val >= 15 ? "delta-yellow" : "delta-green";
 }
 
-export function renderDeliveryTab(d) {
-  const m = (d && d.metrics) || {};
+export function renderDeliveryTab(d, projectKey = "ALL", projectObj = null, origD = null) {
+  const fullData = origD || d;
+  const m = (fullData && fullData.metrics) || {};
   renderTeamPoints(m.points_by_sprint_team, m.sprint_progress);
-  renderPredictabilityKPIs(m, d.overall_status);
-  renderPredictabilityAISummary(d);
+  renderPredictabilityKPIs(m, fullData.overall_status);
+  renderPredictabilityAISummary(d, fullData);
 }
 
 export function renderPredictabilityKPIs(m, overallStatus) {
@@ -81,7 +82,7 @@ export function renderPredictabilityKPIs(m, overallStatus) {
   }
 }
 
-export function renderPredictabilityAISummary(d) {
+export function renderPredictabilityAISummary(d, fullData) {
   const sumEl = $("delivery-ai-summary");
   if (sumEl) {
     const s = d.predictability_summary || d.predictability_comment || "";

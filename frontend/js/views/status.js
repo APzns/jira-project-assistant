@@ -82,8 +82,9 @@ function buildGenericTeamFilter(hostId, stateObj, onChange) {
   });
 }
 
-export function renderStatusTab(d) {
-  const m = (d && d.metrics) || {};
+export function renderStatusTab(d, projectKey = "ALL", projectObj = null, origD = null) {
+  const fullData = origD || d;
+  const m = (fullData && fullData.metrics) || {};
 
   const badge = $("s-badge");
   if (badge) {

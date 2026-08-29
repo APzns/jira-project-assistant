@@ -18,6 +18,9 @@ function AppLayout() {
     <div className="app-container">
       <Sidebar />
       <div className="main-content-wrapper">
+        <div style={{ backgroundColor: '#ff4444', color: 'white', padding: '16px', textAlign: 'center', fontSize: '20px', fontWeight: 'bold', width: '100%', boxSizing: 'border-box', zIndex: 10000 }}>
+          🚧 Under Construction: We are upgrading this platform with new AI Project Manager capabilities. Some features may be temporarily unstable.
+        </div>
         <header className="topbar">
           <div className="brand">Project Assistant</div>
           <div className="topbar-right">

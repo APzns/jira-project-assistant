@@ -243,6 +243,13 @@ body {
 .text-green { color: var(--green) !important; }
 .text-warn { color: var(--amber) !important; }
 
+/* Aliases used by ProjectsPage stats strip */
+.stats-item { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; text-align: center; min-width: 90px; }
+.stats-val { display: block; font-size: 18px; font-weight: 700; color: var(--text); }
+.stats-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+.text-ok { color: var(--green) !important; }
+.text-muted { color: var(--text-dim) !important; }
+
 /* Toolbar */
 .projects-toolbar {
   display: flex;
