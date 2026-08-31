@@ -18,10 +18,23 @@ from sqlalchemy.orm import Session
 
 from src.jira_ai.ingestion.models import Issue, Sprint, FixVersion
 from src.jira_ai.seeder import synthetic_metrics  # NEW
+import json
+from pathlib import Path
 
-
-# MILESTONE_RELEASE_DATES removed as requested.
-
+def _get_project_milestones(project_key: str | None) -> list[dict] | None:
+    if not project_key:
+        return None
+    try:
+        p_path = Path(__file__).resolve().parents[4] / ".agents" / "settings" / "projects.json"
+        if p_path.exists():
+            with open(p_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                for p in data.get("projects", []):
+                    if p.get("key") == project_key.upper():
+                        return p.get("milestones")
+    except Exception:
+        pass
+    return None
 
 def _filter_by_project(query, project_key: str | None):
     """Filter an Issue-based query by project key."""
@@ -29,7 +42,7 @@ def _filter_by_project(query, project_key: str | None):
         return query
     pkey = project_key.upper()
     if pkey == "HRZ":
-        return query.filter(Issue.key.like("APS-%") | Issue.key.like("HRZ-%"))
+        return query
     if pkey == "CORE":
         return query.filter(
             Issue.key.like("CORE-%") | 
@@ -45,11 +58,9 @@ def _filter_by_project(query, project_key: str | None):
 
 def _default_team_for_project(project_key: str | None) -> str:
     """Return an intuitive default squad name when issue.team is null."""
-    if not project_key or project_key.upper() in ("ALL", "GLOBAL"):
-        return "Core Team"
+    if not project_key or project_key.upper() in ("ALL", "GLOBAL", "HRZ"):
+        return "Unassigned"
     pkey = project_key.upper()
-    if pkey == "HRZ":
-        return "Horizon Squad"
     if pkey == "CHK":
         return "Checkout Squad"
     if pkey in ("CORE", "INF"):
@@ -60,7 +71,26 @@ def _default_team_for_project(project_key: str | None) -> str:
         return "Payments Squad"
     if pkey == "AIP":
         return "AI Engine Squad"
-    return f"{pkey} Team"
+    return "Unassigned"
+
+
+def _resolve_team_for_issue(issue_team: str | None, issue_key: str | None = None, project_key: str | None = None) -> str:
+    """Resolve an issue's team from its explicit team, key prefix, or project default."""
+    if issue_team and str(issue_team).strip() and str(issue_team).strip().lower() not in ("none", "null", ""):
+        return str(issue_team).strip()
+    if issue_key:
+        pkey = str(issue_key).split("-")[0].upper()
+        if pkey == "CHK":
+            return "Checkout Squad"
+        if pkey == "MOB":
+            return "Mobile Team"
+        if pkey in ("CORE", "INF"):
+            return "Platform Core"
+        if pkey == "PAY":
+            return "Payments Squad"
+        if pkey == "AIP":
+            return "AI Engine Squad"
+    return _default_team_for_project(project_key)
 
 
 def _milestone_release_date(name: str, db_value):
@@ -182,8 +212,15 @@ def sprint_progress(db: Session, project_key: str | None = None) -> list[dict]:
 def points_by_sprint_team(db: Session, project_key: str | None = None) -> dict:
     """Committed vs completed story points per sprint, split by team."""
     done_points = case((Issue.status_category == "Done", Issue.story_points), else_=0)
-    default_team = _default_team_for_project(project_key)
-    team_expr = func.coalesce(Issue.team, default_team)
+    team_expr = case(
+        (Issue.team.isnot(None), Issue.team),
+        (Issue.key.like("CHK-%"), "Checkout Squad"),
+        (Issue.key.like("MOB-%"), "Mobile Team"),
+        (Issue.key.like("CORE-%") | Issue.key.like("INF-%"), "Platform Core"),
+        (Issue.key.like("PAY-%"), "Payments Squad"),
+        (Issue.key.like("AIP-%"), "AI Engine Squad"),
+        else_=_default_team_for_project(project_key),
+    )
 
     q = (
         db.query(
@@ -226,12 +263,18 @@ def points_by_sprint_team(db: Session, project_key: str | None = None) -> dict:
 def milestone_progress(db: Session, project_key: str | None = None) -> list[dict]:
     """Per-milestone (fix version) completion: done vs total issues."""
     done_case = case((Issue.status_category == "Done", 1), else_=0)
+    in_review_case = case((Issue.status_category == "In Review", 1), else_=0)
+    in_progress_case = case((Issue.status_category == "In Progress", 1), else_=0)
+    todo_case = case((Issue.status_category == "To Do", 1), else_=0)
 
     q = (
         db.query(
             Issue.fix_version,
             func.count(Issue.key).label("total"),
             func.coalesce(func.sum(done_case), 0).label("done"),
+            func.coalesce(func.sum(in_review_case), 0).label("in_review"),
+            func.coalesce(func.sum(in_progress_case), 0).label("in_progress"),
+            func.coalesce(func.sum(todo_case), 0).label("todo"),
             FixVersion.release_date,
             FixVersion.released,
         )
@@ -257,12 +300,117 @@ def milestone_progress(db: Session, project_key: str | None = None) -> list[dict
             "released": bool(released) if released is not None else False,
             "total_issues": total,
             "done_issues": done,
+            "in_review_issues": in_review,
+            "in_progress_issues": in_progress,
+            "todo_issues": todo,
             "percent_done": round(100 * done / total, 1) if total else 0.0,
+            "pct_done": round(100 * done / total, 1) if total else 0.0,
+            "pct_in_review": round(100 * in_review / total, 1) if total else 0.0,
+            "pct_in_progress": round(100 * in_progress / total, 1) if total else 0.0,
+            "pct_todo": round(100 * todo / total, 1) if total else 0.0,
         }
-        for fix_version, total, done, release_date, released in rows
+        for fix_version, total, done, in_review, in_progress, todo, release_date, released in rows
     ]
     results.sort(key=lambda x: (str(x["release_date"]) if x["release_date"] else '9999-12-31', x["fix_version"]))
-    return results
+    
+    project_milestones = _get_project_milestones(project_key)
+    if project_milestones and len(project_milestones) > 0:
+        ms_list = sorted(project_milestones, key=lambda x: x.get("deadline", "9999-12-31"))
+        
+        grouped = []
+        for ms in ms_list:
+            grouped.append({
+                "milestone": ms.get("name"),
+                "deadline": ms.get("deadline"),
+                "total_issues": 0,
+                "done_issues": 0,
+                "in_review_issues": 0,
+                "in_progress_issues": 0,
+                "todo_issues": 0,
+                "percent_done": 0.0,
+                "pct_done": 0.0,
+                "pct_in_review": 0.0,
+                "pct_in_progress": 0.0,
+                "pct_todo": 0.0,
+                "fix_versions": []
+            })
+            
+        unassigned = {
+            "milestone": "Unassigned / Future",
+            "deadline": None,
+            "total_issues": 0,
+            "done_issues": 0,
+            "in_review_issues": 0,
+            "in_progress_issues": 0,
+            "todo_issues": 0,
+            "percent_done": 0.0,
+            "pct_done": 0.0,
+            "pct_in_review": 0.0,
+            "pct_in_progress": 0.0,
+            "pct_todo": 0.0,
+            "fix_versions": []
+        }
+        
+        for fv in results:
+            rel_date = fv.get("release_date")
+            assigned = False
+            if rel_date:
+                for g in grouped:
+                    if g["deadline"] and g["deadline"] >= rel_date:
+                        g["fix_versions"].append(fv)
+                        g["total_issues"] += fv["total_issues"]
+                        g["done_issues"] += fv["done_issues"]
+                        g["in_review_issues"] += fv["in_review_issues"]
+                        g["in_progress_issues"] += fv["in_progress_issues"]
+                        g["todo_issues"] += fv["todo_issues"]
+                        assigned = True
+                        break
+            if not assigned:
+                unassigned["fix_versions"].append(fv)
+                unassigned["total_issues"] += fv["total_issues"]
+                unassigned["done_issues"] += fv["done_issues"]
+                unassigned["in_review_issues"] += fv["in_review_issues"]
+                unassigned["in_progress_issues"] += fv["in_progress_issues"]
+                unassigned["todo_issues"] += fv["todo_issues"]
+                
+        final_results = []
+        for g in grouped:
+            if g["total_issues"] > 0:
+                t = g["total_issues"]
+                g["percent_done"] = round(100 * g["done_issues"] / t, 1)
+                g["pct_done"] = g["percent_done"]
+                g["pct_in_review"] = round(100 * g["in_review_issues"] / t, 1)
+                g["pct_in_progress"] = round(100 * g["in_progress_issues"] / t, 1)
+                g["pct_todo"] = round(100 * g["todo_issues"] / t, 1)
+            final_results.append(g)
+            
+        if unassigned["fix_versions"]:
+            if unassigned["total_issues"] > 0:
+                t = unassigned["total_issues"]
+                unassigned["percent_done"] = round(100 * unassigned["done_issues"] / t, 1)
+                unassigned["pct_done"] = unassigned["percent_done"]
+                unassigned["pct_in_review"] = round(100 * unassigned["in_review_issues"] / t, 1)
+                unassigned["pct_in_progress"] = round(100 * unassigned["in_progress_issues"] / t, 1)
+                unassigned["pct_todo"] = round(100 * unassigned["todo_issues"] / t, 1)
+            final_results.append(unassigned)
+            
+        return final_results
+        
+    # If no project-specific milestones, filter out portfolio milestones
+    portfolio_milestones = set()
+    if project_key and project_key.upper() not in ("ALL", "GLOBAL", "HRZ"):
+        pm = _get_project_milestones("HRZ")
+        if pm:
+            portfolio_milestones = {m.get("name", "").lower() for m in pm}
+            
+    filtered_results = []
+    for fv in results:
+        fv_name = fv.get("fix_version")
+        if fv_name and fv_name.lower() in portfolio_milestones:
+            continue
+        filtered_results.append(fv)
+            
+    return filtered_results
 
 
 def overdue_count(db: Session, project_key: str | None = None) -> int:
@@ -327,7 +475,16 @@ def _synthetic_dashboard_summary(project_key: str | None = None) -> dict:
 
     mc = m.get("milestone_completion", {})
     milestones = []
+    
+    portfolio_milestones = set()
+    if project_key and project_key.upper() not in ("ALL", "GLOBAL", "HRZ"):
+        pm = _get_project_milestones("HRZ")
+        if pm:
+            portfolio_milestones = {m.get("name", "").lower() for m in pm}
+            
     for name, info in mc.items():
+        if name and name.lower() in portfolio_milestones:
+            continue
         total = info.get("total", 0)
         done = info.get("done", 0)
         milestones.append({
@@ -349,7 +506,7 @@ def _synthetic_dashboard_summary(project_key: str | None = None) -> dict:
         if i.get("issue_type") == "Epic":
             continue
         s = i.get("sprint")
-        t = i.get("team") or _default_team_for_project(project_key)
+        t = _resolve_team_for_issue(i.get("team"), i.get("key"), project_key)
         sp = i.get("story_points") or 0
         if not s:
             continue
@@ -379,7 +536,7 @@ def _synthetic_dashboard_summary(project_key: str | None = None) -> dict:
     delivery_issues = [
         {
             "key": i["key"], "summary": i["summary"], "sprint": i.get("sprint"),
-            "team": i.get("team") or _default_team_for_project(project_key), "story_points": i.get("story_points"),
+            "team": _resolve_team_for_issue(i.get("team"), i.get("key"), project_key), "story_points": i.get("story_points"),
             "status": i.get("status"), "status_category": i.get("status_category"), 
             "milestone": i.get("fix_version"),
         }
@@ -411,17 +568,13 @@ def issues_for_delivery(db: Session, project_key: str | None = None) -> list:
         Issue.story_points, Issue.status, Issue.status_category, Issue.fix_version,
     ).filter(Issue.issue_type != "Epic", Issue.issue_type != "Sub-task")
     
-    if project_key and project_key.upper() not in ("ALL", "GLOBAL"):
-        subq = db.query(Issue.fix_version).filter(Issue.fix_version.isnot(None))
-        subq = _filter_by_project(subq, project_key)
-        q = q.filter(Issue.fix_version.in_(subq))
+    q = _filter_by_project(q, project_key)
         
     rows = q.all()
-    default_team = _default_team_for_project(project_key)
     return [
         {
             "key": r.key, "summary": r.summary, "sprint": r.sprint,
-            "team": r.team or default_team, "story_points": r.story_points,
+            "team": _resolve_team_for_issue(r.team, r.key, project_key), "story_points": r.story_points,
             "status": r.status, "status_category": r.status_category, 
             "milestone": r.fix_version,
         }

@@ -84,10 +84,6 @@ function navigate(hash) {
         }
       }
 
-      if (targetProject === "ALL") {
-        targetProject = "CORE";
-      }
-
       state.currentProject = targetProject;
 
       if (targetTab) {
@@ -389,7 +385,6 @@ function applyDashboardsDirectoryFilter() {
     const predPct = (p.predictability_pct !== undefined && p.predictability_pct !== null) ? p.predictability_pct : null;
     const bugs = p.unresolved_bugs || 0;
     const blockers = p.blockers_count || 0;
-    const tagsHtml = (p.tags || []).slice(0, 3).map(t => `<span class="proj-mini-tag">${escapeHtml(t)}</span>`).join("");
 
     // Forecast label
     let forecastLabel = "On-Time";
@@ -440,7 +435,7 @@ function applyDashboardsDirectoryFilter() {
           <div class="telemetry-metric-box">
             <span class="telemetry-box-label">Monte Carlo Forecast</span>
             <span class="mc-delay-tag ${forecastClass}">
-              ${forecastClass === "delayed" ? "⚠️" : "🎯"} ${forecastLabel}
+              ${forecastClass === "delayed" ? "▲" : "🎯"} ${forecastLabel}
             </span>
             <span class="muted" style="font-size: 11px;">P50: ${p.mc_p50_date ? escapeHtml(p.mc_p50_date) : "Target"}</span>
           </div>
@@ -481,7 +476,10 @@ function applyDashboardsDirectoryFilter() {
           </div>
         </div>
 
-        <div class="main-proj-tags" style="margin-bottom: 16px;">${tagsHtml}</div>
+        <div class="p-tags" style="margin-bottom: 14px; display: flex; flex-wrap: wrap; gap: 6px;">
+          ${(p.tags || []).slice(0, 4).map(t => `<span class="p-tag">${escapeHtml(t)}</span>`).join("")}
+        </div>
+
         <div class="p-card-quick-actions">
           <button type="button" class="btn-proj-goto btn-p-goto-details" data-key="${escapeHtml(p.key)}" title="View AI Assessment & Telemetry Details">
             Details →
@@ -494,17 +492,7 @@ function applyDashboardsDirectoryFilter() {
 
   container.innerHTML = html;
 
-  // Wire click events
-  container.querySelectorAll(".btn-open-project-dashboard, .telemetry-card").forEach(el => {
-    el.addEventListener("click", (e) => {
-      if (e.target.closest(".btn-p-goto-details")) return;
-      const key = el.dataset.key || el.closest(".telemetry-card")?.dataset.key;
-      if (key) {
-        window.location.hash = `dashboards/${key}`;
-      }
-    });
-  });
-
+  // Wire click events (only on buttons, not whole card)
   container.querySelectorAll(".btn-p-goto-details").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -528,20 +516,27 @@ function initProjectsFilter() {
   function applyFilters() {
     cards.forEach(card => {
       const status = card.dataset.status;
-      const tags = (card.dataset.tags || "").toLowerCase();
-      const name = (card.dataset.name || "").toLowerCase();
-      const text = (card.textContent || "").toLowerCase();
+      const key = (card.dataset.key || "").toLowerCase();
+      const name = (card.querySelector(".p-title")?.textContent || "").toLowerCase();
+      const desc = (card.querySelector(".p-desc")?.textContent || "").toLowerCase();
 
-      const matchesStatus = activeFilter === "all" || status === activeFilter;
-      const matchesSearch = !searchQuery || name.includes(searchQuery) || tags.includes(searchQuery) || text.includes(searchQuery);
+      const matchesFilter = activeFilter === "all" ||
+        (activeFilter === "on-track" && status === "on-track") ||
+        (activeFilter === "at-risk" && (status === "at-risk" || status === "delayed")) ||
+        (activeFilter === "planning" && status === "planning");
 
-      card.style.display = (matchesStatus && matchesSearch) ? "flex" : "none";
+      const matchesSearch = !searchQuery ||
+        key.includes(searchQuery) ||
+        name.includes(searchQuery) ||
+        desc.includes(searchQuery);
+
+      card.style.display = (matchesFilter && matchesSearch) ? "flex" : "none";
     });
   }
 
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
-      searchQuery = e.target.value.trim().toLowerCase();
+      searchQuery = e.target.value.toLowerCase().trim();
       applyFilters();
     });
   }
@@ -550,7 +545,7 @@ function initProjectsFilter() {
     pill.addEventListener("click", () => {
       filterPills.forEach(p => p.classList.remove("active"));
       pill.classList.add("active");
-      activeFilter = pill.dataset.filter;
+      activeFilter = pill.dataset.filter || "all";
       applyFilters();
     });
   });
@@ -574,23 +569,23 @@ async function populateDashboardProjectSelector() {
   try {
     if (!state.projectsCache || state.projectsCache.length === 0) {
       const res = await fetchProjects(true);
-      state.projectsCache = res.projects || [];
+      state.projectsCache = (res.projects || []).filter(p => p.key && p.key.toUpperCase() !== "HRZ");
     }
   } catch (e) {
     console.error("Failed to load projects list for dropdown:", e);
   }
 
-  const projects = state.projectsCache || [];
-  let currentVal = state.currentProject;
-  if (!currentVal || currentVal === "ALL" || !projects.some(p => p.key.toUpperCase() === currentVal.toUpperCase())) {
+  const projects = (state.projectsCache || []).filter(p => p.key && p.key.toUpperCase() !== "HRZ");
+  let currentVal = (state.currentProject || "ALL").toUpperCase();
+  if (currentVal !== "ALL" && !projects.some(p => p.key.toUpperCase() === currentVal)) {
     currentVal = projects.length > 0 ? projects[0].key : "CORE";
     state.currentProject = currentVal;
   }
 
-  let optionsHtml = "";
+  let optionsHtml = `<option value="ALL" ${currentVal === "ALL" ? "selected" : ""}>🌐 Portfolio Overview (All Projects)</option>`;
   projects.forEach(p => {
     const isArchived = Boolean(p.archived);
-    optionsHtml += `<option value="${escapeHtml(p.key)}" ${p.key.toUpperCase() === currentVal.toUpperCase() ? "selected" : ""}>
+    optionsHtml += `<option value="${escapeHtml(p.key)}" ${p.key.toUpperCase() === currentVal ? "selected" : ""}>
       ${escapeHtml(p.name)} (${escapeHtml(p.key)})${isArchived ? " [Archived]" : ""}
     </option>`;
   });
@@ -613,7 +608,7 @@ function updateDashboardProjectMeta(projectKey) {
   if (statusPill) {
     if (!projectObj || projectKey === "ALL") {
       statusPill.className = "dashboards-meta-pill status-pill on-track";
-      statusPill.textContent = "Portfolio Active";
+      statusPill.textContent = "PORTFOLIO OVERVIEW";
     } else {
       const st = (projectObj.status || "on-track").toLowerCase();
       statusPill.className = `dashboards-meta-pill status-pill ${st}`;
@@ -626,7 +621,7 @@ function updateDashboardProjectMeta(projectKey) {
   }
 
   if (releaseEl) {
-    releaseEl.textContent = (projectObj && projectObj.target_release) ? projectObj.target_release : (projectKey === "ALL" ? "Multi-Release" : "Target Release");
+    releaseEl.textContent = (projectObj && projectObj.target_release) ? projectObj.target_release : (projectKey === "ALL" ? "Multi-Release Program" : "Target Release");
   }
 }
 

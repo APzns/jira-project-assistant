@@ -170,13 +170,15 @@ export function renderStatusTab(d, projectKey = "ALL", projectObj = null, origD 
       selected: new Set(allTeams), 
       avgMode: false,
       sprintProgress: m.sprint_progress || [],
-      critical_keys: new Set(m.critical_path ? (m.critical_path.critical_keys || []) : [])
+      critical_keys: new Set(m.critical_path ? (m.critical_path.critical_keys || []) : []),
+      milestoneCompletion: m.milestone_completion || null
     };
   } else {
     state.progressTabState.issues = issues;
     state.progressTabState.teams = allTeams;
     state.progressTabState.sprintProgress = m.sprint_progress || [];
     state.progressTabState.critical_keys = new Set(m.critical_path ? (m.critical_path.critical_keys || []) : []);
+    state.progressTabState.milestoneCompletion = m.milestone_completion || null;
   }
 
   buildDeliveryTeamFilter();
@@ -316,29 +318,17 @@ export function renderStatusBreakdown() {
     return `<span class="badge-count b-todo" style="font-size:11px; padding:3px 8px;">${displayLabel}</span>`;
   };
 
-  const byFixVersion = {};
-  rows.forEach(r => {
-    const fv = r.fixversion || "(none)";
-    if (!byFixVersion[fv]) {
-      byFixVersion[fv] = {
-        state: r.sprint_state || "planned",
-        release_date: r.release_date,
-        items: [],
-        teams: {}
-      };
-    }
-    byFixVersion[fv].items.push(r);
-    const tm = r.team || "(none)";
-    if (!byFixVersion[fv].teams[tm]) {
-      byFixVersion[fv].teams[tm] = { items: [] };
-    }
-    byFixVersion[fv].teams[tm].items.push(r);
-  });
+  const mc = state.progressTabState.milestoneCompletion;
+  const norm = s => (s || "").toLowerCase().replace(/[–—−-]/g, "").replace(/\s+/g, "").trim();
+
+  // Check if we have milestones defined
+  const msKeys = mc ? Object.keys(mc) : [];
+  const useMilestones = msKeys.length > 0 && msKeys.some(k => mc[k].fix_versions !== undefined);
 
   html += `<table class="data-table" id="status-table">
     <thead>
       <tr>
-        <th style="width: 45%;">Fix Version / Team / Issue</th>
+        <th style="width: 45%;">Milestone / Fix Version / Team / Issue</th>
         <th style="width: 40%;">Status Breakdown</th>
         <th style="width: 15%; text-align: right;">Actions</th>
       </tr>
@@ -346,89 +336,319 @@ export function renderStatusBreakdown() {
     <tbody>`;
 
   let rowIdCounter = 0;
-  
-  const sortedVersions = Object.keys(byFixVersion).sort((a, b) => {
-    if (a === "(none)") return 1;
-    if (b === "(none)") return -1;
-    const dateA = byFixVersion[a]?.release_date || "9999-99-99";
-    const dateB = byFixVersion[b]?.release_date || "9999-99-99";
-    if (dateA !== dateB) return dateA.localeCompare(dateB);
-    return a.localeCompare(b);
-  });
 
-  sortedVersions.forEach((vName) => {
-    const vObj = byFixVersion[vName];
-    const sId = "v-" + rowIdCounter++;
-    const sTag = vObj.state === "closed" ? "completed" : vObj.state === "active" ? "active" : "planned";
-    const isExp = expandedSet.has(sId);
-    
-    let delayBadge = "";
-    let dateStr = vObj.release_date && vObj.release_date !== "None" ? `<span class="muted" style="font-size:11px; font-weight:normal; margin-left: 8px;">(Release: ${escapeHtml(vObj.release_date)})</span>` : "";
-
-    if (vObj.release_date && vObj.release_date !== "None") {
-      const rDate = new Date(vObj.release_date);
-      const now = new Date();
-      rDate.setHours(0,0,0,0);
-      now.setHours(0,0,0,0);
-      
-      const hasUnclosed = vObj.items.some(item => (item.status_category || "").toLowerCase() !== "done");
-      if (hasUnclosed && now > rDate) {
-        const diffTime = now - rDate;
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        if (diffDays > 0) {
-          delayBadge = `<span class="sprint-state s-delayed">Delayed by ${diffDays} day${diffDays > 1 ? 's' : ''}</span>`;
-        }
-      }
-    }
-
-    html += `<tr class="sprint-row">
-      <td>
-        <button type="button" class="tree-toggle-btn tgl-btn" data-target="${sId}" data-child-class="row-team">
-          <span class="tree-icon">${isExp ? "▼" : "►"}</span>
-          <span style="color: var(--text); font-weight: 600; font-size: 13px;">${escapeHtml(vName)}</span>
-        </button>
-        <span class="sprint-state s-${vObj.state}">${sTag}</span>
-        ${dateStr}${delayBadge}
-      </td>
-      <td>${getCountsStr(vObj.items)}</td>
-      <td style="text-align: right;"><button type="button" class="tgl-btn link-btn" data-target="${sId}" data-child-class="row-team">${isExp ? "Expand ▴" : "Expand ▾"}</button></td>
-    </tr>`;
-    
-    Object.keys(vObj.teams).sort().forEach((tName) => {
-      const tObj = vObj.teams[tName];
-      const tId = "t-" + rowIdCounter++;
-      const swatch = `<i class="team-swatch" style="background:${teamColor(tName)}"></i>`;
-      const isExpT = expandedSet.has(tId);
-      
-      html += `<tr class="row-team" data-parent="${sId}" style="display:${isExp ? 'table-row' : 'none'}">
-        <td style="padding-left: 20px;">
-          <span class="tree-line">├──</span>
-          <button type="button" class="tree-toggle-btn tgl-btn" data-target="${tId}" data-child-class="row-issue">
-            <span class="tree-icon">${isExpT ? "▼" : "►"}</span>
-            ${swatch}
-            <span style="color: var(--text); font-weight: 600; font-size: 13px;">${escapeHtml(tName)}</span>
-          </button>
-        </td>
-        <td>${getCountsStr(tObj.items)}</td>
-        <td style="text-align: right;"><button type="button" class="tgl-btn link-btn" data-target="${tId}" data-child-class="row-issue">${isExpT ? "Issues ▴" : "Issues ▾"}</button></td>
-      </tr>`;
-      
-      tObj.items.sort((a,b) => a.key.localeCompare(b.key)).forEach(issue => {
-        const isCritical = state.progressTabState.critical_keys && state.progressTabState.critical_keys.has(issue.key);
-        const criticalBadge = isCritical ? `<span class="badge" style="background:rgba(224,82,96,0.1); color:#e05260; border:1px solid rgba(224,82,96,0.3); font-size:10px; padding:2px 6px; margin-right:8px;">🔥 Critical Path</span>` : "";
-        html += `<tr class="row-issue" data-parent="${tId}" style="display:${isExpT ? 'table-row' : 'none'}">
-          <td style="padding-left: 44px;">
-             <span class="tree-line">└──</span>
-             <span class="muted" style="font-size: 11px; margin-right: 8px; font-weight:600;">${escapeHtml(issue.key)}</span>
-             <span class="badge" style="background:var(--bg-lighter); color:var(--text-muted); padding:2px 6px; font-size:10px; margin-right:8px; border:1px solid var(--border)">${escapeHtml(issue.issue_type || "Task")}</span>
-             ${criticalBadge}${escapeHtml(issue.summary)}
-          </td>
-          <td>${getStatusBadge(issue)}</td>
-          <td></td>
-        </tr>`;
+  if (useMilestones) {
+    // Map each fix_version -> milestone name
+    const fvToMilestone = {};
+    msKeys.forEach(mName => {
+      const mData = mc[mName];
+      (mData.fix_versions || []).forEach(fvObj => {
+        fvToMilestone[norm(fvObj.fix_version)] = mName;
       });
     });
-  });
+
+    const byMilestone = {};
+    msKeys.forEach(mName => {
+      byMilestone[mName] = {
+        name: mName,
+        release_date: mc[mName]?.release_date,
+        items: [],
+        fixVersions: {}
+      };
+    });
+
+    rows.forEach(r => {
+      const fv = r.fixversion || "(none)";
+      let mName = fvToMilestone[norm(fv)];
+      if (!mName) {
+        mName = msKeys.find(k => k.toLowerCase().includes("unassigned") || k.toLowerCase().includes("future")) || msKeys[msKeys.length - 1];
+      }
+      if (!byMilestone[mName]) {
+        byMilestone[mName] = { name: mName, release_date: null, items: [], fixVersions: {} };
+      }
+      byMilestone[mName].items.push(r);
+
+      if (!byMilestone[mName].fixVersions[fv]) {
+        byMilestone[mName].fixVersions[fv] = {
+          name: fv,
+          state: r.sprint_state || "planned",
+          release_date: r.release_date,
+          items: [],
+          teams: {}
+        };
+      }
+      byMilestone[mName].fixVersions[fv].items.push(r);
+
+      const tm = r.team || "(none)";
+      if (!byMilestone[mName].fixVersions[fv].teams[tm]) {
+        byMilestone[mName].fixVersions[fv].teams[tm] = { items: [] };
+      }
+      byMilestone[mName].fixVersions[fv].teams[tm].items.push(r);
+    });
+
+    Object.keys(byMilestone).forEach(mName => {
+      const mObj = byMilestone[mName];
+      if (!mObj.items.length) return;
+
+      const mId = "m-" + (rowIdCounter++);
+      const isExpM = expandedSet.has(mId);
+
+      const fvKeys = Object.keys(mObj.fixVersions);
+      // Filter out fix version that matches milestone name (deduplication)
+      const otherFvs = fvKeys.filter(fv => norm(fv) !== norm(mName));
+      const hasOtherFvs = otherFvs.length > 0;
+
+      let delayBadge = "";
+      let dateStr = mObj.release_date ? `<span class="muted" style="font-size:11px; font-weight:normal; margin-left: 8px;">(Deadline: ${escapeHtml(fmtDay(mObj.release_date))})</span>` : "";
+
+      if (mObj.release_date) {
+        const rDate = new Date(mObj.release_date);
+        const now = new Date();
+        rDate.setHours(0,0,0,0);
+        now.setHours(0,0,0,0);
+        const hasUnclosed = mObj.items.some(item => (item.status_category || "").toLowerCase() !== "done");
+        if (hasUnclosed && now > rDate) {
+          const diffDays = Math.floor((now - rDate) / (1000 * 60 * 60 * 24));
+          if (diffDays > 0) {
+            delayBadge = `<span class="sprint-state s-delayed">Delayed by ${diffDays} day${diffDays > 1 ? 's' : ''}</span>`;
+          }
+        }
+      }
+
+      const mChildClass = hasOtherFvs ? "row-version" : "row-team";
+
+      html += `<tr class="sprint-row milestone-row">
+        <td>
+          <button type="button" class="tree-toggle-btn tgl-btn" data-target="${mId}" data-child-class="${mChildClass}">
+            <span class="tree-icon">${isExpM ? "▼" : "►"}</span>
+            <span style="color: var(--text); font-weight: 700; font-size: 13px;">${escapeHtml(mName)}</span>
+          </button>
+          ${dateStr}${delayBadge}
+        </td>
+        <td>${getCountsStr(mObj.items)}</td>
+        <td style="text-align: right;"><button type="button" class="tgl-btn link-btn" data-target="${mId}" data-child-class="${mChildClass}">${isExpM ? "Expand ▴" : "Expand ▾"}</button></td>
+      </tr>`;
+
+      if (hasOtherFvs) {
+        // Render child Fix Versions (Level 2)
+        otherFvs.forEach(vName => {
+          const vObj = mObj.fixVersions[vName];
+          const vId = "v-" + (rowIdCounter++);
+          const isExpV = expandedSet.has(vId);
+          const sTag = vObj.state === "closed" ? "completed" : vObj.state === "active" ? "active" : "planned";
+
+          let vDelayBadge = "";
+          let vDateStr = vObj.release_date && vObj.release_date !== "None" ? `<span class="muted" style="font-size:11px; font-weight:normal; margin-left: 8px;">(Release: ${escapeHtml(vObj.release_date)})</span>` : "";
+
+          if (vObj.release_date && vObj.release_date !== "None") {
+            const rDate = new Date(vObj.release_date);
+            const now = new Date();
+            rDate.setHours(0,0,0,0);
+            now.setHours(0,0,0,0);
+            const hasUnclosed = vObj.items.some(item => (item.status_category || "").toLowerCase() !== "done");
+            if (hasUnclosed && now > rDate) {
+              const diffDays = Math.floor((now - rDate) / (1000 * 60 * 60 * 24));
+              if (diffDays > 0) {
+                vDelayBadge = `<span class="sprint-state s-delayed">Delayed by ${diffDays} day${diffDays > 1 ? 's' : ''}</span>`;
+              }
+            }
+          }
+
+          html += `<tr class="row-version" data-parent="${mId}" style="display:${isExpM ? 'table-row' : 'none'}">
+            <td style="padding-left: 20px;">
+              <span class="tree-line">├──</span>
+              <button type="button" class="tree-toggle-btn tgl-btn" data-target="${vId}" data-child-class="row-team">
+                <span class="tree-icon">${isExpV ? "▼" : "►"}</span>
+                <span style="color: var(--text); font-weight: 600; font-size: 13px;">${escapeHtml(vName)}</span>
+              </button>
+              <span class="sprint-state s-${vObj.state}">${sTag}</span>
+              ${vDateStr}${vDelayBadge}
+            </td>
+            <td>${getCountsStr(vObj.items)}</td>
+            <td style="text-align: right;"><button type="button" class="tgl-btn link-btn" data-target="${vId}" data-child-class="row-team">${isExpV ? "Teams ▴" : "Teams ▾"}</button></td>
+          </tr>`;
+
+          // Teams under Fix Version (Level 3)
+          Object.keys(vObj.teams).sort().forEach(tName => {
+            const tObj = vObj.teams[tName];
+            const tId = "t-" + (rowIdCounter++);
+            const swatch = `<i class="team-swatch" style="background:${teamColor(tName)}"></i>`;
+            const isExpT = expandedSet.has(tId);
+
+            html += `<tr class="row-team" data-parent="${vId}" style="display:${isExpV ? 'table-row' : 'none'}">
+              <td style="padding-left: 44px;">
+                <span class="tree-line">├──</span>
+                <button type="button" class="tree-toggle-btn tgl-btn" data-target="${tId}" data-child-class="row-issue">
+                  <span class="tree-icon">${isExpT ? "▼" : "►"}</span>
+                  ${swatch}
+                  <span style="color: var(--text); font-weight: 600; font-size: 13px;">${escapeHtml(tName)}</span>
+                </button>
+              </td>
+              <td>${getCountsStr(tObj.items)}</td>
+              <td style="text-align: right;"><button type="button" class="tgl-btn link-btn" data-target="${tId}" data-child-class="row-issue">${isExpT ? "Issues ▴" : "Issues ▾"}</button></td>
+            </tr>`;
+
+            // Issues under Team (Level 4)
+            tObj.items.sort((a,b) => a.key.localeCompare(b.key)).forEach(issue => {
+              const isCritical = state.progressTabState.critical_keys && state.progressTabState.critical_keys.has(issue.key);
+              const criticalBadge = isCritical ? `<span class="badge" style="background:rgba(224,82,96,0.1); color:#e05260; border:1px solid rgba(224,82,96,0.3); font-size:10px; padding:2px 6px; margin-right:8px;">🔥 Critical Path</span>` : "";
+              html += `<tr class="row-issue" data-parent="${tId}" style="display:${isExpT ? 'table-row' : 'none'}">
+                <td style="padding-left: 68px;">
+                   <span class="tree-line">└──</span>
+                   <span class="muted" style="font-size: 11px; margin-right: 8px; font-weight:600;">${escapeHtml(issue.key)}</span>
+                   <span class="badge" style="background:var(--bg-lighter); color:var(--text-muted); padding:2px 6px; font-size:10px; margin-right:8px; border:1px solid var(--border)">${escapeHtml(issue.issue_type || "Task")}</span>
+                   ${criticalBadge}${escapeHtml(issue.summary)}
+                </td>
+                <td>${getStatusBadge(issue)}</td>
+                <td></td>
+              </tr>`;
+            });
+          });
+        });
+      } else {
+        // Direct Teams under Milestone (Level 2)
+        const primaryFv = fvKeys[0];
+        const teamsMap = primaryFv ? mObj.fixVersions[primaryFv]?.teams : {};
+        Object.keys(teamsMap || {}).sort().forEach(tName => {
+          const tObj = teamsMap[tName];
+          const tId = "t-" + (rowIdCounter++);
+          const swatch = `<i class="team-swatch" style="background:${teamColor(tName)}"></i>`;
+          const isExpT = expandedSet.has(tId);
+
+          html += `<tr class="row-team" data-parent="${mId}" style="display:${isExpM ? 'table-row' : 'none'}">
+            <td style="padding-left: 20px;">
+              <span class="tree-line">├──</span>
+              <button type="button" class="tree-toggle-btn tgl-btn" data-target="${tId}" data-child-class="row-issue">
+                <span class="tree-icon">${isExpT ? "▼" : "►"}</span>
+                ${swatch}
+                <span style="color: var(--text); font-weight: 600; font-size: 13px;">${escapeHtml(tName)}</span>
+              </button>
+            </td>
+            <td>${getCountsStr(tObj.items)}</td>
+            <td style="text-align: right;"><button type="button" class="tgl-btn link-btn" data-target="${tId}" data-child-class="row-issue">${isExpT ? "Issues ▴" : "Issues ▾"}</button></td>
+          </tr>`;
+
+          // Issues under Team (Level 3)
+          tObj.items.sort((a,b) => a.key.localeCompare(b.key)).forEach(issue => {
+            const isCritical = state.progressTabState.critical_keys && state.progressTabState.critical_keys.has(issue.key);
+            const criticalBadge = isCritical ? `<span class="badge" style="background:rgba(224,82,96,0.1); color:#e05260; border:1px solid rgba(224,82,96,0.3); font-size:10px; padding:2px 6px; margin-right:8px;">🔥 Critical Path</span>` : "";
+            html += `<tr class="row-issue" data-parent="${tId}" style="display:${isExpT ? 'table-row' : 'none'}">
+              <td style="padding-left: 44px;">
+                 <span class="tree-line">└──</span>
+                 <span class="muted" style="font-size: 11px; margin-right: 8px; font-weight:600;">${escapeHtml(issue.key)}</span>
+                 <span class="badge" style="background:var(--bg-lighter); color:var(--text-muted); padding:2px 6px; font-size:10px; margin-right:8px; border:1px solid var(--border)">${escapeHtml(issue.issue_type || "Task")}</span>
+                 ${criticalBadge}${escapeHtml(issue.summary)}
+              </td>
+              <td>${getStatusBadge(issue)}</td>
+              <td></td>
+            </tr>`;
+          });
+        });
+      }
+    });
+  } else {
+    const byFixVersion = {};
+    rows.forEach(r => {
+      const fv = r.fixversion || "(none)";
+      if (!byFixVersion[fv]) {
+        byFixVersion[fv] = {
+          state: r.sprint_state || "planned",
+          release_date: r.release_date,
+          items: [],
+          teams: {}
+        };
+      }
+      byFixVersion[fv].items.push(r);
+      const tm = r.team || "(none)";
+      if (!byFixVersion[fv].teams[tm]) {
+        byFixVersion[fv].teams[tm] = { items: [] };
+      }
+      byFixVersion[fv].teams[tm].items.push(r);
+    });
+
+    const sortedVersions = Object.keys(byFixVersion).sort((a, b) => {
+      if (a === "(none)") return 1;
+      if (b === "(none)") return -1;
+      const dateA = byFixVersion[a]?.release_date || "9999-99-99";
+      const dateB = byFixVersion[b]?.release_date || "9999-99-99";
+      if (dateA !== dateB) return dateA.localeCompare(dateB);
+      return a.localeCompare(b);
+    });
+
+    sortedVersions.forEach((vName) => {
+      const vObj = byFixVersion[vName];
+      const sId = "v-" + rowIdCounter++;
+      const sTag = vObj.state === "closed" ? "completed" : vObj.state === "active" ? "active" : "planned";
+      const isExp = expandedSet.has(sId);
+      
+      let delayBadge = "";
+      let dateStr = vObj.release_date && vObj.release_date !== "None" ? `<span class="muted" style="font-size:11px; font-weight:normal; margin-left: 8px;">(Release: ${escapeHtml(vObj.release_date)})</span>` : "";
+
+      if (vObj.release_date && vObj.release_date !== "None") {
+        const rDate = new Date(vObj.release_date);
+        const now = new Date();
+        rDate.setHours(0,0,0,0);
+        now.setHours(0,0,0,0);
+        
+        const hasUnclosed = vObj.items.some(item => (item.status_category || "").toLowerCase() !== "done");
+        if (hasUnclosed && now > rDate) {
+          const diffTime = now - rDate;
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          if (diffDays > 0) {
+            delayBadge = `<span class="sprint-state s-delayed">Delayed by ${diffDays} day${diffDays > 1 ? 's' : ''}</span>`;
+          }
+        }
+      }
+
+      html += `<tr class="sprint-row">
+        <td>
+          <button type="button" class="tree-toggle-btn tgl-btn" data-target="${sId}" data-child-class="row-team">
+            <span class="tree-icon">${isExp ? "▼" : "►"}</span>
+            <span style="color: var(--text); font-weight: 600; font-size: 13px;">${escapeHtml(vName)}</span>
+          </button>
+          <span class="sprint-state s-${vObj.state}">${sTag}</span>
+          ${dateStr}${delayBadge}
+        </td>
+        <td>${getCountsStr(vObj.items)}</td>
+        <td style="text-align: right;"><button type="button" class="tgl-btn link-btn" data-target="${sId}" data-child-class="row-team">${isExp ? "Expand ▴" : "Expand ▾"}</button></td>
+      </tr>`;
+      
+      Object.keys(vObj.teams).sort().forEach((tName) => {
+        const tObj = vObj.teams[tName];
+        const tId = "t-" + rowIdCounter++;
+        const swatch = `<i class="team-swatch" style="background:${teamColor(tName)}"></i>`;
+        const isExpT = expandedSet.has(tId);
+        
+        html += `<tr class="row-team" data-parent="${sId}" style="display:${isExp ? 'table-row' : 'none'}">
+          <td style="padding-left: 20px;">
+            <span class="tree-line">├──</span>
+            <button type="button" class="tree-toggle-btn tgl-btn" data-target="${tId}" data-child-class="row-issue">
+              <span class="tree-icon">${isExpT ? "▼" : "►"}</span>
+              ${swatch}
+              <span style="color: var(--text); font-weight: 600; font-size: 13px;">${escapeHtml(tName)}</span>
+            </button>
+          </td>
+          <td>${getCountsStr(tObj.items)}</td>
+          <td style="text-align: right;"><button type="button" class="tgl-btn link-btn" data-target="${tId}" data-child-class="row-issue">${isExpT ? "Issues ▴" : "Issues ▾"}</button></td>
+        </tr>`;
+        
+        tObj.items.sort((a,b) => a.key.localeCompare(b.key)).forEach(issue => {
+          const isCritical = state.progressTabState.critical_keys && state.progressTabState.critical_keys.has(issue.key);
+          const criticalBadge = isCritical ? `<span class="badge" style="background:rgba(224,82,96,0.1); color:#e05260; border:1px solid rgba(224,82,96,0.3); font-size:10px; padding:2px 6px; margin-right:8px;">🔥 Critical Path</span>` : "";
+          html += `<tr class="row-issue" data-parent="${tId}" style="display:${isExpT ? 'table-row' : 'none'}">
+            <td style="padding-left: 44px;">
+               <span class="tree-line">└──</span>
+               <span class="muted" style="font-size: 11px; margin-right: 8px; font-weight:600;">${escapeHtml(issue.key)}</span>
+               <span class="badge" style="background:var(--bg-lighter); color:var(--text-muted); padding:2px 6px; font-size:10px; margin-right:8px; border:1px solid var(--border)">${escapeHtml(issue.issue_type || "Task")}</span>
+               ${criticalBadge}${escapeHtml(issue.summary)}
+            </td>
+            <td>${getStatusBadge(issue)}</td>
+            <td></td>
+          </tr>`;
+        });
+      });
+    });
+  }
 
   html += `</tbody></table>`;
   host.innerHTML = html;

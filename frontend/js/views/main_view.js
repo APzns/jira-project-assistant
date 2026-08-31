@@ -65,7 +65,7 @@ export async function renderMainPage() {
 
     if (projectsRes.status === "fulfilled" && projectsRes.value.ok) {
       const pData = await projectsRes.value.json();
-      _projectsList = pData.projects || [];
+      _projectsList = (pData.projects || []).filter(p => p.key !== "HRZ");
     }
 
     if (reportsRes.status === "fulfilled" && reportsRes.value.ok) {
@@ -361,10 +361,10 @@ function renderYourProjects() {
     });
   });
 
-  container.querySelectorAll(".main-project-card, .btn-proj-goto").forEach(el => {
+  container.querySelectorAll(".btn-proj-goto").forEach(el => {
     el.addEventListener("click", (e) => {
-      if (e.target.closest(".btn-p-view-dashboard") || e.target.closest(".btn-p-view-reports")) return;
-      const key = el.dataset.key || el.closest(".main-project-card")?.dataset.key;
+      e.stopPropagation();
+      const key = el.dataset.key;
       if (key) {
         window.location.hash = `projects/${key}`;
       }

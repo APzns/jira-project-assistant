@@ -68,13 +68,29 @@ export const TEAM_PALETTE = [
   "#d946ef", // Growth Squad - Fuchsia
   "#2563eb", // Mobile Team - Royal Blue
   "#10b981", // Platform Core - Mint Green
-  "#eab308"  // Security Guild - Bright Yellow
+  "#eab308", // Security Guild - Bright Yellow
+  "#f97316", // Payments Squad - Orange
+  "#06b6d4", // AI Engine Squad - Cyan
 ];
 
-const _teamColorCache = {};
+const _knownTeamColors = {
+  "Checkout Squad": "#4c8dff",
+  "Data Insights": "#a855f7",
+  "Growth Squad": "#d946ef",
+  "Mobile Team": "#2563eb",
+  "Platform Core": "#10b981",
+  "Security Guild": "#eab308",
+  "Payments Squad": "#f97316",
+  "AI Engine Squad": "#06b6d4",
+  "Unassigned": "#8b949e",
+  "(none)": "#8b949e"
+};
+
+const _teamColorCache = { ..._knownTeamColors };
 let _teamColorCounter = 0;
 
 export function teamColor(team) {
+  if (!team || team === "Unassigned" || team === "(none)") return "#8b949e";
   if (_teamColorCache[team] === undefined) {
     _teamColorCache[team] = TEAM_PALETTE[_teamColorCounter % TEAM_PALETTE.length];
     _teamColorCounter++;

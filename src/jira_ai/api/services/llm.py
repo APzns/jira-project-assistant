@@ -7,6 +7,10 @@ import logging
 import os
 import time
 import re
+import decimal
+import datetime
+import uuid
+from typing import Any
 
 
 from google import genai
@@ -23,6 +27,25 @@ from src.jira_ai.api.services.security import (
     sanitize_output,
     log_security_event,
 )
+
+
+def _make_json_safe(obj: Any) -> Any:
+    """Recursively converts Decimals, datetimes, dates, UUIDs, and other non-standard types to JSON-serializable types."""
+    if obj is None or isinstance(obj, (int, str, bool, float)):
+        return obj
+    if isinstance(obj, decimal.Decimal):
+        if obj % 1 == 0:
+            return int(obj)
+        return float(obj)
+    if isinstance(obj, (datetime.datetime, datetime.date, datetime.time)):
+        return obj.isoformat()
+    if isinstance(obj, uuid.UUID):
+        return str(obj)
+    if isinstance(obj, dict):
+        return {str(k): _make_json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple, set)):
+        return [_make_json_safe(item) for item in obj]
+    return str(obj)
 
 
 # Persona / answer-style guidance for phrasing answers.
@@ -763,8 +786,8 @@ Remember: Only answer the question based on the provided data context and tools.
                             "target_release": detected_pobj.get("target_release"),
                             "blockers_count": detected_pobj.get("blockers_count"),
                         }
-                    tool_result = {"untrusted_data_source": "metrics_snapshot", "data": risk_context}
-                    rows_returned = [snap]
+                    tool_result = {"untrusted_data_source": "metrics_snapshot", "data": _make_json_safe(risk_context)}
+                    rows_returned = _make_json_safe([snap])
                 else:
                     tool_result = {"error": f"Could not load metrics snapshot for {target_pk or 'program'}"}
                     
@@ -783,8 +806,9 @@ Remember: Only answer the question based on the provided data context and tools.
                         result = db.execute(text(sql))
                         cols = list(result.keys())
                         rows = [dict(zip(cols, r)) for r in result.fetchall()]
-                        tool_result = {"untrusted_data_source": "issues_table", "rows": rows[:MAX_ROWS]}
-                        rows_returned = rows[:MAX_ROWS]
+                        safe_rows = _make_json_safe(rows[:MAX_ROWS])
+                        tool_result = {"untrusted_data_source": "issues_table", "rows": safe_rows}
+                        rows_returned = safe_rows
                     except OperationalError as exc:
                         tool_result = {"error": f"DB connection error: {exc}. Please try again."}
                     except SQLAlchemyError as exc:
@@ -792,16 +816,16 @@ Remember: Only answer the question based on the provided data context and tools.
             elif tool_name == "get_project_charter":
                 target_pk = tool_args.get("project_key")
                 charter_data = get_project_charter_tool_logic(target_pk)
-                tool_result = {"charters": charter_data}
+                tool_result = {"charters": _make_json_safe(charter_data)}
             elif tool_name == "get_stakeholders":
                 target_pk = tool_args.get("project_key")
                 sh_data = get_stakeholders_tool_logic(target_pk)
-                tool_result = {"stakeholders": sh_data}
+                tool_result = {"stakeholders": _make_json_safe(sh_data)}
             else:
                 tool_result = {"error": f"Unknown tool: {tool_name}"}
 
             tool_response_parts.append(
-                types.Part.from_function_response(name=tool_name, response=tool_result)
+                types.Part.from_function_response(name=tool_name, response=_make_json_safe(tool_result))
             )
 
         messages.append(types.Content(role="user", parts=tool_response_parts))

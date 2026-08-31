@@ -71,24 +71,6 @@ DEFAULT_PROJECTS = [
         "created_at": "2026-01-10T08:00:00Z",
         "updated_at": "2026-08-15T14:30:00Z",
         "tracking_target": "milestones"
-    },
-    {
-        "key": "HRZ",
-        "name": "Project Horizon",
-        "description": "The overarching program coordinating all enterprise software delivery initiatives, dependency management, and release trains.",
-        "lead": "Elena Rostova",
-        "target_release": "FY27 Program Go-Live (Delayed)",
-        "status": "at-risk",
-        "progress_pct": 70,
-        "progress_sp": "1045 / 1500 SP",
-        "blockers_count": 3,
-        "tags": ["Program", "Portfolio", "Delivery", "Horizon"],
-        "archived": False,
-        "owner": "system",
-        "is_builtin": True,
-        "created_at": "2026-01-10T08:00:00Z",
-        "updated_at": "2026-08-15T14:30:00Z",
-        "tracking_target": "milestones"
     }
 ]
 
@@ -207,6 +189,7 @@ class ProjectModel(BaseModel):
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     tracking_target: Optional[str] = "milestones"
+    milestones: Optional[List[dict]] = Field(default_factory=list)
 
 
 class ProjectCreatePayload(BaseModel):
@@ -221,6 +204,7 @@ class ProjectCreatePayload(BaseModel):
     blockers_count: Optional[int] = 0
     tags: Optional[List[str]] = Field(default_factory=list)
     tracking_target: Optional[str] = "milestones"
+    milestones: Optional[List[dict]] = Field(default_factory=list)
 
 
 class ProjectUpdatePayload(BaseModel):
@@ -235,6 +219,7 @@ class ProjectUpdatePayload(BaseModel):
     tags: Optional[List[str]] = None
     archived: Optional[bool] = None
     tracking_target: Optional[str] = None
+    milestones: Optional[List[dict]] = None
 
 
 def _read_projects_from_disk() -> dict:
@@ -412,6 +397,7 @@ def create_project(payload: ProjectCreatePayload, request: Request) -> dict:
         "created_at": now_iso,
         "updated_at": now_iso,
         "tracking_target": payload.tracking_target or "milestones",
+        "milestones": payload.milestones or [],
     }
 
     projects.append(new_project)
@@ -474,6 +460,8 @@ def update_project(project_key: str, payload: ProjectUpdatePayload, request: Req
         target["archived"] = payload.archived
     if payload.tracking_target is not None:
         target["tracking_target"] = payload.tracking_target
+    if payload.milestones is not None:
+        target["milestones"] = payload.milestones
 
     target["updated_at"] = now_iso
 

@@ -47,19 +47,6 @@ let _projectsData = [
     blockers_count: 1,
     tags: ["Mobile", "iOS", "Android", "Security", "Auth0"],
     archived: false
-  },
-  {
-    key: "HRZ",
-    name: "Project Horizon",
-    description: "The overarching program coordinating all enterprise software delivery initiatives, dependency management, and release trains.",
-    lead: "Elena Rostova",
-    target_release: "FY27 Program Go-Live (Delayed)",
-    status: "at-risk",
-    progress_pct: 70,
-    progress_sp: "1045 / 1500 SP",
-    blockers_count: 3,
-    tags: ["Program", "Portfolio", "Delivery", "Horizon"],
-    archived: false
   }
 ];
 let _activeFilter = "all";
@@ -116,7 +103,7 @@ export async function renderProjectsPage() {
 
     if (projRes.status === "fulfilled" && projRes.value.ok) {
       const data = await projRes.value.json();
-      _projectsData = data.projects || [];
+      _projectsData = (data.projects || []).filter(p => p.key && p.key.toUpperCase() !== "HRZ");
     } else {
       console.warn("Could not load projects from API");
     }
@@ -317,17 +304,11 @@ function renderProjectsGrid(filtered) {
       window.location.hash = `dashboards/${key}`;
     });
 
-    // Details button or clicking card body
+    // Details button
     card.querySelector(".btn-p-view-details")?.addEventListener("click", (e) => {
       e.stopPropagation();
       window.location.hash = `projects/${key}`;
     });
-
-    card.addEventListener("click", (e) => {
-      if (e.target.closest(".p-card-quick-actions")) return;
-      window.location.hash = `projects/${key}`;
-    });
-
 
     // Quick Archive
     card.querySelector(".btn-p-archive-quick")?.addEventListener("click", (e) => {

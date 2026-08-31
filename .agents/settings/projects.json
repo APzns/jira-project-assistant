@@ -2,14 +2,14 @@
   "projects": [
     {
       "key": "CHK",
-      "name": "Checkout & Commerce Flow",
+      "name": "Checkout Flow Replatform",
       "description": "Redesigning the global checkout flow with one-click purchase, localized currencies, and multi-gateway failover resilience.",
       "lead": "Alex Mercer",
       "target_release": "Q4 2026 (v2.4)",
-      "status": "at-risk",
-      "progress_pct": 68,
+      "status": "delayed",
+      "progress_pct": 75,
       "progress_sp": "340 / 500 SP",
-      "blockers_count": 2,
+      "blockers_count": 4,
       "tags": [
         "Payments",
         "Checkout",
@@ -20,7 +20,7 @@
       "owner": "system",
       "is_builtin": true,
       "created_at": "2026-01-10T08:00:00Z",
-      "updated_at": "2026-08-15T14:30:00Z",
+      "updated_at": "2026-08-31T10:46:42.651288+00:00",
       "tracking_target": "milestones"
     },
     {
@@ -62,29 +62,6 @@
         "Android",
         "Security",
         "Auth0"
-      ],
-      "archived": false,
-      "owner": "system",
-      "is_builtin": true,
-      "created_at": "2026-01-10T08:00:00Z",
-      "updated_at": "2026-08-15T14:30:00Z",
-      "tracking_target": "milestones"
-    },
-    {
-      "key": "HRZ",
-      "name": "Project Horizon",
-      "description": "The overarching program coordinating all enterprise software delivery initiatives, dependency management, and release trains.",
-      "lead": "Elena Rostova",
-      "target_release": "FY27 Program Go-Live (Delayed)",
-      "status": "at-risk",
-      "progress_pct": 70,
-      "progress_sp": "1045 / 1500 SP",
-      "blockers_count": 3,
-      "tags": [
-        "Program",
-        "Portfolio",
-        "Delivery",
-        "Horizon"
       ],
       "archived": false,
       "owner": "system",

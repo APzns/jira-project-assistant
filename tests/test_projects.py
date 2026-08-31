@@ -44,19 +44,19 @@ class TestProjectsEndpoint(unittest.TestCase):
         app.dependency_overrides.clear()
 
     def test_default_projects_count(self):
-        self.assertEqual(len(DEFAULT_PROJECTS), 4)
+        self.assertEqual(len(DEFAULT_PROJECTS), 3)
         keys = [p["key"] for p in DEFAULT_PROJECTS]
         self.assertIn("CHK", keys)
         self.assertIn("CORE", keys)
         self.assertIn("MOB", keys)
-        self.assertIn("HRZ", keys)
+        self.assertNotIn("HRZ", keys)
 
     def test_list_projects(self):
         res = self.client.get("/projects")
         self.assertEqual(res.status_code, 200)
         data = res.json()
         self.assertIn("projects", data)
-        self.assertEqual(len(data["projects"]), 4)
+        self.assertEqual(len(data["projects"]), 3)
         self.assertEqual(data.get("current_user"), "demo")
 
     def test_get_project_detail(self):

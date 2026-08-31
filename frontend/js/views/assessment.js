@@ -210,24 +210,78 @@ export function renderMilestoneTimeline(mc) {
     ? `<div class="mt-seg ${cls}" style="width:${pct}%" title="${label} ${pct}%">${pct >= 8 ? pct + "%" : ""}</div>`
     : "";
 
+  const norm = s => (s || "").toLowerCase().replace(/[–—−-]/g, "").replace(/\s+/g, "").trim();
+
   let html = "";
-  keys.forEach(k => {
+  keys.forEach((k, i) => {
     const e = mc[k];
     const t = e.total || 0;
-    const dPct = e.percent_done ?? (t ? Math.round(100 * (e.done || 0) / t) : 0);
-    const tdPct = Math.max(0, 100 - dPct);
-    const rel = e.release_date ? fmtDay(e.release_date) : "–";
-    const todoSeg = dPct === 0
+    const dPct = e.pct_done ?? e.percent_done ?? (t ? Math.round(100 * (e.done || 0) / t) : 0);
+    const irPct = e.pct_in_review ?? (t ? Math.round(100 * (e.in_review || 0) / t) : 0);
+    const ipPct = e.pct_in_progress ?? (t ? Math.round(100 * (e.in_progress || 0) / t) : 0);
+    const tdPct = Math.max(0, 100 - dPct - irPct - ipPct);
+    const rel = e.release_date ? fmtDay(e.release_date) : "—";
+    
+    const todoSeg = (dPct === 0 && irPct === 0 && ipPct === 0)
       ? `<div class="mt-seg todo" style="width:100%" title="To Do 100%"></div>`
       : seg("todo", tdPct, "To Do");
-    html += `<div class="mt-row">
-      <div class="mt-head"><span class="mt-name">${escapeHtml(k)}</span>
+
+    const childVersions = (e.fix_versions || []).filter(fv => norm(fv.fix_version) !== norm(k));
+    const hasChildren = childVersions.length > 0;
+
+    let chevron = hasChildren ? `<span class="mt-chevron" style="display:inline-block;width:14px;font-size:10px;">▼</span> ` : "";
+    let rowClass = hasChildren ? "mt-row mt-parent" : "mt-row";
+
+    html += `<div class="${rowClass}" data-idx="${i}">
+      <div class="mt-head"><span class="mt-name">${chevron}${escapeHtml(k)}</span>
         <span class="mt-meta">${e.done || 0}/${t} done · rel ${rel}</span></div>
-      <div class="mt-track">${seg("done", dPct, "Done")}${todoSeg}</div>
+      <div class="mt-track">${seg("done", dPct, "Done")}${seg("in_review", irPct, "In Review")}${seg("in_progress", ipPct, "In Progress")}${todoSeg}</div>
     </div>`;
+
+    if (hasChildren) {
+      html += `<div class="mt-children collapsed" id="mt-child-${i}">`;
+      childVersions.forEach(fv => {
+        const ft = fv.total || 0;
+        const fdPct = fv.pct_done ?? fv.percent_done ?? (ft ? Math.round(100 * (fv.done || 0) / ft) : 0);
+        const firPct = fv.pct_in_review ?? (ft ? Math.round(100 * (fv.in_review || 0) / ft) : 0);
+        const fipPct = fv.pct_in_progress ?? (ft ? Math.round(100 * (fv.in_progress || 0) / ft) : 0);
+        const ftdPct = Math.max(0, 100 - fdPct - firPct - fipPct);
+        const frel = fv.release_date ? fmtDay(fv.release_date) : "—";
+        const ftodoSeg = (fdPct === 0 && firPct === 0 && fipPct === 0)
+          ? `<div class="mt-seg todo" style="width:100%" title="To Do 100%"></div>`
+          : seg("todo", ftdPct, "To Do");
+        html += `<div class="mt-row mt-child">
+          <div class="mt-head"><span class="mt-name">${escapeHtml(fv.fix_version || k)}</span>
+            <span class="mt-meta">${fv.done || 0}/${ft} done · rel ${frel}</span></div>
+          <div class="mt-track">${seg("done", fdPct, "Done")}${seg("in_review", firPct, "In Review")}${seg("in_progress", fipPct, "In Progress")}${ftodoSeg}</div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
   });
   html += `<div class="mt-legend">
     <span><i class="mt-dot done"></i> Done</span>
-    <span><i class="mt-dot todo"></i> To Do</span></div>`;
+    <span><i class="mt-dot in_review"></i> In Review</span>
+    <span><i class="mt-dot in_progress"></i> In Progress</span>
+    <span><i class="mt-dot todo"></i> To Do</span>
+  </div>`;
   el.innerHTML = html;
+
+  el.querySelectorAll(".mt-parent").forEach(node => {
+    node.style.cursor = "pointer";
+    node.addEventListener("click", () => {
+      const idx = node.getAttribute("data-idx");
+      const childContainer = el.querySelector("#mt-child-" + idx);
+      const chevron = node.querySelector(".mt-chevron");
+      if (childContainer) {
+        if (childContainer.classList.contains("collapsed")) {
+           childContainer.classList.remove("collapsed");
+           if (chevron) chevron.textContent = "▲";
+        } else {
+           childContainer.classList.add("collapsed");
+           if (chevron) chevron.textContent = "▼";
+        }
+      }
+    });
+  });
 }

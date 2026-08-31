@@ -144,6 +144,7 @@ CRITICAL FORMATTING INSTRUCTIONS FOR ALL SUMMARIES:
 - Use Markdown formatting extensively: use bullet points for lists, bold text for key metrics/terms, and keep sentences short, punchy, and highly readable.
 - Use emojis (e.g., ⚠️, ✅, 🚨, 📉, 📈) where appropriate to highlight key statuses and metrics.
 - Structure your output so it is easy to scan quickly.
+- CRITICAL: DO NOT calculate averages or do math on your own. Only cite the exact percentages provided in the summary strings.
 
 For 'ai_summary', write a structured executive summary using standard Markdown bullet points (e.g. starting with `* ` or `- ` on a new line for each item) covering: Overall Verdict, Biggest Risk, and Next Step.
 
