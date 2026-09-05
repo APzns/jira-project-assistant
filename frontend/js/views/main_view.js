@@ -163,7 +163,7 @@ function renderAIIntelligence() {
         </div>
         <div class="insight-card-title">${escapeHtml(p.name)}</div>
         <div class="insight-card-desc">
-          ${escapeHtml(p.description || "No description.")}
+          <strong>Reasoning:</strong> ${escapeHtml(p.description || "No description.")}
         </div>
         <div class="insight-card-footer">
           <span>${blockers > 0 ? `⚠️ ${blockers} Blockers` : '✓ 0 Blockers'}</span>
@@ -202,7 +202,7 @@ function renderAIIntelligence() {
         </div>
         <div class="insight-card-title">AI Suggested Action</div>
         <div class="insight-card-desc">
-          ${escapeHtml(actionText)}
+          <strong>Reasoning:</strong> ${escapeHtml(actionText)}
         </div>
         <div class="insight-card-footer">
           <span>⚡ Impact: Portfolio Alignment</span>
@@ -237,7 +237,7 @@ function renderAIIntelligence() {
         </div>
         <div class="insight-card-title">${escapeHtml(risk.finding || risk.lens || "Detected Risk")}</div>
         <div class="insight-card-desc">
-          <strong>Evidence:</strong> ${escapeHtml(risk.evidence || "No evidence provided.")}
+          <strong>Why:</strong> ${escapeHtml(risk.evidence || "No evidence provided.")}
         </div>
         <div class="risk-meter-bar">
           <div class="risk-meter-fill ${fillClass}" style="width: ${fillWidth};"></div>

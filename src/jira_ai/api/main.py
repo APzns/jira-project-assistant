@@ -68,7 +68,7 @@ async def basic_auth_middleware(request: Request, call_next):
     if not _check_basic_auth(request.headers.get("Authorization")):
         return Response(
             status_code=401,
-            headers={"WWW-Authenticate": "Basic"},
+            headers={"WWW-Authenticate": 'Basic realm="Jira AI"'},
             content="Authentication required.",
         )
 

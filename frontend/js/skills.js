@@ -2133,6 +2133,10 @@ async function _sendAiChatMsg(customMsg = null) {
   const input = document.getElementById("pa-ai-chat-input");
   const historyDiv = document.getElementById("pa-ai-chat-history");
   const btn = document.getElementById("pa-ai-chat-send");
+  
+  // Prevent double submission
+  if (btn && btn.disabled) return;
+  
   const msg = (customMsg !== null && customMsg !== undefined) ? String(customMsg).trim() : (input ? input.value.trim() : "");
   if (!msg) return;
 

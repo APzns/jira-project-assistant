@@ -99,6 +99,10 @@ export async function askQuestion(inputId, buttonId) {
   const input = $(inputId);
   const btn = $(buttonId);
   if (!input || !btn) return;
+  
+  // Prevent double-submission if request is already in flight
+  if (btn.disabled) return;
+  
   const q = input.value.trim();
   if (!q) return;
 

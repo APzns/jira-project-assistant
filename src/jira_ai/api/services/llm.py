@@ -119,11 +119,11 @@ def _settings_context_block(settings: dict, stakeholder_ids: list | None = None)
 logger = logging.getLogger("jira_ai")
 
 CANDIDATE_MODELS = [
-    "gemini-flash-lite-latest",
-    "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-latest",
     "gemini-3.6-flash",
 ]
-MODEL = "gemini-flash-lite-latest"
+MODEL = "gemini-3.5-flash"
 
 MAX_STEPS = 3               # SQL attempts; retry only on real SQL errors
 MAX_ROWS = 60              # rows fed to the model
@@ -460,16 +460,17 @@ def answer_question(question: str, db, history: list | None = None,
         p_desc = detected_pobj.get("description") if detected_pobj else ""
         p_tracking = detected_pobj.get("tracking_target", "milestones") if detected_pobj else "milestones"
         project_scope_directive = f"""
-CRITICAL PROJECT SCOPING DIRECTIVE:
-The user is specifically asking about project '{detected_pkey}' ({p_name}).
+PROJECT CONTEXT DIRECTIVE:
+The user is currently viewing the dashboard for project '{detected_pkey}' ({p_name}).
 - Project Lead: {p_lead}
 - Project Status: {p_status}
 - Project Scope: {p_scope}
 - Tracking Target: {p_tracking}
 - Project Description: {p_desc}
-You MUST answer strictly regarding Project '{detected_pkey}' ({p_name}). 
-When checking dates or timelines for '{detected_pkey}', strictly use '{p_tracking}' as the tracking target (e.g. read fix versions if target is fixversions, read milestones if target is milestones).
-Do NOT confuse or substitute project '{detected_pkey}' with other projects unless explicitly asked to compare them.
+
+If the user asks a question without specifying a project (e.g. "what is the status?"), assume they are asking about '{detected_pkey}'.
+HOWEVER, if the user explicitly asks a portfolio-wide question (e.g. "what are my projects?", "what projects am i running?", "all projects") or asks about a different project, you MUST answer globally or about the requested projects, rather than restricting yourself to '{detected_pkey}'.
+When checking dates or timelines for '{detected_pkey}', strictly use '{p_tracking}' as the tracking target.
 When querying metrics or database for '{detected_pkey}', filter issues by `key LIKE '{detected_pkey}-%'`.
 """
     else:
@@ -485,27 +486,53 @@ If the question is a general portfolio-wide question (e.g. "how many total bugs 
     skill_ctx = ""
     skill_used = None
     _SKILL_INTENT_MAP = {
+        # ── Factual / portfolio questions ──────────────────────────────────────
+        "answer-question": [
+            "what projects", "my projects", "projects am i", "projects are",
+            "who is the lead", "who leads", "who owns", "what is the status",
+            "how many issues", "how many epics", "what is the target",
+            "what milestones", "what sprints", "show me", "list all", "list the",
+            "tell me about", "give me a summary", "overview of", "summarize",
+            "which team", "which squad", "what teams", "what squads",
+        ],
+        # ── Metrics & counts ───────────────────────────────────────────────────
+        "compute-metrics": [
+            "how many bugs", "how many defects", "defect count", "bug count",
+            "velocity", "throughput", "story points", "average", "total sp",
+            "completed sp", "committed sp", "completion rate", "done rate",
+            "sprint count", "issue count", "ticket count",
+        ],
+        # ── Risk & blockers ────────────────────────────────────────────────────
         "assess-risks": [
             "risk", "risks", "blocker", "blockers", "blocked", "dependency", "dependencies",
             "overcommitment", "overcommitted", "capacity drag", "defect ratio", "bug ratio",
         ],
+        # ── Delivery forecast ──────────────────────────────────────────────────
         "forecast-delivery": [
             "forecast", "monte carlo", "projection", "when will we finish", "p50", "p85", "p95",
             "delivery date", "simulation", "what if", "critical path", "lead time",
         ],
+        # ── Sprint planning ────────────────────────────────────────────────────
         "sprint-planning": [
             "sprint planning", "backlog hygiene", "missing estimates", "unestimated", "unassigned",
             "capacity balance", "workload", "sprint readiness", "definition of ready",
         ],
+        # ── Status analysis ────────────────────────────────────────────────────
         "analyze-status": [
             "delay", "delays", "slipping", "overdue", "at risk", "analyze status",
             "status analysis", "find delays", "what's behind", "monitoring",
             "health", "pacing", "milestone progress", "predictability",
         ],
+        # ── Next steps / advice ────────────────────────────────────────────────
         "propose-next-steps": [
             "next steps", "what should we do", "actions", "recommendations",
             "prioritize", "action plan", "what to do", "propose", "advice",
             "advise", "recommend", "mitigate", "mitigation", "trade-off", "tradeoff",
+        ],
+        # ── Scope creep ────────────────────────────────────────────────────────
+        "scope-creep-detector": [
+            "scope creep", "scope change", "mid-sprint", "injected", "unplanned",
+            "story point revision", "scope growth", "scope expansion",
         ],
     }
     if skill_name and skill_name in _SKILL_INTENT_MAP:
@@ -520,7 +547,31 @@ If the question is a general portfolio-wide question (e.g. "how many total bugs 
     if skill_used:
         skill_ctx = _load_skill_context(skill_used)
     else:
-        skill_ctx = ""
+        # ── Grounded fallback: no skill matched ────────────────────────────────
+        # Force the LLM to call at least one data tool before answering.
+        # This prevents hallucination from training data when no structured
+        # skill context is available.
+        skill_ctx = """
+GROUNDED REASONING DIRECTIVE (no skill pre-loaded):
+No specific skill template matched this question. You MUST follow this strict protocol:
+
+1. RETRIEVE DATA FIRST: Before writing any answer, you MUST call at least one of the
+   available tools (get_program_metrics, query_database, get_project_charter, or
+   get_stakeholders) to fetch real, live data from the system.
+   - Do NOT skip tool calls and answer from general knowledge.
+   - Do NOT assume or infer values you have not retrieved from a tool.
+
+2. REASON FROM RETRIEVED DATA: Build your answer exclusively from the tool results.
+   - If the data is ambiguous, say so and explain what data you found.
+   - If a metric or fact cannot be found in any tool result, explicitly state:
+     "I could not find verified data for [X]" — do NOT fabricate a value.
+
+3. BE HONEST ABOUT GAPS: If the question cannot be answered from available data,
+   say so clearly and suggest what the user could do (e.g., ingest fresh Jira data).
+
+This rule exists to ensure every response is grounded in live Jira operational data,
+not the LLM's training knowledge about hypothetical projects.
+"""
 
     settings = _load_ai_settings()
     settings_block = _settings_context_block(settings, stakeholder_ids=stakeholder_ids)
