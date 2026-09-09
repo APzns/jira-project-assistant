@@ -1,0 +1,38 @@
+[
+    {
+        "id": "q1_simple_sql",
+        "question": "How many bugs are currently open in the Checkout project?",
+        "expected_skill": "compute-metrics",
+        "expected_tool": "query_database",
+        "sql_contains": ["issue_type", "bug", "CHK"],
+        "eval_type": "exact_count"
+    },
+    {
+        "id": "q2_program_metrics",
+        "question": "What is the overall predictability and defect ratio for Mobile?",
+        "expected_skill": "analyze-status",
+        "expected_tool": "get_program_metrics",
+        "eval_type": "metrics_inclusion"
+    },
+    {
+        "id": "q3_charter_lookup",
+        "question": "Who leads the CORE platform project?",
+        "expected_skill": null,
+        "expected_tool": "get_project_charter",
+        "eval_type": "charter_grounding"
+    },
+    {
+        "id": "q4_action_plan",
+        "question": "Propose next steps for mitigating the delay on milestone M2 for HRZ.",
+        "expected_skill": "propose-next-steps",
+        "expected_tool": "get_program_metrics",
+        "eval_type": "structured_action_plan"
+    },
+    {
+        "id": "q5_cross_team_blocker",
+        "question": "Are there any cross-team dependency conflicts blocking Checkout?",
+        "expected_skill": "assess-risks",
+        "expected_tool": "get_program_metrics",
+        "eval_type": "risk_assessment"
+    }
+]

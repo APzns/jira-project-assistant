@@ -44,3 +44,26 @@ def ask(payload: Question, request: Request, db: Session = Depends(get_db)):
         log_ai_answer(client_ip, answer=None, error=str(exc))
         raise
 
+from starlette.responses import StreamingResponse
+
+@router.post("/stream")
+def ask_stream(payload: Question, request: Request, db: Session = Depends(get_db)):
+    client_ip = request.client.host if request.client else "unknown"
+    if not check_rate_limit(client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Rate limit exceeded. Maximum 20 requests per minute allowed for AI Chat."
+        )
+    log_ai_question(client_ip, payload.question, payload.context)
+    return StreamingResponse(
+        llm.answer_question_stream(
+            question=payload.question,
+            db=db,
+            history=payload.history,
+            context=payload.context,
+            client_ip=client_ip,
+            project_key=payload.project_key
+        ),
+        media_type="text/event-stream"
+    )
+

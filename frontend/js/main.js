@@ -1,4 +1,4 @@
-import { $, setText, show, hide, escapeHtml, fmtDate } from "./utils.js";
+import { $, setText, show, hide, escapeHtml, fmtDate, renderMarkdown } from "./utils.js";
 import { API_BASE, ENV, state } from "./state.js";
 import { assessRisks, forecastDelivery, sprintPlanning } from "./skills.js";
 import { fetchWithTimeout, fetchAssessment, fetchStatsSummary, fetchProjects } from "./api.js";
@@ -700,7 +700,7 @@ async function loadDocs() {
     if (!container) return;
     container.innerHTML = "";
     (d.files || []).forEach(f => {
-      const html = window.marked ? marked.parse(f.content) : `<pre>${escapeHtml(f.content)}</pre>`;
+      const html = renderMarkdown(f.content);
       container.insertAdjacentHTML("beforeend", html + "<hr/>");
     });
   } catch (e) {

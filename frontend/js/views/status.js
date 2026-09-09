@@ -1,4 +1,4 @@
-import { $, setText, escapeHtml, teamColor, formatForecastDelay, fmtDay } from "../utils.js";
+import { $, setText, escapeHtml, teamColor, formatForecastDelay, fmtDay, renderMarkdown } from "../utils.js";
 import { state } from "../state.js";
 
 function predClass(val) {
@@ -186,8 +186,7 @@ export function renderStatusTab(d, projectKey = "ALL", projectObj = null, origD 
   const sumEl = $("status-ai-summary");
   if (sumEl) {
     const s = d.ai_summary || "";
-    sumEl.innerHTML = s ? (window.marked ? marked.parse(s) : `<p>${escapeHtml(s)}</p>`)
-                        : '<p class="muted">–</p>';
+    sumEl.innerHTML = s ? renderMarkdown(s) : '<p class="muted">–</p>';
   }
 
   renderDelayedVersions(m.delayed_by_fixversion, "status-delayed");

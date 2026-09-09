@@ -5,7 +5,7 @@
 
 import { API_BASE } from "./state.js";
 import { fetchWithTimeout } from "./api.js";
-import { escapeHtml } from "./utils.js";
+import { escapeHtml, renderMarkdown } from "./utils.js";
 
 // ---------------------------------------------------------------------------
 // Settings & Profile helpers (GET/POST /settings, /settings/reset)
@@ -2027,37 +2027,10 @@ let _reportChatHistory = [];
 let _aiProposedTemplate = null;
 
 /**
- * Helper to render lightweight markdown in AI chat bubbles.
+ * Helper to render markdown in AI chat bubbles and reports.
  */
 function _formatAiMarkdown(text) {
-  if (!text) return "";
-  let html = escapeHtml(text);
-  
-  // Headers (### Header)
-  html = html.replace(/^### (.*$)/gim, '<h4 style="margin: 8px 0 4px 0; color: #818cf8; font-size: 14px;">$1</h4>');
-  html = html.replace(/^## (.*$)/gim, '<h3 style="margin: 10px 0 6px 0; color: var(--text); font-size: 15px;">$1</h3>');
-  
-  // Bold
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  
-  // Bullet lists
-  html = html.replace(/^\* (.*$)/gim, '<li style="margin-left: 16px; margin-bottom: 3px;">$1</li>');
-  html = html.replace(/^- (.*$)/gim, '<li style="margin-left: 16px; margin-bottom: 3px;">$1</li>');
-  
-  // Numbered lists
-  html = html.replace(/^(\d+)\. (.*$)/gim, '<li style="margin-left: 16px; margin-bottom: 3px;"><strong>$1.</strong> $2</li>');
-  
-  // Horizontal rules
-  html = html.replace(/^---$/gim, '<hr style="border: 0; border-top: 1px solid rgba(99, 102, 241, 0.2); margin: 8px 0;" />');
-  
-  // Inline code / badges
-  html = html.replace(/`([^`]+)`/g, '<code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #818cf8;">$1</code>');
-  
-  // Paragraph line breaks
-  html = html.replace(/\n\n/g, '<div style="margin-bottom: 8px;"></div>');
-  html = html.replace(/\n/g, '<br />');
-  
-  return html;
+  return renderMarkdown(text);
 }
 
 /**

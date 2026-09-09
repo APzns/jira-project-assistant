@@ -24,14 +24,26 @@ _LABELS = {
 }
 
 
+import time
+
+_context_cache = {}
+CACHE_TTL = 300
+
 def load_project_context(project_key: str = None) -> str:
     """Read every .md file in project_data/ (or project_data/<key>/) and return one labeled string."""
+    pkey = project_key.upper() if project_key and project_key.upper() not in ("ALL", "GLOBAL") else "GLOBAL"
+    
+    # Check cache
+    hit = _context_cache.get(pkey)
+    if hit and (time.time() - hit[0]) < CACHE_TTL:
+        return hit[1]
+
     if not _PROJECT_DATA_DIR.exists():
         return "(No project context files found.)"
         
     target_dir = _PROJECT_DATA_DIR
-    if project_key and project_key.upper() not in ("ALL", "GLOBAL"):
-        target_dir = _PROJECT_DATA_DIR / project_key.upper()
+    if pkey != "GLOBAL":
+        target_dir = _PROJECT_DATA_DIR / pkey
         if not target_dir.exists():
             return f"(No project context files found for {project_key}.)"
 
@@ -45,5 +57,9 @@ def load_project_context(project_key: str = None) -> str:
         blocks.append(f"===== {label} =====\n{text}")
 
     if not blocks:
-        return "(No project context files found.)"
-    return "\n\n".join(blocks)
+        out = "(No project context files found.)"
+    else:
+        out = "\n\n".join(blocks)
+        
+    _context_cache[pkey] = (time.time(), out)
+    return out

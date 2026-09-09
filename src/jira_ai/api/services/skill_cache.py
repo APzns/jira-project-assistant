@@ -47,7 +47,7 @@ def get_cached_skill(
     skill_name: str,
     project_key: Optional[str],
     settings: dict,
-    max_age_seconds: int = 3600,
+    max_age_seconds: int = 14400,
 ) -> Optional[dict]:
     """Retrieve cached skill execution result if present and not expired."""
     try:
@@ -57,7 +57,7 @@ def get_cached_skill(
         if not row:
             return None
 
-        # Check TTL
+        # Check TTL (default 4 hours)
         if row.generated_at:
             age = (datetime.now(timezone.utc).replace(tzinfo=None) - row.generated_at).total_seconds()
             if age > max_age_seconds:

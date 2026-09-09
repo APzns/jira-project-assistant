@@ -1,4 +1,4 @@
-import { $, setText, escapeHtml, teamColor, hexToRgba } from "../utils.js";
+import { $, setText, escapeHtml, teamColor, hexToRgba, renderMarkdown } from "../utils.js";
 import { state } from "../state.js";
 
 function predClass(val) {
@@ -86,7 +86,7 @@ export function renderPredictabilityAISummary(d, fullData) {
   const sumEl = $("delivery-ai-summary");
   if (sumEl) {
     const s = d.predictability_summary || d.predictability_comment || "";
-    sumEl.innerHTML = s ? (window.marked ? marked.parse(s) : `<p>${escapeHtml(s)}</p>`) : '<p class="muted">–</p>';
+    sumEl.innerHTML = s ? renderMarkdown(s) : '<p class="muted">–</p>';
   }
 
   const actEl = $("delivery-ai-actions");

@@ -1,4 +1,4 @@
-import { $, setText, show, hide, escapeHtml, fmtDate, fmtDay, formatForecastDelay } from "../utils.js";
+import { $, setText, show, hide, escapeHtml, fmtDate, fmtDay, formatForecastDelay, renderMarkdown } from "../utils.js";
 import { renderMonteCarloChart } from "../charts/delivery.js";
 
 export function renderAssessmentTab(d, projectKey = "ALL", projectObj = null, origD = null) {
@@ -147,7 +147,7 @@ export function renderAssessmentTab(d, projectKey = "ALL", projectObj = null, or
   if (sumEl) {
     const summary = d.summary || fullData.ai_summary || "";
     sumEl.innerHTML = summary
-      ? (window.marked ? marked.parse(summary) : `<p>${escapeHtml(summary)}</p>`)
+      ? renderMarkdown(summary)
       : '<p class="muted">–</p>';
   }
 
@@ -157,7 +157,7 @@ export function renderAssessmentTab(d, projectKey = "ALL", projectObj = null, or
   if (mEl) {
     mEl.innerHTML = "";
     (fullData.milestones || []).forEach(x => {
-      const bodyHtml = window.marked ? marked.parse(x.assessment || "") : escapeHtml(x.assessment || "");
+      const bodyHtml = renderMarkdown(x.assessment || "");
       const st = x.status || '';
       mEl.insertAdjacentHTML("beforeend",
         `<div class="item ${st}"><div class="item-title">${escapeHtml(x.name)} <span class="badge ${st}" style="margin-left:8px; font-size:11px; padding:2px 8px;">${st.replace('_',' ')}</span></div><div class="item-body">${bodyHtml}</div></div>`);
@@ -170,7 +170,7 @@ export function renderAssessmentTab(d, projectKey = "ALL", projectObj = null, or
     if (!(d.risks || []).length) rEl.innerHTML = '<p class="item-body">No risks triggered.</p>';
     (d.risks || fullData.risks || []).forEach(x => {
       const bodyText = x.mitigation ? `${x.evidence || ""}\n\n**Mitigation:** ${x.mitigation}` : (x.evidence || "");
-      const bodyHtml = window.marked ? marked.parse(bodyText) : escapeHtml(bodyText);
+      const bodyHtml = renderMarkdown(bodyText);
       const sev = (x.severity || '').toLowerCase();
       const badgeCls = sev === 'high' || sev === 'critical' ? 'off_track' : sev === 'medium' ? 'at_risk' : 'on_track';
       rEl.insertAdjacentHTML("beforeend",

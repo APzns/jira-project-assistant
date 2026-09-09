@@ -29,10 +29,10 @@ def refresh_assessment(
     except Exception as exc:
         cached = assessment.get_cached_assessment(db, mode=mode, project_key=project_key)
         if cached:
-            response.headers["X-Report-Status"] = f"fallback_cached_error:{exc}"
-            return {"cached": True, **cached, "warning": f"Assessment updated with cached fallback due to: {exc}"}
-        response.headers["X-Report-Status"] = f"error:{exc}"
-        return {"error": f"Failed to refresh assessment: {exc}"}
+            response.headers["X-Report-Status"] = "fallback_cached_error"
+            return {"cached": True, **cached, "warning": "Assessment updated with cached fallback due to internal error."}
+        response.headers["X-Report-Status"] = "error"
+        return {"error": "Failed to refresh assessment."}
 
 
 @router.get("/latest")
@@ -49,8 +49,8 @@ def latest_assessment(
         response.headers["X-Report-Status"] = "loaded_cached_success"
         return {"cached": True, **assessment_data}
     except Exception as exc:
-        response.headers["X-Report-Status"] = f"error:{exc}"
-        return {"error": f"Failed to load latest assessment: {exc}", "cached": False}
+        response.headers["X-Report-Status"] = "error"
+        return {"error": "Failed to load latest assessment.", "cached": False}
 
 
 

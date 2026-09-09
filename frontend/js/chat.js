@@ -2,7 +2,7 @@
  * chat.js — Global "Ask AI" Copilot Chat Drawer & Query Execution
  */
 
-import { $, setText, show, hide, escapeHtml } from "./utils.js";
+import { $, setText, show, hide, escapeHtml, renderMarkdown } from "./utils.js";
 import { API_BASE, state } from "./state.js";
 import { fetchWithTimeout } from "./api.js";
 
@@ -147,19 +147,65 @@ export async function askQuestion(inputId, buttonId) {
   const contextTab = _getActiveTab();
 
   try {
-    const res = await fetchWithTimeout(`${API_BASE}/ask`, {
+    const res = await fetch(`${API_BASE}/ask/stream`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Basic ${btoa("demo:Dem06435")}`
+      },
       body: JSON.stringify({
         question: q,
         history: historyPayload.length ? historyPayload : undefined,
         context: contextTab || undefined,
         project_key: state.currentProject || undefined,
       }),
-    }, 90000);
-    const d = await res.json();
-    const answer = d.error ? ("⚠️ " + d.error) : (d.answer || "No answer returned.");
-    updateHistoryEntry(entryId, answer, d.rows || [], d.skill_used || null);
+    });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = "";
+    let finalData = {};
+    
+    updateHistoryEntry(entryId, "", [], null);
+    
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop(); // keep the last incomplete part in the buffer
+      
+      for (const part of parts) {
+        if (part.startsWith("data: ")) {
+          try {
+            const data = JSON.parse(part.substring(6));
+            if (data.status) {
+              updateHistoryEntry(entryId, fullText ? fullText + `\n\n*${data.status}*` : `*${data.status}*`, [], null);
+            }
+            if (data.chunk) {
+              fullText += data.chunk;
+              updateHistoryEntry(entryId, fullText, [], null);
+            }
+            if (data.done) {
+              finalData = data;
+              fullText = data.answer || fullText;
+              updateHistoryEntry(entryId, fullText, data.rows || [], data.skill_used || null);
+            }
+            if (data.error) {
+              fullText = "⚠️ " + data.error;
+              updateHistoryEntry(entryId, fullText, [], null);
+              finalData.error = data.error;
+            }
+          } catch (err) {
+            console.error("SSE parse error", err, part);
+          }
+        }
+      }
+    }
+    
+    const answer = finalData.error ? ("⚠️ " + finalData.error) : (finalData.answer || fullText || "No answer returned.");
     state.askHistory.push({ question: q, answer });
     if (state.askHistory.length > 10) state.askHistory.shift();
   } catch (e) {
@@ -190,9 +236,7 @@ export function addHistoryEntry(entryId, question, answerText) {
 export function updateHistoryEntry(entryId, answerText, rows, skillUsed) {
   document.querySelectorAll(`[data-entry="${entryId}"] .qa-a`)
     .forEach(el => {
-      const aiHtml = window.marked
-        ? marked.parse(answerText)
-        : escapeHtml(answerText);
+      const aiHtml = renderMarkdown(answerText);
 
       const tableHtml = (rows && rows.length > 10)
         ? _renderRowsTable(rows)

@@ -97,3 +97,216 @@ export function teamColor(team) {
   }
   return _teamColorCache[team];
 }
+
+/**
+ * Inline formatting for markdown text (bold, italic, code, links, strikethrough).
+ */
+function _inlineMarkdown(str) {
+  let s = escapeHtml(str);
+  // Inline code `code`
+  s = s.replace(/`([^`]+)`/g, '<code class="md-inline-code">$1</code>');
+  // Bold **text** or __text__
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+  // Italic *text* or _text_
+  s = s.replace(/(^|[^\*])\*([^*]+)\*([^\*]|$)/g, '$1<em>$2</em>$3');
+  s = s.replace(/(^|[^_])_([^_]+)_([^_]|$)/g, '$1<em>$2</em>$3');
+  // Strikethrough ~~text~~
+  s = s.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+  // Markdown links [text](url)
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s\)\"']+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  return s;
+}
+
+/**
+ * Fallback block-level Markdown parser with full GFM table, list, code block, and header support.
+ */
+export function parseMarkdownFallback(text) {
+  if (!text) return "";
+  const lines = String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  const output = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const rawLine = lines[i];
+    const trimmed = rawLine.trim();
+
+    // 1. Fenced Code Block
+    if (trimmed.startsWith("```")) {
+      const lang = trimmed.slice(3).trim();
+      const codeLines = [];
+      i++;
+      while (i < lines.length && !lines[i].trim().startsWith("```")) {
+        codeLines.push(escapeHtml(lines[i]));
+        i++;
+      }
+      i++; // skip closing ```
+      output.push(`<pre><code class="${lang ? `language-${escapeHtml(lang)}` : ''}">${codeLines.join("\n")}</code></pre>`);
+      continue;
+    }
+
+    // 2. Horizontal Rule (---, ***, ___)
+    if (/^\s*([-*_]){3,}\s*$/.test(rawLine)) {
+      output.push('<hr class="markdown-hr" />');
+      i++;
+      continue;
+    }
+
+    // 3. Headers (# to ######)
+    const hMatch = rawLine.match(/^(#{1,6})\s+(.*)$/);
+    if (hMatch) {
+      const level = hMatch[1].length;
+      output.push(`<h${level} class="md-heading md-h${level}">${_inlineMarkdown(hMatch[2])}</h${level}>`);
+      i++;
+      continue;
+    }
+
+    // 4. Blockquotes (> ...)
+    if (trimmed.startsWith(">")) {
+      const bqLines = [];
+      while (i < lines.length && lines[i].trim().startsWith(">")) {
+        bqLines.push(lines[i].trim().replace(/^>\s?/, ""));
+        i++;
+      }
+      output.push(`<blockquote>${parseMarkdownFallback(bqLines.join("\n"))}</blockquote>`);
+      continue;
+    }
+
+    // 5. GFM Markdown Tables
+    // Matches: | col1 | col2 | or col1 | col2
+    // Followed by separator: | --- | :---: | ---: |
+    const isPipeLine = trimmed.includes("|");
+    const nextLine = (i + 1 < lines.length) ? lines[i + 1].trim() : "";
+    const isSepLine = /^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)+\|?\s*$/.test(nextLine);
+
+    if (isPipeLine && isSepLine && trimmed.split("|").filter(Boolean).length >= 1) {
+      const headerRow = trimmed;
+      const sepRow = nextLine;
+      i += 2;
+
+      const parseRowCells = (r) => {
+        let cleaned = r.trim();
+        if (cleaned.startsWith("|")) cleaned = cleaned.slice(1);
+        if (cleaned.endsWith("|")) cleaned = cleaned.slice(0, -1);
+        return cleaned.split("|").map(c => c.trim());
+      };
+
+      const headers = parseRowCells(headerRow);
+      const seps = parseRowCells(sepRow);
+      const alignments = seps.map(s => {
+        const left = s.startsWith(":");
+        const right = s.endsWith(":");
+        if (left && right) return "center";
+        if (right) return "right";
+        return "left";
+      });
+
+      const bodyRows = [];
+      while (i < lines.length) {
+        const rowTrim = lines[i].trim();
+        if (!rowTrim || !rowTrim.includes("|")) break;
+        bodyRows.push(parseRowCells(rowTrim));
+        i++;
+      }
+
+      let tblHtml = '<div class="table-container markdown-table-wrap"><table class="markdown-table"><thead><tr>';
+      headers.forEach((h, idx) => {
+        const align = alignments[idx] || "left";
+        tblHtml += `<th style="text-align: ${align};">${_inlineMarkdown(h)}</th>`;
+      });
+      tblHtml += '</tr></thead><tbody>';
+
+      bodyRows.forEach(row => {
+        tblHtml += '<tr>';
+        row.forEach((cell, idx) => {
+          const align = alignments[idx] || "left";
+          tblHtml += `<td style="text-align: ${align};">${_inlineMarkdown(cell)}</td>`;
+        });
+        tblHtml += '</tr>';
+      });
+      tblHtml += '</tbody></table></div>';
+      output.push(tblHtml);
+      continue;
+    }
+
+    // 6. Unordered Lists (*, -, +)
+    if (/^\s*[-*+]\s+(.*)$/.test(rawLine)) {
+      const listItems = [];
+      while (i < lines.length && /^\s*[-*+]\s+(.*)$/.test(lines[i])) {
+        const m = lines[i].match(/^\s*[-*+]\s+(.*)$/);
+        listItems.push(`<li>${_inlineMarkdown(m[1])}</li>`);
+        i++;
+      }
+      output.push(`<ul>${listItems.join("")}</ul>`);
+      continue;
+    }
+
+    // 7. Ordered Lists (1., 2., etc.)
+    if (/^\s*\d+\.\s+(.*)$/.test(rawLine)) {
+      const listItems = [];
+      while (i < lines.length && /^\s*\d+\.\s+(.*)$/.test(lines[i])) {
+        const m = lines[i].match(/^\s*\d+\.\s+(.*)$/);
+        listItems.push(`<li>${_inlineMarkdown(m[1])}</li>`);
+        i++;
+      }
+      output.push(`<ol>${listItems.join("")}</ol>`);
+      continue;
+    }
+
+    // 8. Blank Line
+    if (!trimmed) {
+      i++;
+      continue;
+    }
+
+    // 9. Paragraph Block
+    const pLines = [];
+    while (
+      i < lines.length &&
+      lines[i].trim() &&
+      !lines[i].trim().startsWith("```") &&
+      !lines[i].match(/^(#{1,6})\s+/) &&
+      !/^\s*([-*_]){3,}\s*$/.test(lines[i]) &&
+      !lines[i].trim().startsWith(">") &&
+      !(lines[i].trim().includes("|") && i + 1 < lines.length && /^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)+\|?\s*$/.test(lines[i + 1].trim())) &&
+      !/^\s*[-*+]\s+/.test(lines[i]) &&
+      !/^\s*\d+\.\s+/.test(lines[i])
+    ) {
+      pLines.push(_inlineMarkdown(lines[i].trim()));
+      i++;
+    }
+    if (pLines.length) {
+      output.push(`<p>${pLines.join("<br />")}</p>`);
+    }
+  }
+
+  return output.join("\n");
+}
+
+/**
+ * Universal markdown renderer with marked.js acceleration + robust fallback parser.
+ */
+export function renderMarkdown(text) {
+  if (!text) return "";
+  
+  if (typeof window !== "undefined" && window.marked && typeof window.marked.parse === "function") {
+    try {
+      if (typeof window.marked.setOptions === "function") {
+        window.marked.setOptions({ gfm: true, breaks: true });
+      }
+      let html = window.marked.parse(text);
+      // Ensure tables generated by marked are wrapped for smooth horizontal scrolling in drawer
+      if (html.includes("<table") && !html.includes("markdown-table-wrap")) {
+        html = html.replace(/<table(?:\s+[^>]*)?>[\s\S]*?<\/table>/gi, (tbl) => {
+          return `<div class="table-container markdown-table-wrap">${tbl}</div>`;
+        });
+      }
+      return html;
+    } catch (e) {
+      console.warn("Marked parse error, using fallback parser:", e);
+    }
+  }
+
+  return parseMarkdownFallback(text);
+}
+

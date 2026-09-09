@@ -3,7 +3,9 @@
 import os
 import base64
 import secrets
+import logging
 from pathlib import Path
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -27,12 +29,33 @@ from src.jira_ai.logging_config import setup_logging
 logger = setup_logging()
 logger.info("Jira AI API service initializing...")
 
-app = FastAPI(title="Jira AI API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup: pre-warm caches so the first user request is fast."""
+    _logger = logging.getLogger("jira_ai")
+    try:
+        from src.jira_ai.api.db import get_db
+        db = next(get_db())
+        try:
+            from src.jira_ai.api.services.llm import _distinct_values
+            _distinct_values(db)
+            _logger.info("Startup: distinct values cache warmed.")
+        except Exception as exc:
+            _logger.warning("Startup: distinct values warmup skipped: %s", exc)
+        finally:
+            db.close()
+    except Exception as exc:
+        _logger.warning("Startup: warmup skipped (DB unavailable): %s", exc)
+    yield
+
+
+app = FastAPI(title="Jira AI API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

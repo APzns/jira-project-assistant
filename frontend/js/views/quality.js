@@ -1,4 +1,4 @@
-import { $, setText, escapeHtml, teamColor } from "../utils.js";
+import { $, setText, escapeHtml, teamColor, renderMarkdown } from "../utils.js";
 import { state } from "../state.js";
 import { renderQualityByTeamChart } from "../charts/quality.js";
 
@@ -298,8 +298,7 @@ export function renderQualityAISummary(d) {
   const sumEl = $("quality-ai-summary");
   if (sumEl) {
     const s = d.quality_summary || "";
-    sumEl.innerHTML = s ? (window.marked ? marked.parse(s) : `<p>${escapeHtml(s)}</p>`)
-                        : '<p class="muted">–</p>';
+    sumEl.innerHTML = s ? renderMarkdown(s) : '<p class="muted">–</p>';
   }
 
   const actEl = $("quality-ai-actions");

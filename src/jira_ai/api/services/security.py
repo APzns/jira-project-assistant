@@ -148,6 +148,15 @@ def check_rate_limit(client_ip: str) -> bool:
     """
     import time
     now = time.time()
+    
+    # Evict old entries periodically to prevent memory leaks
+    if len(_rate_limit_store) > 1000:
+        keys_to_delete = [ip for ip, ts in _rate_limit_store.items() if not ts or now - ts[-1] > RATE_LIMIT_WINDOW]
+        for ip in keys_to_delete:
+            del _rate_limit_store[ip]
+        if len(_rate_limit_store) > 1000:
+            _rate_limit_store.clear()
+
     timestamps = _rate_limit_store.get(client_ip, [])
     # Keep timestamps within the window
     valid_timestamps = [ts for ts in timestamps if now - ts < RATE_LIMIT_WINDOW]
@@ -187,11 +196,12 @@ def resolve_hostname(ip: str) -> str:
         return socket.gethostname() or "localhost"
 
     try:
-        # 0.5s socket timeout so DNS never blocks request logging
-        old_timeout = socket.getdefaulttimeout()
-        socket.setdefaulttimeout(0.5)
-        hostname, _, _ = socket.gethostbyaddr(ip)
-        socket.setdefaulttimeout(old_timeout)
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            try:
+                hostname, _, _ = executor.submit(socket.gethostbyaddr, ip).result(timeout=0.5)
+            except TimeoutError:
+                return ip
         if hostname.endswith(".docker.internal"):
             try:
                 fqdn = socket.getfqdn()
@@ -246,6 +256,14 @@ def log_visit_event(
     last_visit = _visit_session_store.get(ip_str, 0.0)
     if not force and (now - last_visit < VISIT_SESSION_COOLDOWN):
         return
+
+    # Evict old entries periodically to prevent memory leaks
+    if len(_visit_session_store) > 1000:
+        keys_to_delete = [ip for ip, ts in _visit_session_store.items() if now - ts > VISIT_SESSION_COOLDOWN]
+        for ip in keys_to_delete:
+            del _visit_session_store[ip]
+        if len(_visit_session_store) > 1000:
+            _visit_session_store.clear()
 
     _visit_session_store[ip_str] = now
 

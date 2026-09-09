@@ -5,7 +5,7 @@
  * and generate optimal delivery reports.
  */
 
-import { $, escapeHtml } from "../utils.js";
+import { $, escapeHtml, renderMarkdown } from "../utils.js";
 import { API_BASE } from "../state.js";
 import { fetchWithTimeout } from "../api.js";
 import { openReportDetail, executeReportGeneration } from "../skills.js";
@@ -30,46 +30,10 @@ I synthesize live Jira metrics, Project Charters (Milestones M0–M3), Decision 
 `;
 
 /**
- * Format markdown text into clean HTML.
+ * Format markdown text into clean HTML using universal renderMarkdown.
  */
 function formatMarkdown(text) {
-  if (!text) return "";
-  if (window.marked && typeof window.marked.parse === "function") {
-    try {
-      return window.marked.parse(text);
-    } catch (e) {
-      console.warn("Marked parse error:", e);
-    }
-  }
-  let html = escapeHtml(text);
-
-  // Headers
-  html = html.replace(/^#### (.*$)/gim, '<h5 style="margin: 8px 0 4px; color: #a5b4fc; font-size: 13px;">$1</h5>');
-  html = html.replace(/^### (.*$)/gim, '<h4 style="margin: 12px 0 6px; color: #818cf8; font-size: 15px; font-weight: 700;">$1</h4>');
-  html = html.replace(/^## (.*$)/gim, '<h3 style="margin: 14px 0 8px; color: #f8fafc; font-size: 16px; font-weight: 700;">$1</h3>');
-
-  // Bold & Italic
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-  // Bullet points
-  html = html.replace(/^\* (.*$)/gim, '<li style="margin-left: 18px; margin-bottom: 4px;">$1</li>');
-  html = html.replace(/^- (.*$)/gim, '<li style="margin-left: 18px; margin-bottom: 4px;">$1</li>');
-
-  // Numbered lists
-  html = html.replace(/^(\d+)\. (.*$)/gim, '<li style="margin-left: 18px; margin-bottom: 4px;"><strong>$1.</strong> $2</li>');
-
-  // Horizontal rules
-  html = html.replace(/^---$/gim, '<hr style="border: 0; border-top: 1px solid rgba(99, 102, 241, 0.25); margin: 12px 0;" />');
-
-  // Inline code / badges
-  html = html.replace(/`([^`]+)`/g, '<code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #a5b4fc; font-family: monospace;">$1</code>');
-
-  // Paragraph line breaks
-  html = html.replace(/\n\n/g, '<div style="margin-bottom: 10px;"></div>');
-  html = html.replace(/\n/g, '<br />');
-
-  return html;
+  return renderMarkdown(text);
 }
 
 /**

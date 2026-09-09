@@ -6,34 +6,11 @@ import os
 import time
 
 from google import genai
+from src.jira_ai.api.services.models import get_client, pick_model, record_usage, record_error, RETRY_DELAY_S
 from src.jira_ai.api.services.assessment.evaluators import _forecast_delay_days
 
 logger = logging.getLogger("jira_ai")
 
-CANDIDATE_MODELS = [
-    "gemini-flash-lite-latest",
-    "gemini-flash-latest",
-    "gemini-2.5-flash-lite",
-    "gemini-2.5-flash",
-]
-MODEL = "gemini-flash-lite-latest"
-
-_client = None
-
-
-def _get_client():
-    global _client
-    api_key = os.environ.get("GEMINI_API_KEY", "")
-    if not api_key:
-        return None
-    if _client is None:
-        try:
-            timeout_ms = int(os.environ.get("GEMINI_TIMEOUT_MS", "90000"))
-            _client = genai.Client(api_key=api_key, http_options={"timeout": timeout_ms})
-        except Exception as exc:
-            logger.warning("Failed to initialize genai.Client: %s", exc)
-            return None
-    return _client
 
 
 _RESPONSE_SCHEMA = {
@@ -287,29 +264,31 @@ def _build_fallback_assessment(metrics: dict, mode: str) -> dict:
 
 
 def _call_gemini_assessment(prompt: str) -> dict | None:
-    client = _get_client()
+    client = get_client()
     if not client:
         return None
 
     timeout_ms = int(os.environ.get("GEMINI_TIMEOUT_MS", "90000"))
-    for model_name in CANDIDATE_MODELS:
-        for attempt in range(2):
-            try:
-                resp = client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                    config={
-                        "response_mime_type": "application/json",
-                        "response_schema": _RESPONSE_SCHEMA,
-                        "http_options": {"timeout": timeout_ms},
-                    },
-                )
-                if resp and getattr(resp, "text", None):
-                    parsed = json.loads(resp.text)
-                    if isinstance(parsed, dict) and "overall_status" in parsed:
-                        return parsed
-            except Exception as exc:
-                logger.warning("Gemini call failed (model=%s, attempt=%d): %s", model_name, attempt + 1, exc)
-                time.sleep(0.5)
+    for _attempt in range(5):
+        model_name = pick_model(prefer_lite=True)
+        try:
+            resp = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config={
+                    "response_mime_type": "application/json",
+                    "response_schema": _RESPONSE_SCHEMA,
+                    "http_options": {"timeout": timeout_ms},
+                },
+            )
+            if resp and getattr(resp, "text", None):
+                parsed = json.loads(resp.text)
+                if isinstance(parsed, dict) and "overall_status" in parsed:
+                    record_usage(model_name)
+                    return parsed
+        except Exception as exc:
+            logger.warning("Gemini assessment call failed (model=%s, attempt=%d): %s", model_name, _attempt + 1, exc)
+            record_error(model_name)
+            time.sleep(RETRY_DELAY_S)
 
     return None

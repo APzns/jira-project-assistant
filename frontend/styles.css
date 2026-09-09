@@ -1270,7 +1270,134 @@ pre { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-
 .qa summary { cursor: pointer; display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
 .qa-q { font-weight: 600; color: var(--text); font-size: 14px; }
 .qa-time { color: var(--text-dim); font-size: 11px; white-space: nowrap; }
-.qa-a { margin-top: 10px; color: var(--text); font-size: 13.5px; line-height: 1.5; }
+.qa-a { margin-top: 10px; color: var(--text); font-size: 13.5px; line-height: 1.6; }
+
+/* Markdown typography and elements in AI responses */
+.qa-a h1, .qa-a h2, .qa-a h3, .qa-a h4, .qa-a h5, .qa-a h6,
+.msg-body h1, .msg-body h2, .msg-body h3, .msg-body h4, .msg-body h5, .msg-body h6,
+.md-heading {
+  margin: 12px 0 6px;
+  color: #818cf8;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.qa-a h1, .msg-body h1, .md-h1 { font-size: 17px; color: #a5b4fc; }
+.qa-a h2, .msg-body h2, .md-h2 { font-size: 16px; color: #a5b4fc; }
+.qa-a h3, .msg-body h3, .md-h3 { font-size: 15px; color: #818cf8; }
+.qa-a h4, .msg-body h4, .md-h4 { font-size: 14px; color: #818cf8; }
+.qa-a h5, .msg-body h5, .md-h5 { font-size: 13px; color: #a5b4fc; }
+
+.qa-a p, .msg-body p {
+  margin: 0 0 8px;
+}
+.qa-a p:last-child, .msg-body p:last-child {
+  margin-bottom: 0;
+}
+
+.qa-a ul, .qa-a ol, .msg-body ul, .msg-body ol {
+  margin: 6px 0 10px 18px;
+  padding: 0;
+}
+.qa-a li, .msg-body li {
+  margin-bottom: 4px;
+}
+
+.qa-a hr, .msg-body hr, .markdown-hr {
+  border: 0;
+  border-top: 1px solid rgba(99, 102, 241, 0.25);
+  margin: 14px 0;
+}
+
+.qa-a code, .msg-body code, .md-inline-code {
+  background: rgba(0, 0, 0, 0.35);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #a5b4fc;
+  font-family: monospace;
+}
+
+.qa-a pre, .msg-body pre {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 6px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+.qa-a pre code, .msg-body pre code {
+  background: transparent;
+  padding: 0;
+  border: 0;
+  font-size: 12px;
+  color: #e2e8f0;
+}
+
+.qa-a blockquote, .msg-body blockquote {
+  border-left: 3px solid #818cf8;
+  margin: 8px 0;
+  padding: 4px 12px;
+  color: var(--text-dim);
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: 0 4px 4px 0;
+}
+
+/* Markdown tables in AI Chat, Drawer, and Assistant Messages */
+.qa-a table, .msg-body table, .msg-content table, .markdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 12.5px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.qa-a thead, .msg-body thead, .msg-content thead, .markdown-table thead {
+  background: rgba(30, 41, 59, 0.9);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.35);
+}
+
+.qa-a th, .msg-body th, .msg-content th, .markdown-table th {
+  padding: 8px 10px;
+  font-weight: 600;
+  color: #a5b4fc;
+  font-size: 12px;
+  text-transform: capitalize;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.3);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+.qa-a th:last-child, .msg-body th:last-child, .msg-content th:last-child, .markdown-table th:last-child {
+  border-right: none;
+}
+
+.qa-a td, .msg-body td, .msg-content td, .markdown-table td {
+  padding: 7px 10px;
+  color: var(--text);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+}
+.qa-a td:last-child, .msg-body td:last-child, .msg-content td:last-child, .markdown-table td:last-child {
+  border-right: none;
+}
+
+.qa-a tbody tr:nth-child(even), .msg-body tbody tr:nth-child(even), .msg-content tbody tr:nth-child(even), .markdown-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.qa-a tbody tr:hover, .msg-body tbody tr:hover, .msg-content tbody tr:hover, .markdown-table tbody tr:hover {
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.markdown-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin: 10px 0;
+  border-radius: 6px;
+}
+
 
 @media (max-width: 800px) {
   .kpi-strip, .two-col { grid-template-columns: 1fr; }

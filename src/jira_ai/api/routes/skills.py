@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 
 from src.jira_ai.api.db import get_db
 from src.jira_ai.api.services.skill_cache import get_cached_skill, save_skill_cache
+from src.jira_ai.api.services.models import get_client, pick_model, record_usage, record_error, RETRY_DELAY_S
 
 logger = logging.getLogger("jira_ai")
 
@@ -41,29 +42,7 @@ _SETTINGS_FILE = _REPO_ROOT / ".agents" / "settings" / "ai_settings.json"
 # ---------------------------------------------------------------------------
 # Gemini client (mirrors the pattern in llm.py)
 # ---------------------------------------------------------------------------
-CANDIDATE_MODELS = [
-    "gemini-flash-lite-latest",
-    "gemini-flash-latest",
-    "gemini-2.5-flash-lite",
-    "gemini-2.5-flash",
-]
 
-_client = None
-
-
-def _get_client():
-    global _client
-    api_key = os.environ.get("GEMINI_API_KEY", "")
-    if not api_key:
-        return None
-    if _client is None:
-        try:
-            timeout_ms = int(os.environ.get("GEMINI_TIMEOUT_MS", "90000"))
-            _client = genai.Client(api_key=api_key, http_options={"timeout": timeout_ms})
-        except Exception as exc:
-            logger.warning("skills.py: Failed to initialize genai client: %s", exc)
-            return None
-    return _client
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +164,7 @@ def _get_metrics_context(db: Session, project_key: Optional[str] = None) -> tupl
 
 
 def _call_gemini(system_instruction: str, user_prompt: str, response_schema: dict | None = None) -> str | None:
-    client = _get_client()
+    client = get_client()
     if not client:
         return None
 
@@ -200,14 +179,17 @@ def _call_gemini(system_instruction: str, user_prompt: str, response_schema: dic
 
     config = types.GenerateContentConfig(**config_kwargs)
 
-    for m in CANDIDATE_MODELS:
+    for _attempt in range(5):
+        model_name = pick_model(prefer_lite=True)
         try:
-            resp = client.models.generate_content(model=m, contents=user_prompt, config=config)
+            resp = client.models.generate_content(model=model_name, contents=user_prompt, config=config)
             if resp and getattr(resp, "text", None):
+                record_usage(model_name)
                 return resp.text.strip()
         except Exception as exc:
-            logger.warning("skills.py: LLM call failed with model %s: %s", m, exc)
-            time.sleep(0.5)
+            logger.warning("skills.py: LLM call failed with model %s: %s", model_name, exc)
+            record_error(model_name)
+            time.sleep(RETRY_DELAY_S)
     return None
 
 
