@@ -567,6 +567,9 @@ def reset_projects(request: Request) -> dict:
         _write_project_stakeholders(default_sh)
         _sync_stakeholders_projects_field(default_sh)
 
+        from src.jira_ai.api.services.llm import clear_answer_cache
+        clear_answer_cache()
+
         return {
             "reset": True,
             "data": default_data

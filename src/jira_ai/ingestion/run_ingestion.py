@@ -274,10 +274,12 @@ def main() -> None:
         get_telemetry_summary(mode="real", force_refresh=True, db=session)
         print("Done. Dashboards telemetry cached.")
 
-        # Clear old skill analysis cache and pre-compute skills
+        # Clear old skill analysis cache, answer cache, and pre-compute skills
         invalidated_count = invalidate_skill_cache(session)
         pruned_count = prune_stale_cache(session, max_age_days=7, max_rows=150)
-        print(f"Done. Cache refreshed: cleared {invalidated_count} active entries, pruned {pruned_count} stale records.")
+        from src.jira_ai.api.services.llm import clear_answer_cache
+        answers_cleared = clear_answer_cache()
+        print(f"Done. Cache refreshed: cleared {invalidated_count} active skill entries, pruned {pruned_count} stale records, evicted {answers_cleared} cached answers.")
 
         print("Pre-computing all AI Project Assistant Skills...")
         from src.jira_ai.api.routes.skills import warmup_skills_cache

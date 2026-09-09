@@ -21,9 +21,11 @@ LOGS_DIR = Path(__file__).resolve().parents[4] / "logs"
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 AUDIT_LOG_PATH = LOGS_DIR / "security_audit.log"
 
-MAX_QUESTION_LENGTH = 500
+MAX_QUESTION_LENGTH = 800
 
-# Patterns indicative of direct prompt injections, persona hijacking, instruction leaks, or delimiter breakouts
+# Patterns indicative of direct prompt injections, persona hijacking, instruction leaks, or delimiter breakouts.
+# NOTE: Patterns are deliberately precise to avoid blocking legitimate project-management questions
+# (e.g. "act as the TPM", "you are now on Sprint 5", "pretend the release is delayed").
 INJECTION_PATTERNS = [
     # Instruction override / ignore previous
     re.compile(r"ignore\s*(all)?\s*(previous|above|prior)\s*(instructions|prompts|rules|guidelines)?", re.IGNORECASE),
@@ -31,29 +33,31 @@ INJECTION_PATTERNS = [
     re.compile(r"disregard\s*(all)?\s*(previous|above|prior)", re.IGNORECASE),
     re.compile(r"bypass\s*(your|the)?\s*(safety|security|rules|filters)", re.IGNORECASE),
 
-    # Persona override / jailbreaks
-    re.compile(r"you\s*are\s*now\s*(a|an|in)?", re.IGNORECASE),
-    re.compile(r"act\s*as\s*(a|an|if)?", re.IGNORECASE),
-    re.compile(r"pretend\s*(to\s*be|you\s*are)", re.IGNORECASE),
+    # Persona override / jailbreaks — require "you are now a/an <role>" not "you are now on Sprint X"
+    re.compile(r"you\s+are\s+now\s+(a|an)\s+\w", re.IGNORECASE),
+    # "act as a/an <role>" but NOT "act as the TPM" or "act as project lead"
+    re.compile(r"\bact\s+as\s+(a|an|if)\b", re.IGNORECASE),
+    # "pretend to be" / "pretend you are" — NOT "pretend the release is delayed"
+    re.compile(r"pretend\s+(to\s+be|you\s+are)\b", re.IGNORECASE),
     re.compile(r"do\s*anything\s*now", re.IGNORECASE),
     re.compile(r"\bdan\b\s*mode", re.IGNORECASE),
-    re.compile(r"developer\s*mode", re.IGNORECASE),
+    # Only block "developer mode" when paired with override/bypass intent
+    re.compile(r"developer\s*mode\s*(enabled|on|active|override|unlock)", re.IGNORECASE),
     re.compile(r"jailbreak", re.IGNORECASE),
 
-    # System prompt extraction
-    re.compile(r"system\s*prompt", re.IGNORECASE),
-    re.compile(r"system\s*instruction", re.IGNORECASE),
+    # System prompt extraction — require explicit extraction verb before "system prompt/instruction"
+    re.compile(r"(reveal|print|show|dump|output|display)\s+(your|the)?\s*system\s+(prompt|instruction)", re.IGNORECASE),
     re.compile(r"repeat\s*(all|everything|the)\s*(above|previous|prompt|instructions)", re.IGNORECASE),
     re.compile(r"print\s*(your|the)\s*(initial|system|full)\s*(prompt|instructions)", re.IGNORECASE),
-    re.compile(r"show\s*(me)?\s*(your|the)\s*(system|initial)\s*(prompt|instructions)", re.IGNORECASE),
-    re.compile(r"what\s*are\s*your\s*(initial|system)\s*instructions", re.IGNORECASE),
+    re.compile(r"what\s+are\s+your\s+(initial|system)\s+instructions", re.IGNORECASE),
 
     # Delimiter breakout attempts
     re.compile(r"===\s*USER\s*QUERY\s*(START|END)\s*===", re.IGNORECASE),
     re.compile(r"</?user_query>", re.IGNORECASE),
     re.compile(r"</?untrusted_data>", re.IGNORECASE),
-    re.compile(r"system:", re.IGNORECASE),
-    re.compile(r"assistant:", re.IGNORECASE),
+    # Only block "system:" / "assistant:" as a role prefix at line-start (chat injection format)
+    re.compile(r"^system:\s", re.IGNORECASE | re.MULTILINE),
+    re.compile(r"^assistant:\s", re.IGNORECASE | re.MULTILINE),
 ]
 
 

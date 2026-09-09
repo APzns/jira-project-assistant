@@ -298,6 +298,13 @@ function renderProjectsGrid(filtered) {
   grid.querySelectorAll(".project-card").forEach(card => {
     const key = card.dataset.key;
 
+    // Click whole card to go to project details
+    card.addEventListener("click", () => {
+      window.location.hash = `projects/${key}`;
+    });
+    // Ensure card has pointer cursor
+    card.style.cursor = "pointer";
+
     // View Dashboard button
     card.querySelector(".btn-p-view-dashboard")?.addEventListener("click", (e) => {
       e.stopPropagation();

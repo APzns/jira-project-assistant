@@ -39,7 +39,9 @@ function navigate(hash) {
     if (brandBtn) brandBtn.classList.remove("active");
   }
 
-  if (!btn && navKey !== "main") {
+  let targetPage = $("page-" + navKey);
+
+  if (!btn && navKey !== "main" && !targetPage) {
     navKey = "main";
     btn = document.querySelector(`.sidebar-nav .nav-btn[data-nav="main"]`);
     if (brandBtn) brandBtn.classList.add("active");
@@ -49,7 +51,7 @@ function navigate(hash) {
   document.querySelectorAll(".nav-page").forEach(p => p.classList.remove("active"));
 
   if (btn) btn.classList.add("active");
-  const targetPage = $("page-" + navKey);
+  targetPage = $("page-" + navKey);
   if (targetPage) targetPage.classList.add("active");
 
   const headerWrap = $("dashboards-header-wrap");
@@ -316,16 +318,20 @@ async function renderDashboardsDirectory() {
       const data = await res.json();
       _telemetryProjectsList = data.telemetry || [];
     } else {
-      // Fallback to cached projects
-      if (!state.projectsCache || state.projectsCache.length === 0) {
-        const pRes = await fetchProjects(false);
-        state.projectsCache = pRes.projects || [];
-      }
-      _telemetryProjectsList = state.projectsCache || [];
+      throw new Error(`HTTP error ${res.status}`);
     }
   } catch (err) {
     console.error("Failed to load telemetry for dashboards hub:", err);
-    if (state.projectsCache) _telemetryProjectsList = state.projectsCache;
+    if (!state.projectsCache || state.projectsCache.length === 0) {
+      try {
+        const pRes = await fetchProjects(false);
+        state.projectsCache = pRes.projects || [];
+      } catch (e) {
+        console.error("Fallback fetchProjects failed:", e);
+        state.projectsCache = [];
+      }
+    }
+    _telemetryProjectsList = state.projectsCache;
   }
 
   applyDashboardsDirectoryFilter();
@@ -492,7 +498,17 @@ function applyDashboardsDirectoryFilter() {
 
   container.innerHTML = html;
 
-  // Wire click events (only on buttons, not whole card)
+  // Wire click events for the whole card
+  container.querySelectorAll(".telemetry-card").forEach(card => {
+    card.addEventListener("click", () => {
+      const key = card.dataset.key;
+      if (key) {
+        window.location.hash = `dashboards/${key}/assessment`;
+      }
+    });
+  });
+
+  // Keep explicit button working (stop propagation so card click doesn't double-fire)
   container.querySelectorAll(".btn-p-goto-details").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();

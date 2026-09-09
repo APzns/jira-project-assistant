@@ -131,6 +131,45 @@ _answer_cache: dict = {}   # {norm_question: (timestamp, payload)}
 SHOW_SQL = os.getenv("SHOW_SQL", "false").lower() == "true"
 
 
+def clear_answer_cache() -> int:
+    """Clear the in-memory answer cache.
+
+    Called after Jira data is ingested or seeded so cached answers do not
+    reflect stale data. Returns the number of entries evicted.
+    """
+    count = len(_answer_cache)
+    _answer_cache.clear()
+    logger.info("answer_cache: cleared %d stale entries after data refresh.", count)
+    return count
+
+
+def _sanitize_sql_for_dialect(sql: str, db) -> str:
+    """Rewrite PostgreSQL-specific fuzzy match syntax for the active DB dialect.
+
+    Gemini is instructed to use the pg_trgm ``%`` operator for approximate
+    string matching (e.g. ``WHERE summary % 'blocker'``).  This is a
+    PostgreSQL-only operator and will raise ``OperationalError`` on SQLite,
+    which is used for local development.
+
+    When the active dialect is SQLite, we rewrite ``col % 'phrase'`` to
+    ``LOWER(col) LIKE '%phrase%'`` so queries work identically in both
+    environments.
+    """
+    try:
+        dialect = db.bind.dialect.name if hasattr(db, "bind") and db.bind else "postgresql"
+    except Exception:
+        dialect = "postgresql"
+
+    if dialect == "sqlite":
+        # Replace: <identifier> % '<literal>'  →  LOWER(<identifier>) LIKE '%<literal>%'
+        sql = re.sub(
+            r"(\w+)\s*%\s*'([^']+)'",
+            lambda m: f"LOWER({m.group(1)}) LIKE '%{m.group(2).lower()}%'",
+            sql,
+        )
+    return sql
+
+
 # Description of the tables we let Gemini write SQL against.
 SCHEMA = """
 Table: issues
@@ -181,7 +220,12 @@ IMPORTANT DEFINITIONS (must be used exactly as shown in all queries):
   - "Completed" SP = SUM(story_points) WHERE status_category = 'Done'.
   - "Blockers / Dependencies":
     - Dependency blockers: linked in issue_links where source_key (blocker) blocks target_key (blocked).
-    - Team-level open blockers / high priority items: status_category <> 'Done' and (priority IN ('Highest', 'High') or LOWER(summary) % 'blocker').
+    - CRITICAL JOIN DIRECTION — always apply exactly as shown:
+        * To find what is BLOCKING issue X (i.e. what must be done first):
+          JOIN issue_links ON target_key = 'X'  → source_key is the blocker
+        * To find what issue X IS BLOCKING (i.e. what depends on X being done):
+          JOIN issue_links ON source_key = 'X'  → target_key is the blocked issue
+    - Team-level open blockers / high priority items: status_category <> 'Done' and (priority IN ('Highest', 'High') or LOWER(summary) LIKE '%blocker%').
 
 Query recipes (use exactly these patterns — they match the dashboard):
 
@@ -500,9 +544,13 @@ If the question is a general portfolio-wide question (e.g. "how many total bugs 
     skill_ctx = ""
     skill_used = None
     _SKILL_INTENT_MAP = {
-        # ── Factual / portfolio questions ──────────────────────────────────────
+        # ── Portfolio & cross-project health ──────────────────────────────────
+        "portfolio-overview": [
+            "portfolio", "all projects", "my projects", "which projects",
+            "what projects", "compare projects", "program health", "projects am i", "projects are"
+        ],
+        # ── Factual / general questions ────────────────────────────────────────
         "answer-question": [
-            "what projects", "my projects", "projects am i", "projects are",
             "who is the lead", "who leads", "who owns", "what is the status",
             "how many issues", "how many epics", "what is the target",
             "what milestones", "what sprints", "show me", "list all", "list the",
@@ -524,7 +572,12 @@ If the question is a general portfolio-wide question (e.g. "how many total bugs 
         # ── Delivery forecast ──────────────────────────────────────────────────
         "forecast-delivery": [
             "forecast", "monte carlo", "projection", "when will we finish", "p50", "p85", "p95",
-            "delivery date", "simulation", "what if", "critical path", "lead time",
+            "delivery date", "simulation", "what if", "lead time",
+        ],
+        # ── Critical path (distinct from forecast) ─────────────────────────────
+        "critical-path-analyzer": [
+            "critical path", "longest blocker chain", "single point of failure",
+            "dependency chain", "gating dependency", "circular blocker",
         ],
         # ── Sprint planning ────────────────────────────────────────────────────
         "sprint-planning": [
@@ -548,7 +601,34 @@ If the question is a general portfolio-wide question (e.g. "how many total bugs 
             "scope creep", "scope change", "mid-sprint", "injected", "unplanned",
             "story point revision", "scope growth", "scope expansion",
         ],
+        # ── Compliance / DoR / DoD ─────────────────────────────────────────────
+        "compliance-checker": [
+            "compliance", "definition of done", "definition of ready", "dod", "dor",
+            "acceptance criteria", "backlog hygiene audit", "zombie ticket", "stale ticket",
+            "governance", "hygiene audit",
+        ],
+        # ── Retrospective insights ─────────────────────────────────────────────
+        "retrospective-insights": [
+            "retrospective", "retro", "carry-over", "churn", "cycle time", "lead time trend",
+            "continuous improvement", "sprint review", "what went wrong",
+        ],
+        # ── Work distribution ──────────────────────────────────────────────────
+        "work-distribution-tracker": [
+            "work distribution", "effort allocation", "technical debt ratio",
+            "maintenance work", "feature vs bug ratio", "orphan backlog", "unaligned work",
+        ],
+        # ── OKR alignment ─────────────────────────────────────────────────────
+        "okr-alignment": [
+            "okr", "objective", "key result", "strategic alignment", "business goal",
+            "unaligned epic", "orphan epic",
+        ],
+        # ── Release notes ─────────────────────────────────────────────────────
+        "release-notes-generator": [
+            "release notes", "release summary", "changelog", "what shipped",
+            "completed features", "fix version summary",
+        ],
     }
+
     if skill_name and skill_name in _SKILL_INTENT_MAP:
         skill_used = skill_name
     else:
@@ -623,6 +703,10 @@ You have tools available:
 2. `query_database(sql_query)`: Use for specific factual lookups not in the metrics.
 3. `get_project_charter(project_key)`: Retrieves charter info, goals, release targets.
 4. `get_stakeholders(project_key)`: Retrieves RACI matrix and reporting requirements.
+
+CRITICAL INSTRUCTION FOR PORTFOLIO/PROJECT QUESTIONS:
+If the user asks about multiple projects, project health, or "which projects are at risk", DO NOT query the 'issues' table to guess project status! The `issues` table does NOT contain project-level risk summaries.
+Instead, you MUST use `get_project_charter` (with empty project_key) to get a list of active projects and `get_program_metrics` to get official risk metrics.
 
 When using `query_database`, you MUST write PostgreSQL SELECT queries against this schema:
 - Query only 'issues', 'sprints', and 'issue_links'. Never write DML/DDL.
@@ -870,6 +954,7 @@ Remember: Only answer the question based on the provided data context and tools.
                             db.execute(text("SET LOCAL TRANSACTION READ ONLY"))
                         except Exception:
                             pass
+                        sql = _sanitize_sql_for_dialect(sql, db)
                         result = db.execute(text(sql))
                         cols = list(result.keys())
                         rows = [dict(zip(cols, r)) for r in result.fetchall()]
@@ -880,6 +965,7 @@ Remember: Only answer the question based on the provided data context and tools.
                         tool_result = {"error": f"DB connection error: {exc}. Please try again."}
                     except SQLAlchemyError as exc:
                         tool_result = {"error": f"SQL Error: {exc}. Correct the column names or syntax and try again."}
+
             elif tool_name == "get_project_charter":
                 target_pk = tool_args.get("project_key")
                 charter_data = get_project_charter_tool_logic(target_pk)
@@ -897,9 +983,45 @@ Remember: Only answer the question based on the provided data context and tools.
 
         messages.append(types.Content(role="user", parts=tool_response_parts))
 
-    # Clean formatted fallback if LLM synthesis cannot complete due to rate limits or temporary outage
+        if tool_call_count >= MAX_TOOL_CALLS:
+            messages.append(types.Content(role="user", parts=[types.Part.from_text(text="You have reached the maximum number of tool calls. You must provide a final conversational answer now using only the data retrieved so far. DO NOT call any more tools.")]))
+            config_no_tools = types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                temperature=0.2,
+                max_output_tokens=2000,
+            )
+            for _attempt in range(5):
+                model_name = pick_model(prefer_lite=False)
+                try:
+                    final_response = client.models.generate_content(
+                        model=model_name,
+                        contents=messages,
+                        config=config_no_tools,
+                    )
+                    text_answer = ""
+                    if getattr(final_response, "text", None):
+                        text_answer = final_response.text.strip()
+                    elif getattr(final_response, "candidates", None) and final_response.candidates[0].content.parts:
+                        text_parts = [p.text for p in final_response.candidates[0].content.parts if getattr(p, "text", None)]
+                        text_answer = "".join(text_parts).strip()
+                    
+                    if text_answer:
+                        clean_answer = sanitize_output(text_answer)
+                        out = {"question": question, "answer": clean_answer, "error": None}
+                        if skill_used: out["skill_used"] = skill_used
+                        if rows_returned is not None: out["rows"] = rows_returned
+                        if SHOW_SQL and executed_sql: out["sql"] = executed_sql
+                        if not history and out.get("answer"):
+                            _answer_cache[cache_key] = (time.time(), out)
+                        return out
+                except Exception as exc:
+                    logger.warning("Final generate_content failed for %s: %s", model_name, exc)
+                    time.sleep(RETRY_DELAY_S)
+            break
+
+    # Clean formatted fallback if LLM synthesis cannot complete
     if rows_returned:
-        summary_lines = ["**Retrieved Live Program & Delivery Data:**\n"]
+        summary_lines = ["*The AI retrieved data but was unable to fully synthesize it into an answer:*\n"]
         for item in rows_returned[:8]:
             if isinstance(item, dict):
                 if "project_key" in item or "overall_status" in item:
@@ -926,8 +1048,6 @@ Remember: Only answer the question based on the provided data context and tools.
         return {"question": question, "answer": fallback_msg, "error": None, "rows": rows_returned}
 
     return {"question": question, "answer": None, "error": "AI service could not finalize the response. Please try rephrasing."}
-
-
 
 def answer_question_stream(question: str, db, history: list | None = None,
                     context: str | None = None, client_ip: str | None = None,
@@ -998,9 +1118,13 @@ If the question is a general portfolio-wide question (e.g. "how many total bugs 
     skill_ctx = ""
     skill_used = None
     _SKILL_INTENT_MAP = {
-        # ── Factual / portfolio questions ──────────────────────────────────────
+        # ── Portfolio & cross-project health ──────────────────────────────────
+        "portfolio-overview": [
+            "portfolio", "all projects", "my projects", "which projects",
+            "what projects", "compare projects", "program health", "projects am i", "projects are"
+        ],
+        # ── Factual / general questions ────────────────────────────────────────
         "answer-question": [
-            "what projects", "my projects", "projects am i", "projects are",
             "who is the lead", "who leads", "who owns", "what is the status",
             "how many issues", "how many epics", "what is the target",
             "what milestones", "what sprints", "show me", "list all", "list the",
@@ -1046,7 +1170,39 @@ If the question is a general portfolio-wide question (e.g. "how many total bugs 
             "scope creep", "scope change", "mid-sprint", "injected", "unplanned",
             "story point revision", "scope growth", "scope expansion",
         ],
+        # ── Critical path (distinct from forecast) ─────────────────────────────
+        "critical-path-analyzer": [
+            "critical path", "longest blocker chain", "single point of failure",
+            "dependency chain", "gating dependency", "circular blocker",
+        ],
+        # ── Compliance / DoR / DoD ─────────────────────────────────────────────
+        "compliance-checker": [
+            "compliance", "definition of done", "definition of ready", "dod", "dor",
+            "acceptance criteria", "backlog hygiene audit", "zombie ticket", "stale ticket",
+            "governance", "hygiene audit",
+        ],
+        # ── Retrospective insights ─────────────────────────────────────────────
+        "retrospective-insights": [
+            "retrospective", "retro", "carry-over", "churn", "cycle time", "lead time trend",
+            "continuous improvement", "sprint review", "what went wrong",
+        ],
+        # ── Work distribution ──────────────────────────────────────────────────
+        "work-distribution-tracker": [
+            "work distribution", "effort allocation", "technical debt ratio",
+            "maintenance work", "feature vs bug ratio", "orphan backlog", "unaligned work",
+        ],
+        # ── OKR alignment ─────────────────────────────────────────────────────
+        "okr-alignment": [
+            "okr", "objective", "key result", "strategic alignment", "business goal",
+            "unaligned epic", "orphan epic",
+        ],
+        # ── Release notes ─────────────────────────────────────────────────────
+        "release-notes-generator": [
+            "release notes", "release summary", "changelog", "what shipped",
+            "completed features", "fix version summary",
+        ],
     }
+
     if skill_name and skill_name in _SKILL_INTENT_MAP:
         skill_used = skill_name
     else:
@@ -1072,11 +1228,20 @@ If the question is a general portfolio-wide question (e.g. "how many total bugs 
         # Check skill_cache first!
         from src.jira_ai.api.services.skill_cache import get_cached_skill
         cached_res = get_cached_skill(db, skill_used, detected_pkey, settings)
-        if cached_res and cached_res.get("content"):
-            yield f'data: {json.dumps({"question": question, "answer": cached_res["content"], "error": None, "rows": [], "done": True, "skill_used": skill_used})}\n\n'
+        # Fix: cached payload is a full skill dict (no "content" key).
+        # A valid cache hit has cached=True and at least one real data field.
+        if cached_res and cached_res.get("cached") and isinstance(cached_res, dict):
+            import json as _json
+            cached_answer = cached_res.get("summary") or cached_res.get("executive_summary") or \
+                            cached_res.get("actions") or cached_res.get("content") or \
+                            _json.dumps(cached_res, default=str)
+            if isinstance(cached_answer, (list, dict)):
+                cached_answer = _json.dumps(cached_answer, indent=2, default=str)
+            yield f'data: {json.dumps({"question": question, "answer": cached_answer, "error": None, "rows": [], "done": True, "skill_used": skill_used, "cached": True})}\n\n'
             return
             
         skill_ctx = _load_skill_context(skill_used)
+
     else:
         # ── Grounded fallback: no skill matched ────────────────────────────────
         # Force the LLM to call at least one data tool before answering.
@@ -1137,6 +1302,10 @@ You have tools available:
 2. `query_database(sql_query)`: Use for specific factual lookups not in the metrics.
 3. `get_project_charter(project_key)`: Retrieves charter info, goals, release targets.
 4. `get_stakeholders(project_key)`: Retrieves RACI matrix and reporting requirements.
+
+CRITICAL INSTRUCTION FOR PORTFOLIO/PROJECT QUESTIONS:
+If the user asks about multiple projects, project health, or "which projects are at risk", DO NOT query the 'issues' table to guess project status! The `issues` table does NOT contain project-level risk summaries.
+Instead, you MUST use `get_project_charter` (with empty project_key) to get a list of active projects and `get_program_metrics` to get official risk metrics.
 
 When using `query_database`, you MUST write PostgreSQL SELECT queries against this schema:
 - Query only 'issues', 'sprints', and 'issue_links'. Never write DML/DDL.
@@ -1276,7 +1445,11 @@ Remember: Only answer the question based on the provided data context and tools.
     tool_call_count = 0
     
     while tool_call_count < MAX_TOOL_CALLS:
-        response_stream = None
+        stream_success = False
+        full_text = ""
+        function_calls = []
+        raw_parts = []
+
         for _attempt in range(5):
             model_name = pick_model(prefer_lite=False)
             try:
@@ -1285,30 +1458,31 @@ Remember: Only answer the question based on the provided data context and tools.
                     contents=messages,
                     config=config,
                 )
+                # Attempt to consume the stream inside the try block
+                for chunk in response_stream:
+                    if getattr(chunk, "candidates", None) and chunk.candidates:
+                        for part in chunk.candidates[0].content.parts:
+                            raw_parts.append(part)
+                            if getattr(part, "function_call", None):
+                                function_calls.append(part.function_call)
+                            if getattr(part, "text", None):
+                                full_text += part.text
+                                yield f'data: {json.dumps({"chunk": part.text})}\n\n'
+                
+                stream_success = True
                 record_usage(model_name)
                 break
             except Exception as exc:
-                logger.warning("generate_content failed for %s: %s", model_name, exc)
+                logger.warning("generate_content_stream failed for %s: %s", model_name, exc)
                 record_error(model_name)
                 time.sleep(RETRY_DELAY_S)
+                # If it failed after partially streaming, we abort retry since the client already saw partial data
+                if full_text or function_calls:
+                    break
         
-        if not response_stream:
-            yield f'data: {json.dumps({"question": question, "answer": None, "error": "AI service failed to respond.", "done": True})}\n\n'
-            return
-        
-        full_text = ""
-        function_calls = []
-        raw_parts = []
-        for chunk in response_stream:
-            if getattr(chunk, "candidates", None) and chunk.candidates:
-                for part in chunk.candidates[0].content.parts:
-                    raw_parts.append(part)
-                    if getattr(part, "function_call", None):
-                        function_calls.append(part.function_call)
-                    if getattr(part, "text", None):
-                        full_text += part.text
-                        yield f'data: {json.dumps({"chunk": part.text})}\n\n'
-                
+        if not stream_success:
+            # If we were doing tool calls, drop to the fallback
+            break
         if not function_calls:
             clean_answer = sanitize_output(full_text.strip())
             out = {"question": question, "answer": clean_answer, "error": None, "done": True}
@@ -1395,6 +1569,7 @@ Remember: Only answer the question based on the provided data context and tools.
                             db.execute(text("SET LOCAL TRANSACTION READ ONLY"))
                         except Exception:
                             pass
+                        sql = _sanitize_sql_for_dialect(sql, db)
                         result = db.execute(text(sql))
                         cols = list(result.keys())
                         rows = [dict(zip(cols, r)) for r in result.fetchall()]
@@ -1405,6 +1580,7 @@ Remember: Only answer the question based on the provided data context and tools.
                         tool_result = {"error": f"DB connection error: {exc}. Please try again."}
                     except SQLAlchemyError as exc:
                         tool_result = {"error": f"SQL Error: {exc}. Correct the column names or syntax and try again."}
+
             elif tool_name == "get_project_charter":
                 target_pk = tool_args.get("project_key")
                 charter_data = get_project_charter_tool_logic(target_pk)
@@ -1422,9 +1598,46 @@ Remember: Only answer the question based on the provided data context and tools.
 
         messages.append(types.Content(role="user", parts=tool_response_parts))
 
-    # Clean formatted fallback if LLM synthesis cannot complete due to rate limits or temporary outage
+        if tool_call_count >= MAX_TOOL_CALLS:
+            messages.append(types.Content(role="user", parts=[types.Part.from_text(text="You have reached the maximum number of tool calls. You must provide a final conversational answer now using only the data retrieved so far. DO NOT call any more tools.")]))
+            config_no_tools = types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                temperature=0.2,
+                max_output_tokens=2000,
+            )
+            for _attempt in range(5):
+                model_name = pick_model(prefer_lite=False)
+                try:
+                    response_stream = client.models.generate_content_stream(
+                        model=model_name,
+                        contents=messages,
+                        config=config_no_tools,
+                    )
+                    full_text = ""
+                    for chunk in response_stream:
+                        if getattr(chunk, "candidates", None) and chunk.candidates:
+                            for part in chunk.candidates[0].content.parts:
+                                if getattr(part, "text", None):
+                                    full_text += part.text
+                                    yield f'data: {json.dumps({"chunk": part.text})}\n\n'
+                    if full_text.strip():
+                        clean_answer = sanitize_output(full_text.strip())
+                        out = {"question": question, "answer": clean_answer, "error": None, "done": True}
+                        if skill_used: out["skill_used"] = skill_used
+                        if rows_returned is not None: out["rows"] = rows_returned
+                        if SHOW_SQL and executed_sql: out["sql"] = executed_sql
+                        if not history and out.get("answer"):
+                            _answer_cache[cache_key] = (time.time(), out)
+                        yield f'data: {json.dumps(out)}\n\n'
+                        return
+                except Exception as exc:
+                    logger.warning("Final generate_content_stream failed for %s: %s", model_name, exc)
+                    time.sleep(RETRY_DELAY_S)
+            break
+
+    # Clean formatted fallback if LLM synthesis cannot complete
     if rows_returned:
-        summary_lines = ["**Retrieved Live Program & Delivery Data:**\n"]
+        summary_lines = ["*The AI retrieved data but was unable to fully synthesize it into an answer:*\n"]
         for item in rows_returned[:8]:
             if isinstance(item, dict):
                 if "project_key" in item or "overall_status" in item:
@@ -1451,7 +1664,7 @@ Remember: Only answer the question based on the provided data context and tools.
         yield f'data: {json.dumps({"question": question, "answer": fallback_msg, "error": None, "rows": rows_returned, "done": True})}\n\n'
         return
 
-    yield f'data: {json.dumps({"question": question, "answer": None, "error": "AI service could not finalize the response. Please try rephrasing."})}\n\n'
+    yield f'data: {json.dumps({"question": question, "answer": None, "error": "AI service could not finalize the response. Please try rephrasing.", "done": True})}\n\n'
     return
 
 

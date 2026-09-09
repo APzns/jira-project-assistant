@@ -100,6 +100,11 @@ def pick_model(prefer_lite: bool = False) -> str:
 
     # All models budget-exhausted — return the least-used one today as best-effort
     logger.warning("All Gemini models near rate limits; using least-loaded model.")
+    if not candidates:
+        # Safety guard: if candidates list is somehow empty (e.g. bad model config), use the
+        # first model in ALL_MODELS as an absolute last resort rather than crashing with ValueError.
+        logger.error("pick_model: candidates list is empty — falling back to first model in ALL_MODELS.")
+        return ALL_MODELS[0]["name"]
     best = min(candidates, key=lambda m: _model_usage[m]["rpd_count"])
     return best
 

@@ -161,17 +161,25 @@ export async function askQuestion(inputId, buttonId) {
       }),
     });
 
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: API error`);
+    }
+
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let fullText = "";
     let finalData = {};
-    
-    updateHistoryEntry(entryId, "", [], null);
+    let firstChunkReceived = false;
     
     let buffer = "";
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+      
+      if (!firstChunkReceived) {
+        firstChunkReceived = true;
+        updateHistoryEntry(entryId, "", [], null);
+      }
       
       buffer += decoder.decode(value, { stream: true });
       const parts = buffer.split("\n\n");
@@ -206,6 +214,11 @@ export async function askQuestion(inputId, buttonId) {
     }
     
     const answer = finalData.error ? ("⚠️ " + finalData.error) : (finalData.answer || fullText || "No answer returned.");
+    if (!finalData.done && !finalData.error) {
+      // Ensure the UI is updated if the stream ends without sending a done or error flag
+      updateHistoryEntry(entryId, answer, [], null);
+    }
+    
     state.askHistory.push({ question: q, answer });
     if (state.askHistory.length > 10) state.askHistory.shift();
   } catch (e) {

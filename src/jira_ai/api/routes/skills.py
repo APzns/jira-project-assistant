@@ -309,6 +309,7 @@ def _build_fallback_analyze_status(snapshot: dict, settings: dict) -> dict:
     pred_val = pred.get("overall", "78%") if isinstance(pred, dict) else str(pred or "78%")
 
     return {
+        "is_fallback": True,
         "summary": snapshot.get("ai_summary") or snapshot.get("reasoning") or "Program demonstrates steady progression across active workstreams with key milestones in flight.",
         "overall_status": status,
         "program_health_score": "8.0/10" if status == "on_track" else ("6.5/10" if status == "at_risk" else "5.0/10"),
@@ -328,7 +329,9 @@ def _build_fallback_analyze_status(snapshot: dict, settings: dict) -> dict:
         ],
         "predictability_summary": f"Historical sprint predictability stands at {pred_val}.",
         "risk_overview": {
-            "blockers_count": snapshot.get("blocked_issues", 0) or len(snapshot.get("cross_team_blockers", [])),
+            "blockers_count": snapshot.get("blocked_issues", 0) or (
+                len(snapshot["cross_team_blockers"]) if isinstance(snapshot.get("cross_team_blockers"), list) else snapshot.get("cross_team_blockers", 0)
+            ),
             "high_risks_count": len(snapshot.get("risks", [])),
             "brief": "Cross-team dependency blockers require active coordination in upcoming sprint planning.",
         },
@@ -468,9 +471,12 @@ def _build_fallback_assess_risks(snapshot: dict, settings: dict) -> dict:
     overcommit_str = f"Next sprint commitment is tracking at {overcommit} vs historical capacity." if overcommit else "Sprint commitments are within sustainable team velocity thresholds."
 
     return {
+        "is_fallback": True,
         "summary": "Risk evaluation indicates manageable cross-team dependencies with targeted mitigations required on critical path items.",
         "overall_risk_level": "medium",
-        "blockers_count": snapshot.get("blocked_issues", 0) or len(snapshot.get("cross_team_blockers", [])),
+        "blockers_count": snapshot.get("blocked_issues", 0) or (
+            len(snapshot["cross_team_blockers"]) if isinstance(snapshot.get("cross_team_blockers"), list) else snapshot.get("cross_team_blockers", 0)
+        ),
         "risks": risks,
         "overcommitment_summary": overcommit_str,
         "quality_drag_summary": f"Defect ratio is tracking at {snapshot.get('defects_ratio', {}).get('overall', '12%') if isinstance(snapshot.get('defects_ratio'), dict) else '12%'}.",
@@ -603,6 +609,7 @@ def _build_fallback_forecast_delivery(snapshot: dict, settings: dict) -> dict:
     delay_days = snapshot.get("forecast_delay_days", 0)
 
     return {
+        "is_fallback": True,
         "summary": f"Probabilistic Monte Carlo simulation indicates delivery tracking with {delay_days} day(s) variance against target commitments.",
         "target_release_date": snapshot.get("target_release", "2026-11-15"),
         "monte_carlo": {
@@ -770,6 +777,7 @@ _SPRINT_PLANNING_SCHEMA = {
 
 def _build_fallback_sprint_planning(snapshot: dict, settings: dict) -> dict:
     return {
+        "is_fallback": True,
         "summary": "Sprint planning readiness assessment shows solid backlog maturity with minor estimation gaps requiring triage before sprint commit.",
         "readiness_score": "85%",
         "backlog_hygiene": {
@@ -1001,6 +1009,7 @@ def _build_fallback_next_steps(snapshot: dict, settings: dict) -> dict:
     }
 
     return {
+        "is_fallback": True,
         "summary": "General delivery overview: Tactical action plan addressing cross-team dependency blockers, sprint commitments, and milestone targets across active delivery streams.",
         "profile_summary": profile_summary,
         "stakeholder_perspectives": stakeholder_perspectives,
@@ -1212,6 +1221,7 @@ def _build_fallback_report(snapshot: dict, settings: dict) -> dict:
     pred_val = pred.get("overall", "78%") if isinstance(pred, dict) else str(pred or "78%")
 
     return {
+        "is_fallback": True,
         "title": headline,
         "executive_summary": summary,
         "overall_status": status,
