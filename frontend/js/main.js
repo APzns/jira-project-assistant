@@ -270,6 +270,30 @@ function onReady() {
   });
 
   navigate(window.location.hash || "#main");
+
+  // Initialize auto-resizing textareas
+  document.querySelectorAll('textarea.auto-resize-textarea').forEach(el => {
+    const resize = () => {
+      if (el.scrollHeight === 0) return; // Skip if hidden
+      
+      // save current scroll
+      const scrollTop = document.documentElement.scrollTop;
+      
+      // Calculate border offset to prevent scrollbars in border-box
+      const offset = el.offsetHeight - el.clientHeight;
+      
+      el.style.height = 'auto';
+      el.style.height = (el.scrollHeight + offset) + 'px';
+      
+      // restore scroll
+      document.documentElement.scrollTop = scrollTop;
+    };
+    el.addEventListener('input', resize);
+    // Resize on window resize to adjust line wraps
+    window.addEventListener('resize', resize);
+    // Use setTimeout to ensure styles are computed before first resize
+    setTimeout(resize, 0);
+  });
 }
 
 

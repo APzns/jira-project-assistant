@@ -559,6 +559,7 @@ export function initMainPageEvents() {
           const input = document.getElementById("ask-input");
           if (input) {
             input.value = prompt;
+            input.dispatchEvent(new Event("input"));
             input.focus({ preventScroll: true });
           }
         }, 150);

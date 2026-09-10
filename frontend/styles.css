@@ -22,6 +22,14 @@ body {
   padding-bottom: 20px;
 }
 
+/* ===== Global Auto Resize Textarea ===== */
+.auto-resize-textarea {
+  resize: none;
+  overflow-y: auto;
+  max-height: 160px; /* roughly 7 rows at ~20px per row + padding */
+  font-family: inherit;
+}
+
 /* ===== App Shell & Sidebar Layout (Option 3: Enterprise Tech Tiles) ===== */
 .app-container {
   display: flex;
@@ -1255,7 +1263,7 @@ pre { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-
   }
 }
 
-.ask-row { display: flex; gap: 10px; }
+.ask-row { display: flex; gap: 10px; align-items: flex-end; }
 #ask-input {
   flex: 1; min-width: 0;
   background: var(--bg); border: 1px solid var(--border);
@@ -3428,7 +3436,7 @@ pre { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-
   background: var(--surface);
   display: flex;
   gap: 10px;
-  align-items: center;
+  align-items: flex-end;
 }
 
 .assistant-input {

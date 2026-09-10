@@ -1778,11 +1778,11 @@ JSON Output Schema:
 }}
 """
 
-    client = _get_client()
+    client = get_client()
     if client:
         try:
             response = client.models.generate_content(
-                model=MODEL,
+                model=pick_model(prefer_lite=True),
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",

@@ -151,7 +151,9 @@ _client = None
 
 
 def get_client() -> genai.Client | None:
-    """Return a shared Gemini client singleton, or None if API key is missing."""
+    """Return a shared Gemini client singleton, or None if API key is missing or testing mode is active."""
+    if os.environ.get("TESTING", "").lower() in ("true", "1") or os.environ.get("MOCK_LLM", "").lower() in ("true", "1"):
+        return None
     global _client
     api_key = os.environ.get("GEMINI_API_KEY", "")
     if not api_key:

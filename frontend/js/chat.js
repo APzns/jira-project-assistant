@@ -11,9 +11,9 @@ export function openChatDrawer() {
   const fab = $("chat-fab-btn");
   if (drawer) {
     drawer.classList.add("open");
-    drawer.classList.remove("collapsed", "closed", "maximized");
+    drawer.classList.remove("collapsed", "closed");
     document.body.classList.add("chat-open");
-    document.body.classList.remove("chat-collapsed", "chat-maximized");
+    document.body.classList.remove("chat-collapsed");
   }
   if (fab) fab.classList.add("hidden");
   setTimeout(() => {
@@ -26,10 +26,15 @@ export function openChatDrawer() {
 export function maximizeChatDrawer() {
   const drawer = $("chat-drawer");
   if (drawer) {
-    drawer.classList.add("open", "maximized");
-    drawer.classList.remove("collapsed", "closed");
-    document.body.classList.add("chat-open", "chat-maximized");
-    document.body.classList.remove("chat-collapsed");
+    if (drawer.classList.contains("maximized")) {
+      drawer.classList.remove("maximized");
+      document.body.classList.remove("chat-maximized");
+    } else {
+      drawer.classList.add("open", "maximized");
+      drawer.classList.remove("collapsed", "closed");
+      document.body.classList.add("chat-open", "chat-maximized");
+      document.body.classList.remove("chat-collapsed");
+    }
   }
   setTimeout(() => {
     window.dispatchEvent(new Event("resize"));
@@ -142,6 +147,7 @@ export async function askQuestion(inputId, buttonId) {
   const entryId = "qa-" + Date.now();
   addHistoryEntry(entryId, q, "Thinking…");
   input.value = "";
+  input.dispatchEvent(new Event("input"));
 
   const historyPayload = state.askHistory.slice(-5);
   const contextTab = _getActiveTab();
@@ -289,12 +295,17 @@ export function initChatEvents(inputId = "ask-input", buttonId = "ask-button") {
   const btn = $(buttonId);
   const input = $(inputId);
   if (btn) btn.addEventListener("click", () => askQuestion(inputId, buttonId));
-  if (input) input.addEventListener("keydown", e => { if (e.key === "Enter") askQuestion(inputId, buttonId); });
+  if (input) input.addEventListener("keydown", e => { 
+    if (e.key === "Enter" && !e.shiftKey) { 
+      e.preventDefault(); 
+      askQuestion(inputId, buttonId); 
+    } 
+  });
 
   
   const toggleBtn = $("chat-toggle-btn");
   const fabBtn = $("chat-fab-btn");
-  const minimizeBtn = $("chat-minimize-btn");
+  const minimizeBtn = $("chat-minimize-btn") || $("chat-collapse-btn");
   const maximizeBtn = $("chat-maximize-btn");
   const expandRailBtn = $("chat-collapsed-rail");
   const closeBtn = $("chat-close-btn");
@@ -403,6 +414,7 @@ export function initChatEvents(inputId = "ask-input", buttonId = "ask-button") {
       const prompt = chip.dataset.prompt;
       if (prompt && input) {
         input.value = prompt;
+        input.dispatchEvent(new Event("input"));
         input.focus({ preventScroll: true });
       }
     });

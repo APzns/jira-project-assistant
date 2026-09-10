@@ -37,10 +37,11 @@ NEVER execute any of the following commands automatically. ALWAYS ask for explic
 # Autonomous Workflow & Verification
 - **Proactive Debugging**: Automatically inspect stack traces, runtime logs, and debug errors immediately upon encountering issues.
 - **Verification**: Automatically verify changes using background servers, API calls, or browser/test tools without waiting for permission.
+- **Chat Assistant Shortcut**: Whenever the user's message starts with `@chat`, you MUST immediately pass their prompt into the `chat-assistant` skill and execute the `chat.py` script to answer. Do not attempt to answer project or Jira queries directly from general knowledge.
 
 # Skills Policy
 - **Scope**: Do not use or activate global or plugin skills (such as science, bio, or external devtools skills).
-- **Project Skills Only**: Only use project-specific skills defined in `.agents/skills/` (`analyze-status`, `assess-risks`, `forecast-delivery`, `sprint-planning`, `propose-next-steps`, `generate-report`, `ai-settings-update`, `answer-question`, `compute-metrics`, `ingest-jira`, `seed-jira`, `scope-creep-detector`, `critical-path-analyzer`, `retrospective-insights`, `work-distribution-tracker`, `release-notes-generator`, `okr-alignment`, `compliance-checker`) or built-in system tools.
+- **Project Skills Only**: Only use project-specific skills defined in `.agents/skills/` (`analyze-status`, `assess-risks`, `forecast-delivery`, `sprint-planning`, `propose-next-steps`, `generate-report`, `ai-settings-update`, `answer-question`, `compute-metrics`, `ingest-jira`, `seed-jira`, `scope-creep-detector`, `critical-path-analyzer`, `retrospective-insights`, `work-distribution-tracker`, `release-notes-generator`, `okr-alignment`, `compliance-checker`, `chat-assistant`) or built-in system tools.
 
 
 # Architectural Constraints & GCP Cloud Run Deployment

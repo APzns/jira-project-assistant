@@ -78,7 +78,7 @@ class TestPromptInjectionSecurity(unittest.TestCase):
             self.assertIsNone(err, f"Valid question wrongly blocked: {q}")
 
     # 4. Input Length Bound Protection
-    test_overlong_question = "A" * 501
+    test_overlong_question = "A" * 801
     def test_length_limit(self):
         err = check_input_injection(self.test_overlong_question)
         self.assertIsNotNone(err)

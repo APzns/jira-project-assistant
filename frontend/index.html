@@ -430,7 +430,7 @@
 
                   <!-- Input Bar -->
                   <div class="assistant-input-bar">
-                    <input type="text" id="assistant-chat-input" class="assistant-input" placeholder="Ask questions about blockers, velocity, advice, next steps, or request a report..." autocomplete="off" />
+                    <textarea id="assistant-chat-input" class="assistant-input auto-resize-textarea" placeholder="Ask questions about blockers, velocity, advice, next steps, or request a report..." rows="1"></textarea>
                     <button type="button" id="assistant-send-btn" class="btn-primary" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px;">
                       <span>Send</span>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
@@ -1323,8 +1323,8 @@
                     </div>
 
                     <!-- Chat Input Row -->
-                    <div style="display: flex; gap: 8px;">
-                      <input type="text" id="pa-ai-chat-input" class="settings-input" placeholder="e.g. Universal report for Checkout Flow Replatform covering all stakeholders..." style="flex: 1;" />
+                    <div style="display: flex; gap: 8px; align-items: flex-end;">
+                      <textarea id="pa-ai-chat-input" class="settings-input auto-resize-textarea" placeholder="e.g. Universal report for Checkout Flow Replatform covering all stakeholders..." rows="1" style="flex: 1;"></textarea>
                       <button type="button" id="pa-ai-chat-send" class="btn-primary" style="display: inline-flex; align-items: center; gap: 6px;">
                         <span>Send</span>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
@@ -2297,7 +2297,7 @@
                 <button type="button" class="drawer-chip" data-prompt="What are the critical dependencies and blockers between Checkout Replatform (CHK) and Platform Core (CORE)?" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); padding: 4px 10px; border-radius: 12px; font-size: 11px; cursor: pointer; transition: all 0.2s;">⚙️ Cross-Project Dependencies</button>
               </div>
               <div class="ask-row">
-                <input type="text" id="ask-input" placeholder="e.g. Which milestone is most at risk?" maxlength="500" />
+                <textarea id="ask-input" class="auto-resize-textarea" placeholder="e.g. Which milestone is most at risk?" maxlength="500" rows="1"></textarea>
                 <button id="ask-button" class="btn-primary">Ask</button>
               </div>
             </div>

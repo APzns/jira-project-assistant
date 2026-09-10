@@ -303,7 +303,10 @@ export async function sendAssistantMessage(userText) {
   renderChatStream();
 
   const input = $("assistant-chat-input");
-  if (input) input.value = "";
+  if (input) {
+    input.value = "";
+    input.dispatchEvent(new Event("input"));
+  }
 
   try {
     const currentProj = window.state?.currentProject;
@@ -476,6 +479,7 @@ export function initAssistantPage() {
       const input = $("assistant-chat-input");
       if (prompt && input) {
         input.value = prompt;
+        input.dispatchEvent(new Event("input"));
         input.focus({ preventScroll: true });
         input.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }

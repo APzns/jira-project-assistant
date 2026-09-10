@@ -2074,6 +2074,8 @@ function _suggestReportTemplate(forceNew = false) {
   const panel = document.getElementById("pa-ai-chat-panel");
   if (panel) {
     panel.style.display = "block";
+    const input = document.getElementById("pa-ai-chat-input");
+    if (input) input.dispatchEvent(new Event("input"));
     const historyDiv = document.getElementById("pa-ai-chat-history");
     if (historyDiv) {
       historyDiv.innerHTML = `<div style="background: rgba(99, 102, 241, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.2);">
@@ -2094,6 +2096,7 @@ function _suggestReportTemplate(forceNew = false) {
           const input = document.getElementById("pa-ai-chat-input");
           if (prompt && input) {
             input.value = prompt;
+            input.dispatchEvent(new Event("input"));
             input.focus();
           }
         };
@@ -2116,7 +2119,10 @@ async function _sendAiChatMsg(customMsg = null) {
   if (historyDiv) {
     historyDiv.innerHTML += `<div style="padding: 10px 12px; border-radius: 8px; background: var(--bg-hover); border: 1px solid var(--border);"><strong>You:</strong> ${escapeHtml(msg)}</div>`;
   }
-  if (input) input.value = "";
+  if (input) {
+    input.value = "";
+    input.dispatchEvent(new Event("input"));
+  }
   if (btn) {
     btn.disabled = true;
     btn.textContent = "Thinking...";
@@ -2554,7 +2560,10 @@ function _bindPaSettingsEvents() {
   });
   document.getElementById("pa-ai-chat-send")?.addEventListener("click", _sendAiChatMsg);
   document.getElementById("pa-ai-chat-input")?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") _sendAiChatMsg();
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      _sendAiChatMsg();
+    }
   });
   document.getElementById("pa-ai-chat-apply")?.addEventListener("click", _applyAiTemplate);
 
