@@ -1,6 +1,6 @@
 # assess.py — /assess endpoints: AI program-status assessment.
 import logging
-from typing import Optional
+
 from fastapi import APIRouter, Depends, Query, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/assess", tags=["assess"])
 def refresh_assessment(
     response: Response,
     mode: str = "real",
-    project_key: Optional[str] = Query(None),
+    project_key: str | None = Query(None),
     db: Session = Depends(get_db),
 ):
     """Generate a FRESH assessment (calls Gemini) and cache it.
@@ -42,7 +42,7 @@ def refresh_assessment(
 def latest_assessment(
     response: Response,
     mode: str = "real",
-    project_key: Optional[str] = Query(None),
+    project_key: str | None = Query(None),
     db: Session = Depends(get_db),
 ):
     """Return the LAST cached assessment instantly (no Gemini call).

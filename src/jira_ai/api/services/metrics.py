@@ -10,16 +10,18 @@ Data source is selectable via `mode`:
   - "synthetic" : metrics from the in-memory synthetic generator
 """
 
-from datetime import datetime, UTC
-from collections import defaultdict
+import json
 import os
-from sqlalchemy import func, case
+from collections import defaultdict
+from datetime import UTC, datetime
+from pathlib import Path
+
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
-from src.jira_ai.ingestion.models import Issue, Sprint, FixVersion
+from src.jira_ai.ingestion.models import FixVersion, Issue, Sprint
 from src.jira_ai.seeder import synthetic_metrics  # NEW
-import json
-from pathlib import Path
+
 
 def _get_project_milestones(project_key: str | None) -> list[dict] | None:
     if not project_key:
@@ -27,7 +29,7 @@ def _get_project_milestones(project_key: str | None) -> list[dict] | None:
     try:
         p_path = Path(__file__).resolve().parents[4] / ".agents" / "settings" / "projects.json"
         if p_path.exists():
-            with open(p_path, "r", encoding="utf-8") as f:
+            with open(p_path, encoding="utf-8") as f:
                 data = json.load(f)
                 for p in data.get("projects", []):
                     if p.get("key") == project_key.upper():
@@ -606,12 +608,13 @@ def dashboard_summary(db: Session, mode: str = "real", project_key: str | None =
 
 def get_telemetry_summary(db: Session, mode: str = "real", force_refresh: bool = False) -> dict:
     """Return comparative engineering telemetry across all active projects for Dashboards Hub."""
+    import json
+    from datetime import datetime
+
     from src.jira_ai.api.routes.projects import _read_projects_from_disk
     from src.jira_ai.api.services.assessment.context import _compute_metrics
     from src.jira_ai.api.services.assessment.evaluators import _build_monte_carlo
     from src.jira_ai.ingestion.models import AssessmentCache
-    from datetime import datetime
-    import json
 
     TELEMETRY_CACHE_ID = 30000 if mode == "real" else 40000
 

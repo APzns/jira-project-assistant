@@ -8,6 +8,7 @@ one function.
 """
 
 from __future__ import annotations
+
 from pathlib import Path
 
 # project_data/ sits at the repo root: .../Jira_AI/project_data

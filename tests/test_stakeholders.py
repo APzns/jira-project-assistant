@@ -11,7 +11,9 @@ from sqlalchemy.pool import StaticPool
 
 from src.jira_ai.api.db import get_db
 from src.jira_ai.api.main import app
-from src.jira_ai.api.routes.stakeholders import DEFAULT_STAKEHOLDERS, _read_stakeholders_from_disk
+from src.jira_ai.api.routes.stakeholders import (
+    DEFAULT_STAKEHOLDERS,
+)
 
 
 class TestStakeholdersEndpoint(unittest.TestCase):

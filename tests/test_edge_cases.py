@@ -12,7 +12,6 @@ Covers:
 
 from __future__ import annotations
 
-import json
 import os
 import sys
 import time
@@ -25,13 +24,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from src.jira_ai.api.services.security import check_input_injection, MAX_QUESTION_LENGTH
-from src.jira_ai.api.services import llm
-from src.jira_ai.api.services.llm import _sanitize_sql_for_dialect, clear_answer_cache, _answer_cache
-from src.jira_ai.api.services.models import pick_model, ALL_MODELS, _model_usage
+from src.jira_ai.api.services.llm import (
+    _answer_cache,
+    _sanitize_sql_for_dialect,
+    clear_answer_cache,
+)
+from src.jira_ai.api.services.models import ALL_MODELS, _model_usage, pick_model
+from src.jira_ai.api.services.security import MAX_QUESTION_LENGTH, check_input_injection
+from src.jira_ai.api.services.skill_cache import get_cached_skill, save_skill_cache
 from src.jira_ai.ingestion.models import Base
-from src.jira_ai.api.services.skill_cache import save_skill_cache, get_cached_skill
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -332,8 +333,9 @@ class TestFallbackFlag(unittest.TestCase):
 
     def _get_fallback(self, endpoint: str) -> dict:
         from fastapi.testclient import TestClient
-        from src.jira_ai.api.main import app
+
         from src.jira_ai.api.db import get_db
+        from src.jira_ai.api.main import app
 
         def override():
             yield self.session

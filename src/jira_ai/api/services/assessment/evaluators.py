@@ -2,6 +2,7 @@
 
 from datetime import date, datetime, timedelta
 from pathlib import Path
+
 from src.jira_ai.api.services.assessment.context import _pick
 
 

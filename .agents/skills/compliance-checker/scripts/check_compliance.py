@@ -4,11 +4,11 @@ check_compliance.py — Audits Definition of Ready (DoR) and Definition of Done 
 Outputs compact JSON summary with hygiene scores and violation lists.
 """
 
-import sys
-import json
 import argparse
-from pathlib import Path
+import json
+import sys
 from collections import defaultdict
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 if str(PROJECT_ROOT) not in sys.path:
@@ -18,7 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
 def load_dataset(project_key=None):
     issues, sprints = [], []
     try:
-        from src.jira_ai.ingestion.models import SessionLocal, Issue, Sprint
+        from src.jira_ai.ingestion.models import Issue, SessionLocal, Sprint
         db = SessionLocal()
         query = db.query(Issue)
         if project_key and project_key.upper() not in ("ALL", "GLOBAL"):

@@ -10,11 +10,12 @@ import argparse
 import random
 import sys
 
-import requests
 from faker import Faker
 
 from src.jira_ai.seeder.jira_common import (
-    BASE_URL, auth_header, get_jira_session, resolve_project_key,
+    BASE_URL,
+    get_jira_session,
+    resolve_project_key,
 )
 from src.jira_ai.seeder.profiles import DomainProfile, get_profile
 

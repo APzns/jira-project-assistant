@@ -6,8 +6,10 @@ DRY_RUN = True prints the plan only. Flip to False to write.
 """
 
 import time
+
 import requests
 from sqlalchemy import text
+
 from src.jira_ai.ingestion.jira_client import BASE_URL, _auth_header
 from src.jira_ai.ingestion.models import SessionLocal
 

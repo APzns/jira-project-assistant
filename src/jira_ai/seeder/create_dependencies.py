@@ -13,7 +13,9 @@ import sys
 import requests
 
 from src.jira_ai.seeder.jira_common import (
-    BASE_URL, auth_header, resolve_project_key,
+    BASE_URL,
+    auth_header,
+    resolve_project_key,
 )
 
 NUM_LINKS = 40

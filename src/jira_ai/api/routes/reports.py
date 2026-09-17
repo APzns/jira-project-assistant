@@ -2,9 +2,9 @@
 
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -20,33 +20,33 @@ class ReportBlock(BaseModel):
     title: str
     enabled: bool = True
     order: int = 1
-    pm_commentary: Optional[str] = ""
-    chart_prompt: Optional[str] = ""
-    config: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    pm_commentary: str | None = ""
+    chart_prompt: str | None = ""
+    config: dict[str, Any] | None = Field(default_factory=dict)
 
 
 class ReportTemplate(BaseModel):
-    id: Optional[str] = None
+    id: str | None = None
     name: str
-    description: Optional[str] = ""
-    project_scope: Optional[str] = Field(default="ALL", description="Target project key e.g. 'CHK', 'CORE', 'MOB', 'HRZ', or 'ALL'")
-    owner: Optional[str] = Field(default="Alex Mercer", description="Owner or creator of the report template")
-    cadence: Optional[str] = Field(default="weekly", description="Generation cadence: 'manual', 'daily', 'weekly', 'bi-weekly', 'monthly'")
-    last_generated_at: Optional[str] = Field(default=None, description="ISO timestamp of last report generation")
+    description: str | None = ""
+    project_scope: str | None = Field(default="ALL", description="Target project key e.g. 'CHK', 'CORE', 'MOB', 'HRZ', or 'ALL'")
+    owner: str | None = Field(default="Alex Mercer", description="Owner or creator of the report template")
+    cadence: str | None = Field(default="weekly", description="Generation cadence: 'manual', 'daily', 'weekly', 'bi-weekly', 'monthly'")
+    last_generated_at: str | None = Field(default=None, description="ISO timestamp of last report generation")
     is_default: bool = False
-    stakeholder_ids: List[str] = Field(default_factory=lambda: ["pm-default"])
-    stakeholder_notes: Optional[str] = ""
-    target_deadline: Optional[str] = None
+    stakeholder_ids: list[str] = Field(default_factory=lambda: ["pm-default"])
+    stakeholder_notes: str | None = ""
+    target_deadline: str | None = None
     sprint_cadence_days: int = 14
-    focus_teams: List[str] = Field(default_factory=list)
-    focus_epics: List[str] = Field(default_factory=list)
-    blocks: List[ReportBlock] = Field(default_factory=list)
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    focus_teams: list[str] = Field(default_factory=list)
+    focus_epics: list[str] = Field(default_factory=list)
+    blocks: list[ReportBlock] = Field(default_factory=list)
+    created_at: str | None = None
+    updated_at: str | None = None
 
 
 class ReportsData(BaseModel):
-    templates: List[ReportTemplate]
+    templates: list[ReportTemplate]
 
 
 DEFAULT_TEMPLATES = [
@@ -161,7 +161,7 @@ def _read_reports_from_disk() -> dict:
 
 
 @router.get("")
-def get_reports(project_key: Optional[str] = Query(None, description="Filter reports by project key or 'ALL'")) -> dict:
+def get_reports(project_key: str | None = Query(None, description="Filter reports by project key or 'ALL'")) -> dict:
     """Return the current reports.json contents, optionally filtered by project_key."""
     data = _read_reports_from_disk()
     templates = data.get("templates", [])
@@ -195,7 +195,7 @@ def save_reports(payload: ReportsData) -> dict:
         data = payload.model_dump(exclude_unset=True)
         templates = data.get("templates", [])
 
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         # Ensure every template has an id and timestamps
         for t in templates:
@@ -223,7 +223,7 @@ def create_report(template: ReportTemplate) -> dict:
     """Create a new report template."""
     data = _read_reports_from_disk()
     templates = data.get("templates", [])
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     t_dict = template.model_dump(exclude_unset=True)
     if not t_dict.get("id"):
@@ -255,7 +255,7 @@ def update_report(template_id: str, template: ReportTemplate) -> dict:
     """Update an existing report template."""
     data = _read_reports_from_disk()
     templates = data.get("templates", [])
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     idx = next((i for i, t in enumerate(templates) if t.get("id") == template_id), None)
     if idx is None:
@@ -322,9 +322,9 @@ def reset_reports() -> dict:
 
 
 class SuggestRequest(BaseModel):
-    stakeholder_ids: List[str]
-    user_prompt: Optional[str] = None
-    chat_history: Optional[List[Dict[str, str]]] = None
+    stakeholder_ids: list[str]
+    user_prompt: str | None = None
+    chat_history: list[dict[str, str]] | None = None
 
 @router.post("/suggest")
 def suggest_report(payload: SuggestRequest) -> dict:

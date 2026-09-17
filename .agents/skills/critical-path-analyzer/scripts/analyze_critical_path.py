@@ -4,11 +4,11 @@ analyze_critical_path.py — Algorithmic DAG analysis for critical blocker paths
 Outputs a compact JSON summary to minimize LLM token consumption.
 """
 
-import sys
-import json
 import argparse
+import json
+import sys
+from collections import defaultdict
 from pathlib import Path
-from collections import defaultdict, deque
 
 # Add project root to sys.path
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
@@ -20,7 +20,7 @@ def load_data(project_key=None):
     """Load issues and links from database or fallback to deterministic synthetic dataset."""
     issues, links = [], []
     try:
-        from src.jira_ai.ingestion.models import SessionLocal, Issue, IssueLink
+        from src.jira_ai.ingestion.models import Issue, IssueLink, SessionLocal
         db = SessionLocal()
         query = db.query(Issue)
         if project_key and project_key.upper() not in ("ALL", "GLOBAL"):

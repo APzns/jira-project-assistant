@@ -5,9 +5,14 @@ import logging
 import os
 import time
 
-from google import genai
-from src.jira_ai.api.services.models import get_client, pick_model, record_usage, record_error, RETRY_DELAY_S
 from src.jira_ai.api.services.assessment.evaluators import _forecast_delay_days
+from src.jira_ai.api.services.models import (
+    RETRY_DELAY_S,
+    get_client,
+    pick_model,
+    record_error,
+    record_usage,
+)
 
 logger = logging.getLogger("jira_ai")
 

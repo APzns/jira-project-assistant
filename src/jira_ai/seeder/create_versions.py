@@ -8,12 +8,14 @@ then assigned to epics and child issues based on the target project's domain pro
 import argparse
 import sys
 import time
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 
 from src.jira_ai.seeder.jira_common import (
-    BASE_URL, get_jira_session, resolve_project_key,
+    BASE_URL,
+    get_jira_session,
+    resolve_project_key,
 )
-from src.jira_ai.seeder.profiles import DomainProfile, get_profile
+from src.jira_ai.seeder.profiles import get_profile
 
 
 def _project_id(project_key: str) -> str:

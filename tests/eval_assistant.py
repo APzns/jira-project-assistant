@@ -14,8 +14,9 @@ Usage:
 import json
 import os
 import sys
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -83,7 +84,7 @@ def run_evals():
         print("ERROR: GEMINI_API_KEY required to run live evaluations.")
         return
 
-    with open(EVAL_DATASET_PATH, "r", encoding="utf-8") as f:
+    with open(EVAL_DATASET_PATH, encoding="utf-8") as f:
         dataset = json.load(f)
 
     db = SessionLocal()
@@ -169,13 +170,13 @@ def run_evals():
 
         # 4. Evaluate Output Formatting
         if "sql" in final_answer.lower() or "select *" in final_answer.lower():
-             print(f"  [FAIL] Hallucination/Format: Model exposed SQL to the user.")
+             print("  [FAIL] Hallucination/Format: Model exposed SQL to the user.")
              continue
              
-        print(f"  [PASS] Quality Check")
+        print("  [PASS] Quality Check")
         passed += 1
 
-    print(f"\n--- Evaluation Summary ---")
+    print("\n--- Evaluation Summary ---")
     print(f"Passed: {passed}/{total} ({(passed/total)*100:.1f}%)")
     db.close()
 

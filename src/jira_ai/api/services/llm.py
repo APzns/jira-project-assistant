@@ -2,32 +2,35 @@
 
 from __future__ import annotations
 
+import datetime
+import decimal
 import json
 import logging
 import os
-import time
 import re
-import decimal
-import datetime
+import time
 import uuid
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
-
-from google import genai
 from google.genai import types
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
-from pathlib import Path
-from functools import lru_cache
 
-from src.jira_ai.api.services.models import get_client, pick_model, record_usage, record_error, RETRY_DELAY_S
-
+from src.jira_ai.api.services.models import (
+    RETRY_DELAY_S,
+    get_client,
+    pick_model,
+    record_error,
+    record_usage,
+)
 from src.jira_ai.api.services.security import (
     check_input_injection,
-    normalize_input,
-    sanitize_user_query,
-    sanitize_output,
     log_security_event,
+    normalize_input,
+    sanitize_output,
+    sanitize_user_query,
 )
 
 
@@ -919,7 +922,9 @@ Remember: Only answer the question based on the provided data context and tools.
                         "delayed_by_fixversion", "overdue_points_pct",
                     ) if k in snap}
                     try:
-                        from src.jira_ai.api.services.assessment import get_instant_assessment
+                        from src.jira_ai.api.services.assessment import (
+                            get_instant_assessment,
+                        )
                         top_assess = get_instant_assessment(db, mode="real", project_key=target_pk)
                         for top_k in ("overall_status", "headline", "reasoning", "risks", "recommended_actions", "quality_summary"):
                             if top_k in top_assess:
@@ -1040,7 +1045,7 @@ Remember: Only answer the question based on the provided data context and tools.
                 elif "key" in item and "summary" in item:
                     summary_lines.append(f"- **{item.get('key')}**: {item.get('summary')} *(Status: {item.get('status', 'N/A')}, Team: {item.get('team', 'N/A')})*")
                 else:
-                    summary_lines.append(f"- " + ", ".join(f"**{k}**: {v}" for k, v in list(item.items())[:5]))
+                    summary_lines.append("- " + ", ".join(f"**{k}**: {v}" for k, v in list(item.items())[:5]))
             else:
                 summary_lines.append(f"- {str(item)}")
         
@@ -1534,7 +1539,9 @@ Remember: Only answer the question based on the provided data context and tools.
                         "delayed_by_fixversion", "overdue_points_pct",
                     ) if k in snap}
                     try:
-                        from src.jira_ai.api.services.assessment import get_instant_assessment
+                        from src.jira_ai.api.services.assessment import (
+                            get_instant_assessment,
+                        )
                         top_assess = get_instant_assessment(db, mode="real", project_key=target_pk)
                         for top_k in ("overall_status", "headline", "reasoning", "risks", "recommended_actions", "quality_summary"):
                             if top_k in top_assess:
@@ -1656,7 +1663,7 @@ Remember: Only answer the question based on the provided data context and tools.
                 elif "key" in item and "summary" in item:
                     summary_lines.append(f"- **{item.get('key')}**: {item.get('summary')} *(Status: {item.get('status', 'N/A')}, Team: {item.get('team', 'N/A')})*")
                 else:
-                    summary_lines.append(f"- " + ", ".join(f"**{k}**: {v}" for k, v in list(item.items())[:5]))
+                    summary_lines.append("- " + ", ".join(f"**{k}**: {v}" for k, v in list(item.items())[:5]))
             else:
                 summary_lines.append(f"- {str(item)}")
         
@@ -1689,6 +1696,7 @@ def _detect_project_key(user_prompt: str = None, project_key: str = None) -> str
 def suggest_report_template(stakeholder_ids: list[str] = None, user_prompt: str = None, chat_history: list = None, project_key: str = None) -> dict:
     """Uses Gemini to suggest a Stakeholders-Adjusted Report based on project context, stakeholders, and user request."""
     import json
+
     from src.jira_ai.api.services.context import load_project_context
     
     settings = _load_ai_settings()

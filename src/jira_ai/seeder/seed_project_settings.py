@@ -3,12 +3,13 @@ seed_project_settings.py — Initializes the project_settings table in PostgreSQ
 and populates it with the 4 default Jira projects used in the demo dashboard.
 """
 import os
+
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from src.jira_ai.ingestion.models import Base, ProjectSetting
 
-from dotenv import load_dotenv
 load_dotenv()
 
 db_url = os.environ.get("DATABASE_URL")

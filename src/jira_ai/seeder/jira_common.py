@@ -2,9 +2,9 @@
 jira_common.py — Shared Jira auth, resilient session, and field-discovery helpers.
 """
 
-import os
 import base64
-import time
+import os
+
 import requests
 from dotenv import load_dotenv
 from requests.adapters import HTTPAdapter

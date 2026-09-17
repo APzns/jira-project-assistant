@@ -4,9 +4,8 @@ import base64
 import json
 import os
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
@@ -164,62 +163,62 @@ class ProjectStakeholderAssignment(BaseModel):
     stakeholder_id: str
     raci: str = Field(default="C", description="RACI role: R, A, C, or I")
     reporting_level: str = Field(default="standard", description="executive, standard, or technical")
-    project_notes: Optional[str] = Field(default="", max_length=500)
+    project_notes: str | None = Field(default="", max_length=500)
 
 
 class ProjectStakeholdersPayload(BaseModel):
     project_key: str
-    assignments: List[ProjectStakeholderAssignment]
+    assignments: list[ProjectStakeholderAssignment]
 
 
 class ProjectModel(BaseModel):
     key: str = Field(..., description="Uppercase unique project key, e.g. 'PAY' or 'CHK'")
     name: str = Field(..., description="Project display title")
-    description: Optional[str] = ""
-    lead: Optional[str] = ""
-    target_release: Optional[str] = ""
-    status: Optional[str] = "on-track"  # on-track, at-risk, delayed, planning, completed
-    progress_pct: Optional[int] = 0
-    progress_sp: Optional[str] = "0 / 0 SP"
-    blockers_count: Optional[int] = 0
-    tags: Optional[List[str]] = Field(default_factory=list)
-    archived: Optional[bool] = False
-    owner: Optional[str] = None
-    is_builtin: Optional[bool] = False
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
-    tracking_target: Optional[str] = "milestones"
-    milestones: Optional[List[dict]] = Field(default_factory=list)
+    description: str | None = ""
+    lead: str | None = ""
+    target_release: str | None = ""
+    status: str | None = "on-track"  # on-track, at-risk, delayed, planning, completed
+    progress_pct: int | None = 0
+    progress_sp: str | None = "0 / 0 SP"
+    blockers_count: int | None = 0
+    tags: list[str] | None = Field(default_factory=list)
+    archived: bool | None = False
+    owner: str | None = None
+    is_builtin: bool | None = False
+    created_at: str | None = None
+    updated_at: str | None = None
+    tracking_target: str | None = "milestones"
+    milestones: list[dict] | None = Field(default_factory=list)
 
 
 class ProjectCreatePayload(BaseModel):
     key: str = Field(..., min_length=2, max_length=10, description="Uppercase project key (2-10 chars)")
     name: str = Field(..., min_length=2, max_length=120, description="Project name")
-    description: Optional[str] = ""
-    lead: Optional[str] = ""
-    target_release: Optional[str] = ""
-    status: Optional[str] = "on-track"
-    progress_pct: Optional[int] = 0
-    progress_sp: Optional[str] = "0 / 0 SP"
-    blockers_count: Optional[int] = 0
-    tags: Optional[List[str]] = Field(default_factory=list)
-    tracking_target: Optional[str] = "milestones"
-    milestones: Optional[List[dict]] = Field(default_factory=list)
+    description: str | None = ""
+    lead: str | None = ""
+    target_release: str | None = ""
+    status: str | None = "on-track"
+    progress_pct: int | None = 0
+    progress_sp: str | None = "0 / 0 SP"
+    blockers_count: int | None = 0
+    tags: list[str] | None = Field(default_factory=list)
+    tracking_target: str | None = "milestones"
+    milestones: list[dict] | None = Field(default_factory=list)
 
 
 class ProjectUpdatePayload(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    lead: Optional[str] = None
-    target_release: Optional[str] = None
-    status: Optional[str] = None
-    progress_pct: Optional[int] = None
-    progress_sp: Optional[str] = None
-    blockers_count: Optional[int] = None
-    tags: Optional[List[str]] = None
-    archived: Optional[bool] = None
-    tracking_target: Optional[str] = None
-    milestones: Optional[List[dict]] = None
+    name: str | None = None
+    description: str | None = None
+    lead: str | None = None
+    target_release: str | None = None
+    status: str | None = None
+    progress_pct: int | None = None
+    progress_sp: str | None = None
+    blockers_count: int | None = None
+    tags: list[str] | None = None
+    archived: bool | None = None
+    tracking_target: str | None = None
+    milestones: list[dict] | None = None
 
 
 def _read_projects_from_disk() -> dict:
@@ -378,7 +377,7 @@ def create_project(payload: ProjectCreatePayload, request: Request) -> dict:
         raise HTTPException(status_code=400, detail=f"Project with key '{raw_key}' already exists.")
 
     current_user = _get_current_username(request)
-    now_iso = datetime.now(timezone.utc).isoformat()
+    now_iso = datetime.now(UTC).isoformat()
 
     new_project = {
         "key": raw_key,
@@ -436,7 +435,7 @@ def update_project(project_key: str, payload: ProjectUpdatePayload, request: Req
         raise HTTPException(status_code=404, detail=f"Project '{pkey}' not found")
 
     target = dict(projects[idx])
-    now_iso = datetime.now(timezone.utc).isoformat()
+    now_iso = datetime.now(UTC).isoformat()
 
     if payload.name is not None:
         target["name"] = payload.name.strip()
@@ -487,7 +486,7 @@ def archive_project(project_key: str, request: Request) -> dict:
         raise HTTPException(status_code=404, detail=f"Project '{pkey}' not found")
 
     projects[idx]["archived"] = True
-    projects[idx]["updated_at"] = datetime.now(timezone.utc).isoformat()
+    projects[idx]["updated_at"] = datetime.now(UTC).isoformat()
 
     data["projects"] = projects
     _write_projects_to_disk(data)
@@ -511,7 +510,7 @@ def unarchive_project(project_key: str, request: Request) -> dict:
         raise HTTPException(status_code=404, detail=f"Project '{pkey}' not found")
 
     projects[idx]["archived"] = False
-    projects[idx]["updated_at"] = datetime.now(timezone.utc).isoformat()
+    projects[idx]["updated_at"] = datetime.now(UTC).isoformat()
 
     data["projects"] = projects
     _write_projects_to_disk(data)

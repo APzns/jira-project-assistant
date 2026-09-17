@@ -10,10 +10,13 @@ import argparse
 import random
 import sys
 import time
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 
 from src.jira_ai.seeder.jira_common import (
-    BASE_URL, find_story_points_field_id, get_jira_session, resolve_project_key,
+    BASE_URL,
+    find_story_points_field_id,
+    get_jira_session,
+    resolve_project_key,
 )
 
 # Fibonacci-style story point values, as commonly used in agile estimation.

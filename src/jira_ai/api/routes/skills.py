@@ -13,20 +13,23 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import time
 from pathlib import Path
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from google import genai
 from google.genai import types
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from src.jira_ai.api.db import get_db
+from src.jira_ai.api.services.models import (
+    RETRY_DELAY_S,
+    get_client,
+    pick_model,
+    record_error,
+    record_usage,
+)
 from src.jira_ai.api.services.skill_cache import get_cached_skill, save_skill_cache
-from src.jira_ai.api.services.models import get_client, pick_model, record_usage, record_error, RETRY_DELAY_S
 
 logger = logging.getLogger("jira_ai")
 
@@ -62,7 +65,7 @@ def _load_skill_md(skill_name: str) -> str:
         raise HTTPException(status_code=400, detail=f"Skill '{skill_name}' is not yet implemented.")
 
 
-def _load_settings(profile_id: Optional[str] = None) -> dict:
+def _load_settings(profile_id: str | None = None) -> dict:
     try:
         from src.jira_ai.api.routes.settings import _read_settings_from_disk
         data = _read_settings_from_disk()
@@ -132,7 +135,7 @@ def _settings_context_block(settings: dict) -> str:
     return "\n".join(lines)
 
 
-def _get_metrics_context(db: Session, project_key: Optional[str] = None) -> tuple[dict, str]:
+def _get_metrics_context(db: Session, project_key: str | None = None) -> tuple[dict, str]:
     """Pull cached assessment metrics and format them as both a raw dict and context JSON string."""
     try:
         from src.jira_ai.api.services.assessment import get_cached_assessment
@@ -198,12 +201,12 @@ def _call_gemini(system_instruction: str, user_prompt: str, response_schema: dic
 # ---------------------------------------------------------------------------
 
 class SkillRequest(BaseModel):
-    project_key: Optional[str] = None  # target project filter (e.g. 'CHK', 'CORE', 'ALL')
-    context: Optional[str] = None      # active UI tab hint
-    profile_id: Optional[str] = None
-    custom_instructions: Optional[str] = None
-    settings_override: Optional[dict] = None
-    force_refresh: Optional[bool] = False
+    project_key: str | None = None  # target project filter (e.g. 'CHK', 'CORE', 'ALL')
+    context: str | None = None      # active UI tab hint
+    profile_id: str | None = None
+    custom_instructions: str | None = None
+    settings_override: dict | None = None
+    force_refresh: bool | None = False
 
 
 def _resolve_request_settings(payload: SkillRequest) -> dict:
@@ -1317,8 +1320,8 @@ Strictly follow all custom instructions and settings provided in the system inst
     return out
 
 def warmup_skills_cache(db: Session, force: bool = False) -> list[str]:
-    from pathlib import Path
     import json
+    from pathlib import Path
     project_keys = ['ALL', 'HRZ', 'CORE', 'CHK', 'MOB']
     try:
         settings_file = Path(__file__).resolve().parents[4] / '.agents' / 'settings' / 'projects.json'

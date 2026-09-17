@@ -1,7 +1,6 @@
 import os
 import sys
 import unittest
-from pathlib import Path
 
 sys.path.insert(0, os.path.abspath("."))
 
@@ -12,7 +11,7 @@ from sqlalchemy.pool import StaticPool
 
 from src.jira_ai.api.db import get_db
 from src.jira_ai.api.main import app
-from src.jira_ai.api.routes.reports import DEFAULT_TEMPLATES, _read_reports_from_disk
+from src.jira_ai.api.routes.reports import DEFAULT_TEMPLATES
 from src.jira_ai.ingestion.models import Base
 
 

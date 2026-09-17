@@ -1,29 +1,33 @@
 """main.py — FastAPI application entry point for the Jira AI analytics API."""
 
-import os
 import base64
-import secrets
 import logging
-from pathlib import Path
+import os
+import secrets
 from contextlib import asynccontextmanager
+from pathlib import Path
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
+from fastapi.staticfiles import StaticFiles
 
-from src.jira_ai.api.routes import stats, ask
-from src.jira_ai.api.routes import assess
-from src.jira_ai.api.routes import docs
-from src.jira_ai.api.routes import skills
-from src.jira_ai.api.routes import settings
-from src.jira_ai.api.routes import stakeholders
-from src.jira_ai.api.routes import reports
-from src.jira_ai.api.routes import projects
-from src.jira_ai.api.routes import assistant
+from src.jira_ai.api.routes import (
+    ask,
+    assess,
+    assistant,
+    docs,
+    projects,
+    reports,
+    settings,
+    skills,
+    stakeholders,
+    stats,
+)
 from src.jira_ai.logging_config import setup_logging
 
 logger = setup_logging()

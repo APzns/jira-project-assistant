@@ -14,8 +14,8 @@ from sqlalchemy.pool import StaticPool
 
 from src.jira_ai.api.db import get_db
 from src.jira_ai.api.main import app
-from src.jira_ai.ingestion.models import Base
 from src.jira_ai.api.services.llm import is_explicit_report_request
+from src.jira_ai.ingestion.models import Base
 
 
 class TestAssistantConversational(unittest.TestCase):

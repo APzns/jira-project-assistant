@@ -7,8 +7,8 @@ committed-vs-completed burn-up. No database, no SQL — pure Python so synthetic
 and real data can be compared apples-to-apples.
 """
 
-from datetime import datetime, UTC, date
 from collections import defaultdict
+from datetime import UTC, date, datetime
 
 from src.jira_ai.seeder.synthetic_dataset import build_synthetic_dataset
 

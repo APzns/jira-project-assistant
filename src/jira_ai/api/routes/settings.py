@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import uuid
 from pathlib import Path
-from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
@@ -60,16 +59,16 @@ DEFAULT_PROFILES = [
 
 
 class ReportProfile(BaseModel):
-    id: Optional[str] = None
+    id: str | None = None
     name: str = "Custom Report"
-    is_default: Optional[bool] = False
-    stakeholder: Optional[str] = "program_manager"
-    focus_teams: Optional[List[str]] = Field(default_factory=list)
-    focus_epics: Optional[List[str]] = Field(default_factory=list)
-    risk_categories: Optional[List[str]] = Field(default_factory=lambda: ["dependency", "velocity", "overcommitment"])
-    min_risk_severity: Optional[str] = "medium"
-    summary_verbosity: Optional[str] = "brief"
-    custom_instructions: Optional[str] = ""
+    is_default: bool | None = False
+    stakeholder: str | None = "program_manager"
+    focus_teams: list[str] | None = Field(default_factory=list)
+    focus_epics: list[str] | None = Field(default_factory=list)
+    risk_categories: list[str] | None = Field(default_factory=lambda: ["dependency", "velocity", "overcommitment"])
+    min_risk_severity: str | None = "medium"
+    summary_verbosity: str | None = "brief"
+    custom_instructions: str | None = ""
 
     @field_validator("min_risk_severity")
     @classmethod
@@ -103,15 +102,15 @@ class ReportProfile(BaseModel):
 
 
 class AISettings(BaseModel):
-    active_profile_id: Optional[str] = "default-exec"
-    profiles: Optional[List[ReportProfile]] = None
-    stakeholder: Optional[str] = "program_manager"
-    focus_teams: Optional[List[str]] = Field(default_factory=list)
-    focus_epics: Optional[List[str]] = Field(default_factory=list)
-    risk_categories: Optional[List[str]] = Field(default_factory=lambda: ["dependency", "velocity", "overcommitment"])
-    min_risk_severity: Optional[str] = "medium"
-    summary_verbosity: Optional[str] = "brief"
-    custom_instructions: Optional[str] = ""
+    active_profile_id: str | None = "default-exec"
+    profiles: list[ReportProfile] | None = None
+    stakeholder: str | None = "program_manager"
+    focus_teams: list[str] | None = Field(default_factory=list)
+    focus_epics: list[str] | None = Field(default_factory=list)
+    risk_categories: list[str] | None = Field(default_factory=lambda: ["dependency", "velocity", "overcommitment"])
+    min_risk_severity: str | None = "medium"
+    summary_verbosity: str | None = "brief"
+    custom_instructions: str | None = ""
 
 
 def _read_settings_from_disk() -> dict:

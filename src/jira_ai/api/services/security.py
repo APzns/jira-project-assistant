@@ -2,17 +2,13 @@
 
 from __future__ import annotations
 
-import html
 import logging
-import os
 import re
 import socket
 import unicodedata
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional, Union, List, Dict
-
 
 logger = logging.getLogger("jira_ai.security")
 
@@ -132,7 +128,7 @@ def sanitize_output(answer_text: str) -> str:
 
 def log_security_event(event_type: str, details: str, client_ip: str | None = None):
     """Log structured security audit events to logs/security_audit.log."""
-    timestamp = datetime.now(timezone.utc).isoformat()
+    timestamp = datetime.now(UTC).isoformat()
     ip_str = client_ip or "unknown"
     log_entry = f"[{timestamp}] [SECURITY_EVENT] type={event_type} client_ip={ip_str} details={details}\n"
     _safe_write_log(AUDIT_LOG_PATH, log_entry)
@@ -274,7 +270,7 @@ def log_visit_event(
     hostname = resolve_hostname(ip_str)
     host_str = f" hostname={hostname}" if hostname and hostname != ip_str else ""
 
-    timestamp = datetime.now(timezone.utc).isoformat()
+    timestamp = datetime.now(UTC).isoformat()
     duration_str = f" duration_ms={duration_ms:.1f}ms" if duration_ms is not None else ""
     clean_err = str(error).replace("\n", " ").strip() if error else ""
     error_str = f' error="{clean_err}"' if clean_err else ""
@@ -286,7 +282,7 @@ def log_visit_event(
 
 def log_ai_question(client_ip: str | None, question: str, context: str | None = None):
     """Log AI chat questions with client IP address and active UI context."""
-    timestamp = datetime.now(timezone.utc).isoformat()
+    timestamp = datetime.now(UTC).isoformat()
     ip_str = client_ip or "unknown"
     ctx_str = context or "general"
     clean_q = question.replace("\n", " ").strip()
@@ -297,7 +293,7 @@ def log_ai_question(client_ip: str | None, question: str, context: str | None = 
 
 def log_ai_answer(client_ip: str | None, answer: str | None, error: str | None = None):
     """Log AI chat answers or errors with client IP address."""
-    timestamp = datetime.now(timezone.utc).isoformat()
+    timestamp = datetime.now(UTC).isoformat()
     ip_str = client_ip or "unknown"
     if error:
         clean_err = str(error).replace("\n", " ").strip()

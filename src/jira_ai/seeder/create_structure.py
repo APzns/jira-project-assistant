@@ -10,8 +10,11 @@ Run once:
 """
 
 import requests
+
 from src.jira_ai.ingestion.jira_client import (
-    BASE_URL, _auth_header, PROJECT_KEY, fetch_project_versions,
+    BASE_URL,
+    _auth_header,
+    fetch_project_versions,
 )
 
 PROJECT_ID = "10034"

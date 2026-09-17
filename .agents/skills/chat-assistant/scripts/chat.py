@@ -1,7 +1,6 @@
 import argparse
-import sys
-import os
 import json
+import sys
 from pathlib import Path
 
 # Add the repository root to the Python path so we can import src.jira_ai
@@ -9,9 +8,9 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from src.jira_ai.api.services.llm import _load_ai_settings, chat_assistant
 from src.jira_ai.ingestion.models import SessionLocal
-from src.jira_ai.api.services.llm import chat_assistant
-from src.jira_ai.api.services.llm import _load_ai_settings
+
 
 def main():
     parser = argparse.ArgumentParser(description="Bridge script to query the Smart Project & Delivery Assistant")

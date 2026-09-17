@@ -27,7 +27,9 @@
           "name": "Samantha Reed",
           "email": "samantha.reed@company.internal"
         }
-      ]
+      ],
+      "other_notes": "",
+      "name": "Project Manager"
     },
     {
       "id": "exec",
@@ -53,34 +55,40 @@
           "name": "David Sterling",
           "email": "david.sterling@company.internal"
         }
-      ]
+      ],
+      "other_notes": "",
+      "name": "Executive Sponsor"
     },
     {
       "id": "eng-lead",
-      "role": "Engineering Lead",
+      "role": "Lead Systems Architect",
       "role_type": "engineering_lead",
       "owner": "system",
-      "is_builtin": true,
-      "description": "Focuses on technical debt, architecture, engineering capacity, and defect ratios.",
-      "projects": [
-        "CORE",
-        "CHK"
-      ],
-      "priority_areas": [
-        "technical_debt",
-        "defect_ratios",
-        "architecture"
-      ],
+      "name": "Lead Systems Architect",
+      "email": "",
       "people": [
         {
           "name": "Marcus Vance",
           "email": "marcus.vance@company.internal"
         },
         {
-          "name": "Priya Sharma",
-          "email": "priya.sharma@company.internal"
+          "name": "Alex Tech",
+          "email": "alex.tech@company.internal"
         }
-      ]
+      ],
+      "is_builtin": true,
+      "description": "Focuses on technical debt and microservices scalability.",
+      "other_notes": "Quarterly architecture reviews with core platform team.",
+      "projects": [
+        "CORE",
+        "CHK"
+      ],
+      "priority_areas": [
+        "Architecture",
+        "Scalability",
+        "Tech Debt"
+      ],
+      "project_override": null
     },
     {
       "id": "qa-lead",
@@ -103,7 +111,9 @@
           "name": "Dr. Aris Thorne",
           "email": "aris.thorne@company.internal"
         }
-      ]
+      ],
+      "other_notes": "",
+      "name": "QA & Release Lead"
     },
     {
       "id": "po-commerce",
@@ -116,20 +126,4 @@
         "CHK"
       ],
       "priority_areas": [
-        "scope",
-        "user_experience",
-        "conversion"
-      ],
-      "people": [
-        {
-          "name": "Chloe Lin",
-          "email": "chloe.lin@company.internal"
-        },
-        {
-          "name": "Lucas Meyer",
-          "email": "lucas.meyer@company.internal"
-        }
-      ]
-    }
-  ]
-}
+   

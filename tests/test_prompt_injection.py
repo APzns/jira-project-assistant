@@ -5,26 +5,24 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath("."))
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from src.jira_ai.api.services.security import (
-    check_input_injection,
-    normalize_input,
-    sanitize_user_query,
-    sanitize_output,
-    check_rate_limit,
-    log_security_event,
-    AUDIT_LOG_PATH,
-)
 import src.jira_ai.api.services.security as _security_module
 from src.jira_ai.api.services import llm
-from src.jira_ai.ingestion.models import Base, Issue
+from src.jira_ai.api.services.security import (
+    check_input_injection,
+    check_rate_limit,
+    log_security_event,
+    normalize_input,
+    sanitize_output,
+    sanitize_user_query,
+)
+from src.jira_ai.ingestion.models import Base
 
 
 class TestPromptInjectionSecurity(unittest.TestCase):

@@ -11,7 +11,7 @@ from sqlalchemy.pool import StaticPool
 
 from src.jira_ai.api.db import get_db
 from src.jira_ai.api.main import app
-from src.jira_ai.api.routes.projects import DEFAULT_PROJECTS, _read_projects_from_disk
+from src.jira_ai.api.routes.projects import DEFAULT_PROJECTS
 from src.jira_ai.ingestion.models import Base
 
 

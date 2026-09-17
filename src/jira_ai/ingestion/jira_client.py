@@ -6,8 +6,9 @@ Discovers instance-specific custom field IDs (story points, sprint, team) at run
 and dynamically queries across single or multiple project keys.
 """
 
-import os
 import base64
+import os
+
 import requests
 from dotenv import load_dotenv
 

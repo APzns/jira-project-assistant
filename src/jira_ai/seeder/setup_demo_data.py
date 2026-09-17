@@ -16,13 +16,17 @@ Usage:
 
 import argparse
 import sys
+
 import requests
 
+from src.jira_ai.seeder import (
+    create_sprints,
+    create_versions,
+    enrich_issues,
+    seed_jira,
+)
 from src.jira_ai.seeder.jira_common import BASE_URL, auth_header, resolve_project_key
 from src.jira_ai.seeder.profiles import get_profile
-from src.jira_ai.seeder import (
-    seed_jira, enrich_issues, create_sprints, create_versions,
-)
 
 
 def project_has_issues(project_key: str) -> bool:

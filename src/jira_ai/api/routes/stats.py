@@ -2,7 +2,7 @@
 stats.py — HTTP routes exposing dashboard statistics as JSON.
 """
 
-from typing import Optional
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/stats", tags=["stats"])
 @router.get("/summary")
 def get_summary(
     mode: str = "real",
-    project_key: Optional[str] = Query(None),
+    project_key: str | None = Query(None),
     db: Session = Depends(get_db),
 ) -> dict:
     """Return the full dashboard summary (all metrics in one response), optionally scoped by project_key.

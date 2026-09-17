@@ -10,7 +10,6 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 _ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 
 

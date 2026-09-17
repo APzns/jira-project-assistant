@@ -1,12 +1,11 @@
 """context.py — Data metrics collection & normalization for program assessment."""
 
-import json
 import logging
-from datetime import datetime, timezone, date
+from datetime import UTC, date, datetime
+
 from sqlalchemy import text
 
-
-from src.jira_ai.seeder import synthetic_metrics, forecast
+from src.jira_ai.seeder import forecast, synthetic_metrics
 
 logger = logging.getLogger("jira_ai")
 
@@ -19,7 +18,7 @@ def _days_until(iso_date: str | None) -> int | None:
         target = date.fromisoformat(iso_date[:10])
     except ValueError:
         return None
-    return (target - datetime.now(timezone.utc).date()).days
+    return (target - datetime.now(UTC).date()).days
 
 
 def _pick(d: dict, *keys, default=0):
@@ -485,7 +484,7 @@ def _compute_metrics(db, project_key: str | None = None) -> dict:
 
     _rel_groups: dict[str, dict] = {}
     _unrel_groups: dict[str, dict] = {}
-    _today = datetime.now(timezone.utc).date()
+    _today = datetime.now(UTC).date()
     for name, rdate, released, key, summary, team, resolved, status_cat, sprint, status in delayed_rows:
         rd = rdate
         if not rd:

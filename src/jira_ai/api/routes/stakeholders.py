@@ -1,11 +1,10 @@
 """stakeholders.py — /stakeholders endpoint: read, write, and manage stakeholder profiles with user ownership & permissions."""
 
-import os
 import base64
 import json
+import os
 import uuid
 from pathlib import Path
-from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -16,7 +15,7 @@ _STAKEHOLDERS_FILE = Path(__file__).resolve().parents[4] / ".agents" / "settings
 _PROJECT_STAKEHOLDERS_FILE = Path(__file__).resolve().parents[4] / ".agents" / "settings" / "project_stakeholders.json"
 
 
-def _sync_project_stakeholders_for_stakeholder(stakeholder_id: str, assigned_projects: List[str]) -> None:
+def _sync_project_stakeholders_for_stakeholder(stakeholder_id: str, assigned_projects: list[str]) -> None:
     """Ensure project_stakeholders.json matches assigned projects for this stakeholder."""
     try:
         if not _PROJECT_STAKEHOLDERS_FILE.exists():
@@ -202,27 +201,27 @@ def _get_current_username(request: Request) -> str:
 
 class IndividualPerson(BaseModel):
     name: str
-    email: Optional[str] = ""
+    email: str | None = ""
 
 
 class StakeholderProfile(BaseModel):
-    id: Optional[str] = None
+    id: str | None = None
     role: str = "Stakeholder"
     role_type: str = "custom"
-    owner: Optional[str] = None
-    name: Optional[str] = None
-    email: Optional[str] = ""
-    people: List[IndividualPerson] = Field(default_factory=list)
+    owner: str | None = None
+    name: str | None = None
+    email: str | None = ""
+    people: list[IndividualPerson] = Field(default_factory=list)
     is_builtin: bool = False
-    description: Optional[str] = ""
-    other_notes: Optional[str] = Field(default="", max_length=500)
-    projects: List[str] = Field(default_factory=list)
-    priority_areas: List[str] = Field(default_factory=list)
-    project_override: Optional[str] = None
+    description: str | None = ""
+    other_notes: str | None = Field(default="", max_length=500)
+    projects: list[str] = Field(default_factory=list)
+    priority_areas: list[str] = Field(default_factory=list)
+    project_override: str | None = None
 
 
 class StakeholdersData(BaseModel):
-    stakeholders: List[StakeholderProfile]
+    stakeholders: list[StakeholderProfile]
 
 
 def _read_stakeholders_from_disk() -> dict:

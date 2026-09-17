@@ -7,13 +7,9 @@ The database URL is read from the environment, so the same code works
 locally (Docker Postgres) and in production (Cloud SQL) unchanged.
 """
 
-import os
-from datetime import datetime, timezone
-from pathlib import Path
-import time
+from datetime import UTC, datetime
 
 from sqlalchemy import Boolean, DateTime, Integer, String, Text
-from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.jira_ai.database import Base
@@ -60,7 +56,7 @@ class Issue(Base):
 
     # When this row was last written by the ingestion job.
     ingested_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)
+        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
 
 
@@ -74,7 +70,7 @@ class AssessmentCache(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     payload: Mapped[str] = mapped_column(Text)   # the assessment JSON, as text
     generated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)
+        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
 
 
@@ -92,7 +88,7 @@ class SkillCache(Base):
     settings_hash: Mapped[str] = mapped_column(String, nullable=False)
     payload: Mapped[str] = mapped_column(Text, nullable=False)  # JSON payload
     generated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)
+        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
 
 

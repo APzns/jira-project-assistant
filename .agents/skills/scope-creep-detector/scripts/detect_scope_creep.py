@@ -4,11 +4,11 @@ detect_scope_creep.py — Computes mid-sprint scope injections, estimate revisio
 Outputs compact JSON summary to minimize LLM token consumption.
 """
 
-import sys
-import json
 import argparse
-from pathlib import Path
+import json
+import sys
 from collections import defaultdict
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 if str(PROJECT_ROOT) not in sys.path:
@@ -18,7 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
 def load_dataset(project_key=None):
     issues, sprints, fix_versions = [], [], []
     try:
-        from src.jira_ai.ingestion.models import SessionLocal, Issue, Sprint, FixVersion
+        from src.jira_ai.ingestion.models import FixVersion, Issue, SessionLocal, Sprint
         db = SessionLocal()
         query = db.query(Issue)
         if project_key and project_key.upper() not in ("ALL", "GLOBAL"):

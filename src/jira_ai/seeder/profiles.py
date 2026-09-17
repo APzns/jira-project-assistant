@@ -7,7 +7,6 @@ sprints, stories, tasks, and bugs.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List
 
 
 @dataclass
@@ -37,13 +36,13 @@ class SprintSpec:
 class DomainProfile:
     name: str
     display_title: str
-    epics: List[EpicSpec]
-    fix_versions: List[FixVersionSpec]
-    sprints: List[SprintSpec]
-    verbs: Dict[str, List[str]]
-    subjects: List[str]
-    labels: List[str]
-    bug_topics: List[str]
+    epics: list[EpicSpec]
+    fix_versions: list[FixVersionSpec]
+    sprints: list[SprintSpec]
+    verbs: dict[str, list[str]]
+    subjects: list[str]
+    labels: list[str]
+    bug_topics: list[str]
 
 
 # ---------------------------------------------------------------------------
@@ -337,7 +336,7 @@ GENERAL_PROFILE = DomainProfile(
 )
 
 
-PROFILES_REGISTRY: Dict[str, DomainProfile] = {
+PROFILES_REGISTRY: dict[str, DomainProfile] = {
     "ecommerce": ECOMMERCE_PROFILE,
     "checkout": ECOMMERCE_PROFILE,
     "platform": PLATFORM_PROFILE,

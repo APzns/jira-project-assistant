@@ -6,6 +6,7 @@ to repeat this boilerplate.
 """
 
 import os
+
 import pytest
 
 # Ensure test mode is active before any application imports.

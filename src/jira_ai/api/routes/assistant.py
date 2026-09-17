@@ -5,26 +5,33 @@ and trade-off analyses, while only proposing report templates when explicitly re
 """
 
 import logging
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, Request, HTTPException, status
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from src.jira_ai.api.db import get_db
 from src.jira_ai.api.services import llm
-from src.jira_ai.api.services.security import check_rate_limit, log_ai_question, log_ai_answer, check_input_injection, log_security_event
+from src.jira_ai.api.services.security import (
+    check_input_injection,
+    check_rate_limit,
+    log_ai_answer,
+    log_ai_question,
+    log_security_event,
+)
 
 router = APIRouter(prefix="/assistant", tags=["assistant"])
 
 
 class AssistantMessage(BaseModel):
-    message: Optional[str] = None
-    user_prompt: Optional[str] = None
-    chat_history: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
-    history: Optional[List[Dict[str, Any]]] = None
-    project_key: Optional[str] = None
-    context: Optional[str] = "assistant"
-    stakeholder_ids: Optional[List[str]] = Field(default_factory=list)
+    message: str | None = None
+    user_prompt: str | None = None
+    chat_history: list[dict[str, Any]] | None = Field(default_factory=list)
+    history: list[dict[str, Any]] | None = None
+    project_key: str | None = None
+    context: str | None = "assistant"
+    stakeholder_ids: list[str] | None = Field(default_factory=list)
 
 
 @router.post("/chat")

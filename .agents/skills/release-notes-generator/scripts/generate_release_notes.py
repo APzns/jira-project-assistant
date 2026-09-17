@@ -4,11 +4,10 @@ generate_release_notes.py — Extracts and clusters completed issues for release
 Outputs compact JSON summary categorized by audience tiers.
 """
 
-import sys
-import json
 import argparse
+import json
+import sys
 from pathlib import Path
-from collections import defaultdict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 if str(PROJECT_ROOT) not in sys.path:
@@ -18,7 +17,7 @@ if str(PROJECT_ROOT) not in sys.path:
 def load_dataset(target_version=None, project_key=None):
     issues, fix_versions = [], []
     try:
-        from src.jira_ai.ingestion.models import SessionLocal, Issue, FixVersion
+        from src.jira_ai.ingestion.models import FixVersion, Issue, SessionLocal
         db = SessionLocal()
         query = db.query(Issue)
         if project_key and project_key.upper() not in ("ALL", "GLOBAL"):

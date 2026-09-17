@@ -13,10 +13,10 @@ Run once, after the metrics_snapshots table exists:
 
 import json
 import random
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 
-from src.jira_ai.ingestion.models import SessionLocal, MetricsSnapshot
 from src.jira_ai.api.services.assessment import _compute_metrics
+from src.jira_ai.ingestion.models import MetricsSnapshot, SessionLocal
 
 DAYS_BACK = 21          # how much fake history to fabricate
 STEP_DAYS = 1           # one point per day

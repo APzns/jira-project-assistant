@@ -22,7 +22,9 @@ import random
 from datetime import date, timedelta
 
 from src.jira_ai.seeder.synthetic_metrics import (
-    build_synthetic_dataset, remaining_work_points, velocity_pool,
+    build_synthetic_dataset,
+    remaining_work_points,
+    velocity_pool,
 )
 
 SIMULATIONS = 10_000

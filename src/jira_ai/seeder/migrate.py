@@ -1,7 +1,9 @@
 """migrate.py — add sprint_id/fix_version_id columns and create the sprints table."""
 
 from sqlalchemy import text
-from src.jira_ai.ingestion.models import engine, Base
+
+from src.jira_ai.ingestion.models import Base, engine
+
 
 def main():
     with engine.begin() as conn:

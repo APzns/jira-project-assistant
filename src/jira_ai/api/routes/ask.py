@@ -1,23 +1,27 @@
 """ask.py — /ask endpoint for natural-language questions about Jira data."""
 
-from fastapi import APIRouter, Depends, Request, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from src.jira_ai.api.db import get_db
 from src.jira_ai.api.services import llm
-from src.jira_ai.api.services.security import check_rate_limit, log_ai_question, log_ai_answer
+from src.jira_ai.api.services.security import (
+    check_rate_limit,
+    log_ai_answer,
+    log_ai_question,
+)
 
 router = APIRouter(prefix="/ask", tags=["ask"])
 
 
-from typing import Optional
+
 
 class Question(BaseModel):
     question: str
-    history: Optional[list] = None   # list of {"question": ..., "answer": ...}
-    context: Optional[str] = None    # active tab: assessment | status | delivery | quality
-    project_key: Optional[str] = None # active project filter e.g. "MOB", "CHK", "CORE"
+    history: list | None = None   # list of {"question": ..., "answer": ...}
+    context: str | None = None    # active tab: assessment | status | delivery | quality
+    project_key: str | None = None # active project filter e.g. "MOB", "CHK", "CORE"
 
 
 @router.post("")
@@ -45,6 +49,7 @@ def ask(payload: Question, request: Request, db: Session = Depends(get_db)):
         raise
 
 from starlette.responses import StreamingResponse
+
 
 @router.post("/stream")
 def ask_stream(payload: Question, request: Request, db: Session = Depends(get_db)):

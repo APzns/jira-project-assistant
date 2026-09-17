@@ -3,7 +3,6 @@
 import os
 import sys
 import unittest
-from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath("."))
 
@@ -14,13 +13,13 @@ from sqlalchemy.pool import StaticPool
 
 from src.jira_ai.api.db import get_db
 from src.jira_ai.api.main import app
-from src.jira_ai.ingestion.models import Base
 from src.jira_ai.api.services.skill_cache import (
     compute_cache_key,
     get_cached_skill,
-    save_skill_cache,
     invalidate_skill_cache,
+    save_skill_cache,
 )
+from src.jira_ai.ingestion.models import Base
 
 
 class TestSkillSuite(unittest.TestCase):

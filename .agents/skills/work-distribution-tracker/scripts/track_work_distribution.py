@@ -4,11 +4,11 @@ track_work_distribution.py — Analyzes capacity balance across Features, Tech D
 Outputs compact JSON summary.
 """
 
-import sys
-import json
 import argparse
-from pathlib import Path
+import json
+import sys
 from collections import defaultdict
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 if str(PROJECT_ROOT) not in sys.path:
@@ -18,7 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
 def load_dataset(project_key=None):
     issues = []
     try:
-        from src.jira_ai.ingestion.models import SessionLocal, Issue
+        from src.jira_ai.ingestion.models import Issue, SessionLocal
         db = SessionLocal()
         query = db.query(Issue)
         if project_key and project_key.upper() not in ("ALL", "GLOBAL"):

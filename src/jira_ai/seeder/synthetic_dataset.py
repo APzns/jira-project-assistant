@@ -15,8 +15,8 @@ Anchor: Sprint 3 is active, "today" sits inside it. Dates chain in 14-day
 cycles from 2026-06-19 to 2026-10-09 (M3 / go-live).
 """
 
-from functools import lru_cache
 import random
+from functools import lru_cache
 
 TEAMS = ["Platform Core", "Checkout Squad", "Security Guild",
          "Growth Squad", "Mobile Team", "Data Insights"]

@@ -1,13 +1,23 @@
 """engine.py — Core assessment orchestrator and caching service."""
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
+from src.jira_ai.api.services.assessment.context import (
+    _compute_metrics,
+    _synthetic_metrics,
+)
+from src.jira_ai.api.services.assessment.evaluators import (
+    _build_monte_carlo,
+    _forecast_delay_days,
+    _load_risk_lenses,
+)
+from src.jira_ai.api.services.assessment.prompts import (
+    _build_fallback_assessment,
+    _call_gemini_assessment,
+)
 from src.jira_ai.api.services.context import load_project_context
 from src.jira_ai.ingestion.models import AssessmentCache
-from src.jira_ai.api.services.assessment.context import _compute_metrics, _synthetic_metrics
-from src.jira_ai.api.services.assessment.evaluators import _build_monte_carlo, _forecast_delay_days, _load_risk_lenses
-from src.jira_ai.api.services.assessment.prompts import _call_gemini_assessment, _build_fallback_assessment
 
 REAL_CACHE_ID = 1
 SYNTHETIC_CACHE_ID = 2
@@ -30,11 +40,11 @@ def _save_to_cache(db, assessment: dict, cache_id: int = REAL_CACHE_ID) -> None:
     payload = json.dumps(assessment, default=str)
     if row is None:
         row = AssessmentCache(id=cache_id, payload=payload,
-                              generated_at=datetime.now(timezone.utc).replace(tzinfo=None))
+                              generated_at=datetime.now(UTC).replace(tzinfo=None))
         db.add(row)
     else:
         row.payload = payload
-        row.generated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        row.generated_at = datetime.now(UTC).replace(tzinfo=None)
     db.commit()
 
 
@@ -180,7 +190,7 @@ EXAMPLE tone and depth (do not copy verbatim — adapt to the actual data):
 Return your assessment in the required structured format.
 
 ===== PROJECT CONTEXT =====
-Today's Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}
+Today's Date: {datetime.now(UTC).strftime('%Y-%m-%d')}
 {context}
 
 ===== RISK LENSES (what to examine — you write the findings) =====
@@ -206,7 +216,7 @@ Today's Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}
     assessment["project_key"] = project_key or "ALL"
     assessment["metrics"] = metrics
     assessment["mode"] = mode
-    assessment["generated_at"] = datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
+    assessment["generated_at"] = datetime.now(UTC).replace(tzinfo=None).isoformat()
     assessment["monte_carlo"] = _build_monte_carlo(metrics)
     metrics["forecast_delay_days"] = _forecast_delay_days(metrics)
 

@@ -11,7 +11,7 @@ from sqlalchemy.pool import StaticPool
 
 from src.jira_ai.api.db import get_db
 from src.jira_ai.api.main import app
-from src.jira_ai.ingestion.models import Base, Issue, Sprint, FixVersion
+from src.jira_ai.ingestion.models import Base, FixVersion, Issue, Sprint
 
 
 class TestProjectDashboards(unittest.TestCase):

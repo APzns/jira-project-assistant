@@ -10,8 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -33,7 +32,7 @@ def _compute_settings_hash(settings: dict) -> str:
     return hashlib.md5(encoded).hexdigest()[:16]
 
 
-def compute_cache_key(skill_name: str, project_key: Optional[str], settings: dict) -> tuple[str, str]:
+def compute_cache_key(skill_name: str, project_key: str | None, settings: dict) -> tuple[str, str]:
     """Return deterministic (cache_key, settings_hash)."""
     norm_project = (project_key or "ALL").upper().strip()
     norm_skill = skill_name.lower().strip()
@@ -45,10 +44,10 @@ def compute_cache_key(skill_name: str, project_key: Optional[str], settings: dic
 def get_cached_skill(
     db: Session,
     skill_name: str,
-    project_key: Optional[str],
+    project_key: str | None,
     settings: dict,
     max_age_seconds: int = 14400,
-) -> Optional[dict]:
+) -> dict | None:
     """Retrieve cached skill execution result if present and not expired."""
     try:
         cache_key, _ = compute_cache_key(skill_name, project_key, settings)
@@ -59,7 +58,7 @@ def get_cached_skill(
 
         # Check TTL (default 4 hours)
         if row.generated_at:
-            age = (datetime.now(timezone.utc).replace(tzinfo=None) - row.generated_at).total_seconds()
+            age = (datetime.now(UTC).replace(tzinfo=None) - row.generated_at).total_seconds()
             if age > max_age_seconds:
                 return None
 
@@ -77,7 +76,7 @@ def get_cached_skill(
 def save_skill_cache(
     db: Session,
     skill_name: str,
-    project_key: Optional[str],
+    project_key: str | None,
     settings: dict,
     result: dict,
 ) -> None:
@@ -94,7 +93,7 @@ def save_skill_cache(
         stmt = select(SkillCache).where(SkillCache.cache_key == cache_key)
         existing = db.execute(stmt).scalar_one_or_none()
 
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        now = datetime.now(UTC).replace(tzinfo=None)
         if existing:
             existing.payload = payload_str
             existing.generated_at = now
@@ -116,8 +115,8 @@ def save_skill_cache(
 
 def invalidate_skill_cache(
     db: Session,
-    project_key: Optional[str] = None,
-    skill_name: Optional[str] = None,
+    project_key: str | None = None,
+    skill_name: str | None = None,
 ) -> int:
     """Clear cached skill executions when new Jira data is ingested or seeded."""
     try:
@@ -144,7 +143,7 @@ def prune_stale_cache(
     Deletes records older than max_age_days and bounds the table size to max_rows."""
     deleted_count = 0
     try:
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        now = datetime.now(UTC).replace(tzinfo=None)
         # 1. Delete rows older than max_age_days
         from datetime import timedelta
         cutoff = now - timedelta(days=max_age_days)

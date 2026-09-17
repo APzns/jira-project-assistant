@@ -2,6 +2,7 @@
 """docs.py — serves project_data markdown files for the Documentation tab."""
 
 from pathlib import Path
+
 from fastapi import APIRouter
 
 router = APIRouter(prefix="/docs-data", tags=["docs"])

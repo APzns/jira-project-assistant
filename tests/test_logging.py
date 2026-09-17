@@ -10,7 +10,7 @@ from unittest.mock import patch
 sys.path.insert(0, os.path.abspath("."))
 
 import src.jira_ai.logging_config as logging_config
-from src.jira_ai.logging_config import setup_logging, APP_LOG_PATH
+from src.jira_ai.logging_config import APP_LOG_PATH, setup_logging
 
 
 class TestLoggingConfig(unittest.TestCase):
