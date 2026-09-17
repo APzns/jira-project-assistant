@@ -36,7 +36,7 @@ def discover_custom_fields() -> dict:
                          "sprint": "customfield_10020",
                          "team": "customfield_10001"}.
     """
-    resp = requests.get(f"{BASE_URL}/rest/api/3/field", headers=_auth_header())
+    resp = requests.get(f"{BASE_URL}/rest/api/3/field", headers=_auth_header(), timeout=30)
     resp.raise_for_status()
     mapping = {}
     for field in resp.json():
@@ -78,7 +78,7 @@ def fetch_all_issues(custom_fields: dict, project_keys: list[str] | str | None =
             payload["nextPageToken"] = next_page_token
 
         response = requests.post(f"{BASE_URL}/rest/api/3/search/jql",
-                                headers=_auth_header(), json=payload)
+                                headers=_auth_header(), json=payload, timeout=30)
         response.raise_for_status()
         data = response.json()
 
@@ -106,6 +106,7 @@ def fetch_project_versions(project_key: str) -> list[dict]:
             headers=_auth_header(),
             params={"startAt": start_at, "maxResults": 50,
                     "orderBy": "releaseDate"},
+            timeout=30,
         )
         if resp.status_code == 404:
             print(f"  ! Project '{project_key}' not found when fetching versions.")
@@ -131,6 +132,7 @@ def discover_boards_for_project(project_key: str | None = None) -> list[dict]:
         f"{BASE_URL}/rest/agile/1.0/board",
         headers=_auth_header(),
         params=params,
+        timeout=30,
     )
     if resp.status_code >= 400:
         return []
@@ -146,6 +148,7 @@ def fetch_sprints_for_board(board_id: int | str) -> list[dict]:
             f"{BASE_URL}/rest/agile/1.0/board/{board_id}/sprint",
             headers=_auth_header(),
             params={"startAt": start_at, "maxResults": 50},
+            timeout=30,
         )
         if resp.status_code >= 400:
             break

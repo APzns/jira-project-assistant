@@ -11,14 +11,15 @@ Most Jira dashboards report *what happened*. This tool interprets *what it means
 ## Architecture
 
 ```
-Jira  ->  Ingestion  ->  Postgres  ->  FastAPI  ->  Dashboard (dark, 3 tabs)
+Jira  ->  Ingestion  ->  Postgres  ->  FastAPI  ->  Dashboard (multi-page)
                                           |
-                          +---------------+----------------+
-                          v               v                v
-                     /stats (metrics)  /ask (NL->SQL)   /assess (AI briefing)
-                                                            ^
-                                              project_data/*.md (plan/intent)
-                                                     + Gemini reasoning
+                          +-------+-------+-------+-------+
+                          v       v       v       v       v
+                      /stats   /ask    /assess  /skills  /assistant
+                    (metrics) (NL→SQL)  (AI)   (analysis) (chat)
+                                          ^
+                            project_data/*.md (plan/intent)
+                                   + Gemini reasoning
 ```
 
 - **Ingestion** pulls Jira issues into Postgres (idempotent upsert).
@@ -38,12 +39,16 @@ Jira  ->  Ingestion  ->  Postgres  ->  FastAPI  ->  Dashboard (dark, 3 tabs)
 
 ```
 src/jira_ai/
-  ingestion/      # Jira pull + SQLAlchemy models (Issue, AssessmentCache)
+  ingestion/      # Jira REST API client + SQLAlchemy models
+  seeder/         # Deterministic synthetic dataset generator
   api/
-    routes/       # ask, assess, stats, docs endpoints
-    services/     # metrics, assessment, context, llm
-frontend/         # static dashboard (index.html, styles.css, app.js)
+    routes/       # ask, assess, stats, skills, assistant, projects, reports, settings, stakeholders
+    services/     # metrics, assessment engine, LLM integration, security
+frontend/         # static dashboard (Vanilla JS, Chart.js, CSS)
+  js/views/       # modular page views (assessment, delivery, quality, projects, etc.)
 project_data/     # the program "intent": charter, risks, decisions, etc.
+infra/            # Dockerfile, Terraform (GCP Cloud Run + Cloud SQL)
+tests/            # pytest suite (API, edge cases, prompt injection, reports)
 ```
 
 ## The project_data files
@@ -83,20 +88,18 @@ python -m src.jira_ai.ingestion.run_ingestion
 uvicorn src.jira_ai.api.main:app --reload
 ```
 
-5. Serve the frontend:
-
-```
-cd frontend
-python -m http.server 5500
-```
-
-Open http://127.0.0.1:5500
+5. Open http://127.0.0.1:8000 in your browser (FastAPI serves the frontend directly).
 
 ## Features
 
-- **Assessment tab** — AI program briefing (RAG status, milestones, risks, forecast, actions) with a data-freshness timestamp. Loads the last cached report instantly; "Refresh report" regenerates it. Includes a collapsible follow-up question box with history.
-- **Charts tab** — status, type, priority, and sprint-velocity charts.
-- **Documentation tab** — the project_data files rendered on one page.
+- **Command Center** — portfolio-level overview with project health cards, telemetry metrics, and executive KPIs.
+- **Assessment** — AI program briefing (RAG status, milestones, risks, Monte Carlo forecast, actions) with data-freshness timestamp. Loads cached reports instantly; "Refresh report" regenerates via Gemini.
+- **Delivery & Quality tabs** — sprint velocity, committed vs. completed story points, predictability trends, defect ratios, and burndown charts.
+- **Status** — hierarchical milestone/team/version status table with tree-view drill-down.
+- **Projects** — multi-project governance, CRUD, RACI matrix, and per-project settings.
+- **Reports** — Report Studio for generating custom multi-audience reports (Executive, TPM, Engineering) with export to Markdown and HTML.
+- **Stakeholders** — stakeholder registry with persona cards and RACI assignments.
+- **AI Assistant** — full-page conversational copilot (natural-language questions, TPM advice, skill-routed analysis) plus a global chat drawer accessible from any page.
 
 ## Design decisions
 
@@ -128,6 +131,6 @@ In the deployed setup, ingestion runs as a scheduled **Cloud Run job** triggered
 - **Incremental sync** — fetch only recently changed issues using a JQL filter (`updated >= -1d`) instead of a full pull. Useful at larger scale.
 - **Jira webhooks** — push updates to the API on change for near-real-time refresh, at the cost of a public endpoint and delivery-failure handling.
 
-## Roadmap
+## License
 
-
+MIT — see [LICENSE](LICENSE).

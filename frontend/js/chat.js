@@ -153,19 +153,16 @@ export async function askQuestion(inputId, buttonId) {
   const contextTab = _getActiveTab();
 
   try {
-    const res = await fetch(`${API_BASE}/ask/stream`, {
+    const res = await fetchWithTimeout(`${API_BASE}/ask/stream`, {
       method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Basic ${btoa("demo:Dem06435")}`
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         question: q,
         history: historyPayload.length ? historyPayload : undefined,
         context: contextTab || undefined,
         project_key: state.currentProject || undefined,
       }),
-    });
+    }, 120000);
 
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}: API error`);

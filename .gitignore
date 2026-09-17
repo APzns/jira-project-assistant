@@ -1,6 +1,12 @@
 # Secrets
 .env
 *.env.local
+*.key
+*.pem
+*.secret
+*.pfx
+*.p12
+id_rsa*
 
 # Python
 venv/

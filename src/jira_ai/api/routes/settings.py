@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -64,9 +64,9 @@ class ReportProfile(BaseModel):
     name: str = "Custom Report"
     is_default: Optional[bool] = False
     stakeholder: Optional[str] = "program_manager"
-    focus_teams: Optional[List[str]] = []
-    focus_epics: Optional[List[str]] = []
-    risk_categories: Optional[List[str]] = ["dependency", "velocity", "overcommitment"]
+    focus_teams: Optional[List[str]] = Field(default_factory=list)
+    focus_epics: Optional[List[str]] = Field(default_factory=list)
+    risk_categories: Optional[List[str]] = Field(default_factory=lambda: ["dependency", "velocity", "overcommitment"])
     min_risk_severity: Optional[str] = "medium"
     summary_verbosity: Optional[str] = "brief"
     custom_instructions: Optional[str] = ""
@@ -106,9 +106,9 @@ class AISettings(BaseModel):
     active_profile_id: Optional[str] = "default-exec"
     profiles: Optional[List[ReportProfile]] = None
     stakeholder: Optional[str] = "program_manager"
-    focus_teams: Optional[List[str]] = []
-    focus_epics: Optional[List[str]] = []
-    risk_categories: Optional[List[str]] = ["dependency", "velocity", "overcommitment"]
+    focus_teams: Optional[List[str]] = Field(default_factory=list)
+    focus_epics: Optional[List[str]] = Field(default_factory=list)
+    risk_categories: Optional[List[str]] = Field(default_factory=lambda: ["dependency", "velocity", "overcommitment"])
     min_risk_severity: Optional[str] = "medium"
     summary_verbosity: Optional[str] = "brief"
     custom_instructions: Optional[str] = ""

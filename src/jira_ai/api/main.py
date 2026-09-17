@@ -62,7 +62,7 @@ app.add_middleware(
 
 # ---- Basic Auth (protects the whole app: pages, static files, API) ----
 _AUTH_USER = os.environ.get("BASIC_AUTH_USER", "demo").strip()
-_AUTH_PASS = os.environ.get("BASIC_AUTH_PASS", "Dem06435").strip()
+_AUTH_PASS = os.environ.get("BASIC_AUTH_PASS", "").strip()
 
 
 # Paths that must work WITHOUT a password (health check for Cloud Run).

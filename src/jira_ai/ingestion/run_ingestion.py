@@ -23,9 +23,8 @@ from src.jira_ai.ingestion.jira_client import (
     fetch_all_issues, discover_custom_fields, fetch_project_versions,
     fetch_sprints,
 )
-from src.jira_ai.ingestion.models import (
-    Issue, IssueLink, FixVersion, Sprint, SessionLocal, init_db,
-)
+from src.jira_ai.ingestion.models import Issue, IssueLink, FixVersion, Sprint
+from src.jira_ai.database import SessionLocal, init_db
 from src.jira_ai.api.services.assessment import warmup_assessment_cache
 from src.jira_ai.api.services.skill_cache import invalidate_skill_cache, prune_stale_cache
 

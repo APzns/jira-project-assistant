@@ -2,12 +2,15 @@
 
 import { API_BASE } from "./state.js";
 
-const _AUTH_HEADER = `Basic ${btoa('demo:Dem06435')}`;
+// Credentials are handled by the browser's native Basic Auth challenge.
+// On the first 401 response, the browser prompts the user and caches
+// the credentials for the session — no hardcoded passwords in source.
+
 export async function fetchWithTimeout(url, options = {}, timeoutMs = 45000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, { credentials: "include", ...options, headers: { Authorization: _AUTH_HEADER, ...(options.headers || {}) }, signal: controller.signal });
+    const response = await fetch(url, { credentials: "same-origin", ...options, headers: { ...(options.headers || {}) }, signal: controller.signal });
     return response;
   } catch (error) {
     if (error.name === 'AbortError') {

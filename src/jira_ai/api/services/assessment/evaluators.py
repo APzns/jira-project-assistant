@@ -1,6 +1,6 @@
 """evaluators.py — Monte Carlo burn-up, delay calculations, and risk lens loader."""
 
-from datetime import date
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from src.jira_ai.api.services.assessment.context import _pick
 

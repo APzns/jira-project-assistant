@@ -1,6 +1,8 @@
 # assess.py — /assess endpoints: AI program-status assessment.
+import logging
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, Response
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from src.jira_ai.api.db import get_db
@@ -27,12 +29,13 @@ def refresh_assessment(
         response.headers["X-Report-Status"] = "generated_fresh_success"
         return res
     except Exception as exc:
+        logging.getLogger("jira_ai").warning("Assessment refresh failed: %s", exc)
         cached = assessment.get_cached_assessment(db, mode=mode, project_key=project_key)
         if cached:
             response.headers["X-Report-Status"] = "fallback_cached_error"
             return {"cached": True, **cached, "warning": "Assessment updated with cached fallback due to internal error."}
         response.headers["X-Report-Status"] = "error"
-        return {"error": "Failed to refresh assessment."}
+        return JSONResponse(status_code=500, content={"error": "Failed to refresh assessment."})
 
 
 @router.get("/latest")
@@ -49,8 +52,9 @@ def latest_assessment(
         response.headers["X-Report-Status"] = "loaded_cached_success"
         return {"cached": True, **assessment_data}
     except Exception as exc:
+        logging.getLogger("jira_ai").warning("Latest assessment load failed: %s", exc)
         response.headers["X-Report-Status"] = "error"
-        return {"error": "Failed to load latest assessment.", "cached": False}
+        return JSONResponse(status_code=500, content={"error": "Failed to load latest assessment.", "cached": False})
 
 
 

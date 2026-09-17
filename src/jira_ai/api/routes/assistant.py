@@ -4,6 +4,7 @@ Directly answers natural language questions, provides TPM advice, next steps,
 and trade-off analyses, while only proposing report templates when explicitly requested.
 """
 
+import logging
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from pydantic import BaseModel, Field
@@ -70,5 +71,6 @@ def chat(payload: AssistantMessage, request: Request, db: Session = Depends(get_
         log_ai_answer(client_ip, result.get("reply"))
         return result
     except Exception as exc:
+        logging.getLogger("jira_ai").error("Assistant error: %s", exc, exc_info=True)
         log_ai_answer(client_ip, answer=None, error=str(exc))
-        raise HTTPException(status_code=500, detail=f"Assistant error: {exc}")
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")

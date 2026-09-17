@@ -12,40 +12,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 import time
 
-from dotenv import load_dotenv
-from sqlalchemy import Boolean, DateTime, Integer, String, Text, create_engine
+from sqlalchemy import Boolean, DateTime, Integer, String, Text
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
+from sqlalchemy.orm import Mapped, mapped_column
 
-
-def run_with_retry(fn, retries: int = 4, base_delay: float = 1.0):
-    """Run a DB operation, retrying on transient connection errors.
-
-    Handles Neon cold starts: the first connect after the DB has scaled
-    to zero can fail while it wakes up. We retry with increasing delay.
-    """
-    last_exc = None
-    for attempt in range(retries):
-        try:
-            return fn()
-        except OperationalError as exc:
-            last_exc = exc
-            if attempt < retries - 1:
-                time.sleep(base_delay * (attempt + 1))  # 1s, 2s, 3s...
-    raise last_exc
-
-
-# Load environment variables explicitly from project root if available
-_env_path = Path(__file__).resolve().parents[3] / ".env"
-if _env_path.exists():
-    load_dotenv(dotenv_path=_env_path)
-else:
-    load_dotenv()
-
-
-class Base(DeclarativeBase):
-    """Base class for all ORM models."""
-    pass
+from src.jira_ai.database import Base
 
 
 class Issue(Base):
@@ -189,32 +160,3 @@ class Sprint(Base):
     end_date: Mapped[str | None] = mapped_column(String, nullable=True)     # ISO datetime or None
     board_id: Mapped[str | None] = mapped_column(String, nullable=True)
     goal: Mapped[str | None] = mapped_column(String, nullable=True)
-
-
-DATABASE_URL = os.environ.get("DATABASE_URL", "")
-
-if DATABASE_URL:
-    engine = create_engine(
-        DATABASE_URL,
-        echo=False,
-        pool_pre_ping=True,   # verify a connection is alive before using it;
-                              # transparently reconnects if Neon suspended the DB
-        pool_recycle=300,     # drop connections older than 5 min so they don't go stale
-    )
-else:
-    _db_path = Path(__file__).resolve().parents[3] / "project_data" / "jira_ai.db"
-    _db_path.parent.mkdir(parents=True, exist_ok=True)
-    DATABASE_URL = f"sqlite:///{_db_path}"
-    engine = create_engine(
-        DATABASE_URL,
-        echo=False,
-        connect_args={"check_same_thread": False},
-    )
-
-SessionLocal = sessionmaker(bind=engine)
-
-
-def init_db() -> None:
-    """Create all tables if they do not exist yet."""
-    if engine is not None:
-        Base.metadata.create_all(engine)
