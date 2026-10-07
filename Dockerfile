@@ -30,7 +30,9 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD curl -f http://localhost:${PORT}/health || exit 1
 
 # Run as non-root for security.
-RUN adduser --disabled-password --no-create-home appuser
+RUN adduser --disabled-password --no-create-home appuser \
+    && mkdir -p /app/logs \
+    && chown -R appuser:appuser /app/logs
 USER appuser
 
 # Start the app. Note: no --reload in production.

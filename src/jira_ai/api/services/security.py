@@ -12,9 +12,14 @@ from pathlib import Path
 
 logger = logging.getLogger("jira_ai.security")
 
-# Ensure logs directory exists
+# Ensure logs directory exists (fallback gracefully if read-only filesystem or non-root user without permission)
 LOGS_DIR = Path(__file__).resolve().parents[4] / "logs"
-LOGS_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+except PermissionError:
+    LOGS_DIR = Path("/tmp/logs")
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
 AUDIT_LOG_PATH = LOGS_DIR / "security_audit.log"
 
 MAX_QUESTION_LENGTH = 800
