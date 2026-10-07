@@ -1026,11 +1026,11 @@ const FALLBACK_TEMPLATES = [
 ];
 
 const FALLBACK_STAKEHOLDERS = [
-  { id: "pm-default", name: "Alex Mercer", role: "Lead Technical Program Manager", role_type: "Technical Program Manager", projects: ["HRZ", "CHK", "CORE", "MOB"] },
-  { id: "exec-sponsor", name: "David Kim", role: "VP of Engineering & Executive Sponsor", role_type: "Executive", projects: ["HRZ", "CHK", "CORE", "MOB"] },
-  { id: "eng-lead-core", name: "Rachel Green", role: "Core Platform Tech Lead", role_type: "Engineering", projects: ["CORE"] },
-  { id: "qa-lead", name: "Marcus Vance", role: "Principal QA & Release Architect", role_type: "Quality Assurance", projects: ["HRZ", "CHK"] },
-  { id: "po-checkout", name: "Elena Rostova", role: "Checkout & Payments Group Product Manager", role_type: "Product", projects: ["CHK"] }
+  { id: "pm-default", name: "Alex Mercer", role: "Lead Technical Program Manager", category: "delivery", role_type: "delivery", projects: ["HRZ", "CHK", "CORE", "MOB"] },
+  { id: "exec-sponsor", name: "David Kim", role: "VP of Engineering & Executive Sponsor", category: "leadership", role_type: "leadership", projects: ["HRZ", "CHK", "CORE", "MOB"] },
+  { id: "eng-lead-core", name: "Rachel Green", role: "Core Platform Tech Lead", category: "engineering", role_type: "engineering", projects: ["CORE"] },
+  { id: "qa-lead", name: "Marcus Vance", role: "Principal QA & Release Architect", category: "quality", role_type: "quality", projects: ["HRZ", "CHK"] },
+  { id: "po-checkout", name: "Elena Rostova", role: "Checkout & Payments Group Product Manager", category: "product", role_type: "product", projects: ["CHK"] }
 ];
 
 let _cachedReports = { templates: FALLBACK_TEMPLATES };

@@ -7,6 +7,7 @@
 import { $, escapeHtml } from "../utils.js";
 import { API_BASE } from "../state.js";
 import { fetchWithTimeout } from "../api.js";
+import { getDomainInfo } from "./stakeholders.js";
 
 let _projectsData = [
   {
@@ -647,7 +648,9 @@ function renderProjectStakeholdersView() {
 
   container.innerHTML = sortedAssignments.map(assignment => {
     const sh = _allStakeholders.find(s => s.id === assignment.stakeholder_id);
-    const roleName = sh ? (sh.role || sh.role_type || "Stakeholder") : "Unknown Stakeholder";
+    const roleName = sh ? (sh.role || "Stakeholder") : "Unknown Stakeholder";
+    const dInfo = sh ? getDomainInfo(sh.category || sh.role_type) : null;
+    const domainBadge = dInfo ? `<span class="sh-domain-badge" style="margin-left: 6px;" title="Domain: ${escapeHtml(dInfo.label)}">${dInfo.icon} ${escapeHtml(dInfo.label)}</span>` : "";
     const people = sh ? (sh.people || []) : [];
     const raciKey = (assignment.raci || "C").toUpperCase();
     const raci = RACI_MAP[raciKey] || RACI_MAP["C"];
@@ -667,7 +670,7 @@ function renderProjectStakeholdersView() {
         <div class="pd-sh-card-header">
           <div class="pd-sh-title-wrap">
             <div>
-              <div class="pd-sh-role">${escapeHtml(roleName)}</div>
+              <div class="pd-sh-role">${escapeHtml(roleName)} ${domainBadge}</div>
               ${peopleHtml}
             </div>
           </div>
@@ -719,6 +722,8 @@ function renderSearchableRoleDropdown(filterQuery = "") {
     itemsHtml = filtered.map(s => {
       const alreadyAssigned = _projectAssignments.some(a => a.stakeholder_id === s.id);
       const roleName = escapeHtml(s.role || s.role_type || "Stakeholder");
+      const dInfo = getDomainInfo(s.category || s.role_type);
+      const domainBadge = `<span class="sh-domain-badge" style="font-size: 10px; padding: 0 5px;" title="Domain: ${escapeHtml(dInfo.label)}">${dInfo.icon} ${escapeHtml(dInfo.label)}</span>`;
       const people = s.people || [];
       const peopleText = people.length > 0 
         ? people.map(p => escapeHtml(p.name)).join(", ")
@@ -730,6 +735,7 @@ function renderSearchableRoleDropdown(filterQuery = "") {
           <div class="pd-sh-menu-info">
             <div class="pd-sh-menu-title-row">
               <strong class="pd-sh-menu-title">${roleName}</strong>
+              ${domainBadge}
               <span class="pd-sh-menu-badge">${ownerTag}</span>
             </div>
             <div class="pd-sh-menu-sub">${peopleText}</div>

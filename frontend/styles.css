@@ -3595,7 +3595,7 @@ pre { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-
 /* Table Header */
 .stakeholders-table-header {
   display: grid;
-  grid-template-columns: 280px 1fr 160px;
+  grid-template-columns: minmax(260px, 320px) 120px 1fr 130px;
   gap: 16px;
   padding: 10px 18px;
   background: rgba(0, 0, 0, 0.02);
@@ -3621,7 +3621,7 @@ pre { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-
 
 .stakeholder-row {
   display: grid;
-  grid-template-columns: 280px 1fr 160px;
+  grid-template-columns: minmax(260px, 320px) 120px 1fr 130px;
   gap: 16px;
   align-items: center;
   padding: 14px 18px;
@@ -3703,6 +3703,19 @@ pre { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-
   border: 1px solid rgba(37, 99, 235, 0.25);
 }
 
+.sh-domain-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-weight: 500;
+  background: var(--surface-3, rgba(255, 255, 255, 0.06));
+  color: var(--text-dim, #9aa4b2);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+}
+
 /* Owner Badges */
 .sh-owner-badge {
   display: inline-flex;
@@ -3754,6 +3767,21 @@ pre { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-
   border: 1px solid var(--border);
   border-radius: 6px;
   cursor: help;
+}
+
+/* Owner Column */
+.sh-col-owner,
+.sh-col-type {
+  display: flex;
+  align-items: center;
+}
+
+.sh-owner-wrapper,
+.sh-type-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 /* Name Column */

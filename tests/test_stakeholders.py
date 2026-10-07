@@ -69,12 +69,14 @@ class TestStakeholdersEndpoint(unittest.TestCase):
         sh = data["stakeholder"]
         self.assertEqual(sh["id"], "eng-lead")
         self.assertEqual(sh["role"], "Engineering Lead")
+        self.assertEqual(sh["category"], "engineering")
 
     def test_update_existing_standard_stakeholder(self):
         # Update existing Engineering Lead stakeholder
         payload = {
             "role": "Lead Systems Architect",
-            "role_type": "engineering_lead",
+            "category": "engineering",
+            "role_type": "engineering",
             "description": "Focuses on technical debt and microservices scalability.",
             "other_notes": "Quarterly architecture reviews with core platform team.",
             "people": [
@@ -90,6 +92,7 @@ class TestStakeholdersEndpoint(unittest.TestCase):
         self.assertTrue(data.get("updated"))
         sh = data.get("stakeholder")
         self.assertEqual(sh["role"], "Lead Systems Architect")
+        self.assertEqual(sh["category"], "engineering")
         self.assertEqual(len(sh["people"]), 2)
         self.assertEqual(sh["people"][1]["name"], "Alex Tech")
         self.assertEqual(sh["other_notes"], "Quarterly architecture reviews with core platform team.")
@@ -99,12 +102,14 @@ class TestStakeholdersEndpoint(unittest.TestCase):
         self.assertEqual(get_res.status_code, 200)
         get_sh = get_res.json()["stakeholder"]
         self.assertEqual(get_sh["role"], "Lead Systems Architect")
+        self.assertEqual(get_sh["category"], "engineering")
 
     def test_create_and_delete_stakeholder(self):
         # Create a new custom stakeholder
         new_payload = {
             "role": "Security Officer",
-            "role_type": "security_lead",
+            "category": "security",
+            "role_type": "security",
             "description": "Focuses on SOC2 compliance and vuln tracking.",
             "other_notes": "Weekly security council briefings.",
             "people": [
@@ -119,6 +124,7 @@ class TestStakeholdersEndpoint(unittest.TestCase):
         new_id = new_sh["id"]
         self.assertTrue(new_id)
         self.assertEqual(new_sh["role"], "Security Officer")
+        self.assertEqual(new_sh["category"], "security")
 
         # Verify it exists in list
         list_res = self.client.get("/stakeholders")

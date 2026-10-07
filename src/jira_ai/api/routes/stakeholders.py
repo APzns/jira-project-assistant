@@ -89,7 +89,8 @@ DEFAULT_STAKEHOLDERS = [
     {
         "id": "pm-default",
         "role": "Project Manager",
-        "role_type": "project_manager",
+        "category": "delivery",
+        "role_type": "delivery",
         "owner": "system",
         "is_builtin": True,
         "description": "Focuses on delivery schedules, sprint health, cross-team dependencies, and team velocity.",
@@ -109,7 +110,8 @@ DEFAULT_STAKEHOLDERS = [
     {
         "id": "exec",
         "role": "Executive Sponsor",
-        "role_type": "executive",
+        "category": "leadership",
+        "role_type": "leadership",
         "owner": "system",
         "is_builtin": True,
         "description": "Focuses on high-level strategic milestones, budget, ROI, and major business risks.",
@@ -129,7 +131,8 @@ DEFAULT_STAKEHOLDERS = [
     {
         "id": "eng-lead",
         "role": "Engineering Lead",
-        "role_type": "engineering_lead",
+        "category": "engineering",
+        "role_type": "engineering",
         "owner": "system",
         "is_builtin": True,
         "description": "Focuses on technical debt, architecture, engineering capacity, and defect ratios.",
@@ -149,7 +152,8 @@ DEFAULT_STAKEHOLDERS = [
     {
         "id": "qa-lead",
         "role": "QA & Release Lead",
-        "role_type": "qa_lead",
+        "category": "quality",
+        "role_type": "quality",
         "owner": "system",
         "is_builtin": True,
         "description": "Focuses on software quality, defect trends, test automation coverage, and release criteria.",
@@ -165,7 +169,8 @@ DEFAULT_STAKEHOLDERS = [
     {
         "id": "po-commerce",
         "role": "Product Owner",
-        "role_type": "product_owner",
+        "category": "product",
+        "role_type": "product",
         "owner": "system",
         "is_builtin": False,
         "description": "Drives checkout user experience, payment gateway conversion, and feature prioritization.",
@@ -199,6 +204,24 @@ def _get_current_username(request: Request) -> str:
     return os.environ.get("BASIC_AUTH_USER", "demo").strip()
 
 
+ROLE_TYPE_TO_CATEGORY = {
+    "project_manager": "delivery",
+    "delivery": "delivery",
+    "executive": "leadership",
+    "leadership": "leadership",
+    "engineering_lead": "engineering",
+    "engineering": "engineering",
+    "qa_lead": "quality",
+    "quality": "quality",
+    "product_owner": "product",
+    "product": "product",
+    "security_lead": "security",
+    "security": "security",
+    "custom": "other",
+    "other": "other",
+}
+
+
 class IndividualPerson(BaseModel):
     name: str
     email: str | None = ""
@@ -207,7 +230,8 @@ class IndividualPerson(BaseModel):
 class StakeholderProfile(BaseModel):
     id: str | None = None
     role: str = "Stakeholder"
-    role_type: str = "custom"
+    category: str = "other"
+    role_type: str = "other"
     owner: str | None = None
     name: str | None = None
     email: str | None = ""
@@ -243,8 +267,17 @@ def _read_stakeholders_from_disk() -> dict:
     else:
         # Normalize fields for backward compatibility
         for s in stakeholders:
+            # Normalize domain category & role_type
+            cat = s.get("category")
+            if not cat:
+                cat = ROLE_TYPE_TO_CATEGORY.get(s.get("role_type"), "other")
+            else:
+                cat = ROLE_TYPE_TO_CATEGORY.get(cat, cat)
+            s["category"] = cat
+            s["role_type"] = cat
+
             if "role" not in s or not s["role"]:
-                s["role"] = s.get("role_type", "Stakeholder").replace("_", " ").title()
+                s["role"] = cat.replace("_", " ").title()
             if "projects" not in s:
                 s["projects"] = ["HRZ"]
             if "priority_areas" not in s:
@@ -334,8 +367,17 @@ def create_stakeholder(profile: StakeholderProfile, request: Request) -> dict:
         new_item = profile.model_dump(exclude_unset=False)
         if not new_item.get("id"):
             new_item["id"] = f"sh-{uuid.uuid4().hex[:8]}"
+
+        cat = new_item.get("category")
+        if not cat:
+            cat = ROLE_TYPE_TO_CATEGORY.get(new_item.get("role_type"), "other")
+        else:
+            cat = ROLE_TYPE_TO_CATEGORY.get(cat, cat)
+        new_item["category"] = cat
+        new_item["role_type"] = cat
+
         if not new_item.get("role"):
-            new_item["role"] = new_item.get("role_type", "Stakeholder").replace("_", " ").title()
+            new_item["role"] = cat.replace("_", " ").title()
         if not new_item.get("name"):
             new_item["name"] = new_item["role"]
 
@@ -378,8 +420,16 @@ def update_stakeholder(stakeholder_id: str, profile: StakeholderProfile, request
     updated_item["owner"] = owner
     updated_item["is_builtin"] = existing.get("is_builtin", False)
 
+    cat = updated_item.get("category")
+    if not cat:
+        cat = ROLE_TYPE_TO_CATEGORY.get(updated_item.get("role_type"), "other")
+    else:
+        cat = ROLE_TYPE_TO_CATEGORY.get(cat, cat)
+    updated_item["category"] = cat
+    updated_item["role_type"] = cat
+
     if not updated_item.get("role"):
-        updated_item["role"] = updated_item.get("role_type", "Stakeholder").replace("_", " ").title()
+        updated_item["role"] = cat.replace("_", " ").title()
     if not updated_item.get("name"):
         updated_item["name"] = updated_item["role"]
 

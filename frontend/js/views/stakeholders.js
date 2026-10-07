@@ -30,26 +30,42 @@ let PROJECT_MAP = {
   "HRZ": { name: "Horizon", color: "#f5a623" }
 };
 
+export const DOMAIN_MAP = {
+  "other": { label: "Other / General", icon: "👤", desc: "General directives, uncategorized focus" },
+  "leadership": { label: "Leadership & Strategy", icon: "👑", desc: "High-level milestones, strategic ROI, executive risks" },
+  "delivery": { label: "Program & Delivery", icon: "🎯", desc: "Delivery schedules, sprint health, cross-team blockers" },
+  "engineering": { label: "Engineering & Architecture", icon: "⚙️", desc: "Tech debt ratios, architecture, engineering capacity" },
+  "quality": { label: "Quality & Release", icon: "🧪", desc: "Test coverage, defect escape trends, release criteria" },
+  "product": { label: "Product & Commerce", icon: "💡", desc: "Feature scope, user journey conversion, backlog priorities" },
+  "security": { label: "Security & Compliance", icon: "🔒", desc: "SOC2 compliance, audit trails, vuln remediation" }
+};
+
+export function getDomainInfo(catOrRoleType) {
+  const norm = (catOrRoleType || "").toLowerCase();
+  if (norm === "project_manager" || norm === "delivery") return DOMAIN_MAP["delivery"];
+  if (norm === "executive" || norm === "leadership") return DOMAIN_MAP["leadership"];
+  if (norm === "engineering_lead" || norm === "engineering") return DOMAIN_MAP["engineering"];
+  if (norm === "qa_lead" || norm === "quality") return DOMAIN_MAP["quality"];
+  if (norm === "product_owner" || norm === "product") return DOMAIN_MAP["product"];
+  if (norm === "security_lead" || norm === "security") return DOMAIN_MAP["security"];
+  return DOMAIN_MAP[norm] || DOMAIN_MAP["other"];
+}
+
 const ROLE_ICONS = {
+  "delivery": "🎯",
+  "leadership": "👑",
+  "engineering": "⚙️",
+  "quality": "🧪",
+  "product": "💡",
+  "security": "🔒",
+  "other": "👤",
   "project_manager": "🎯",
   "executive": "👑",
   "engineering_lead": "⚙️",
   "qa_lead": "🧪",
   "product_owner": "💡",
   "security_lead": "🔒",
-  "devops_lead": "🚀",
   "custom": "👤"
-};
-
-const ROLE_LABELS = {
-  "project_manager": "Project Manager (Delivery schedules, sprint health, cross-team blockers)",
-  "executive": "Executive Sponsor (High-level milestones, strategic ROI, executive risks)",
-  "engineering_lead": "Engineering Lead (Tech debt ratios, architecture, engineering capacity)",
-  "qa_lead": "QA & Release Lead (Test coverage, defect escape trends, release criteria)",
-  "product_owner": "Product Owner (Feature scope, user journey conversion, backlog priorities)",
-  "security_lead": "Security Lead (SOC2 compliance, audit trails, vuln remediation)",
-  "devops_lead": "DevOps Lead (CI/CD pipeline throughput, infra reliability, deployment velocity)",
-  "custom": "Custom Persona (Pure custom directives, no predefined AI bias)"
 };
 
 /**
@@ -88,34 +104,7 @@ export async function renderStakeholdersPage() {
     console.error("Error fetching stakeholders:", err);
   }
 
-  updateStakeholdersStats();
   applyStakeholderFilters();
-}
-
-/**
- * Update quick stats strip at the top of the stakeholders page.
- */
-function updateStakeholdersStats() {
-  const totalEl = $("sh-stat-total");
-  const builtinEl = $("sh-stat-builtin");
-  const customEl = $("sh-stat-custom");
-  const projectsEl = $("sh-stat-projects");
-
-  if (!totalEl) return;
-
-  const total = _stakeholdersData.length;
-  const builtin = _stakeholdersData.filter(s => s.is_builtin || s.owner === "system").length;
-  const custom = total - builtin;
-
-  const projectSet = new Set();
-  _stakeholdersData.forEach(s => {
-    (s.projects || []).forEach(p => projectSet.add(p));
-  });
-
-  totalEl.textContent = total;
-  if (builtinEl) builtinEl.textContent = builtin;
-  if (customEl) customEl.textContent = custom;
-  if (projectsEl) projectsEl.textContent = projectSet.size || "4";
 }
 
 /**
@@ -156,7 +145,7 @@ export function showStakeholderDetail(stakeholderId) {
   _currentEditingId = s.id;
 
   // Reset all sections to view mode
-  [1, 2, 3, 4, 5].forEach(secNum => _toggleShSectionEdit(secNum, false));
+  [1, 2, 3, 4].forEach(secNum => _toggleShSectionEdit(secNum, false));
 
   // Populate view presentation and edit forms for all sections
   _renderAllShSectionViews(s);
@@ -216,11 +205,10 @@ function _renderAllShSectionViews(s) {
   const sec1Type = $("sh-sec-1-val-type");
   const sec1Owner = $("sh-sec-1-val-owner");
 
-  const rIcon = ROLE_ICONS[s.role_type] || "👤";
-  const rLabel = (s.role_type || "custom").replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+  const dInfo = getDomainInfo(s.category || s.role_type);
 
   if (sec1Role) sec1Role.textContent = roleName;
-  if (sec1Category) sec1Category.textContent = `${rIcon} ${rLabel}`;
+  if (sec1Category) sec1Category.textContent = `${dInfo.icon} ${dInfo.label}`;
   if (sec1Type) {
     sec1Type.innerHTML = s.is_builtin 
       ? `<span class="sh-type-tag sh-type-builtin">Standard Persona</span>`
@@ -230,7 +218,7 @@ function _renderAllShSectionViews(s) {
     if (isOwner) {
       sec1Owner.innerHTML = `<span class="sh-owner-tag sh-owner-mine">Owned by you (${escapeHtml(_currentUser)})</span>`;
     } else if (owner === "system" || s.is_builtin) {
-      sec1Owner.innerHTML = `<span class="sh-owner-tag sh-owner-system">Standard System Role</span>`;
+      sec1Owner.innerHTML = `<span class="sh-owner-tag sh-owner-system">Admin Role</span>`;
     } else {
       sec1Owner.innerHTML = `<span class="sh-owner-tag sh-owner-other">Creator: ${escapeHtml(owner)}</span>`;
     }
@@ -327,7 +315,7 @@ function _renderAllShSectionViews(s) {
       });
   }
 
-  // Section 4: Priority Focus Areas
+  // Section 4: Priority Focus Areas & AI Guidance
   const prioContainer = $("sh-sec-4-val-priorities");
   if (prioContainer) {
     prioContainer.innerHTML = "";
@@ -340,12 +328,7 @@ function _renderAllShSectionViews(s) {
     });
   }
 
-  // Section 5: AI Persona & Synthesis Guidance
-  const descEl = $("sh-sec-5-val-desc");
-  const otherEl = $("sh-sec-5-val-other");
-  if (descEl) {
-    descEl.textContent = s.description || "Focuses on high-level delivery schedules, sprint health, cross-team dependencies, and team velocity weekly.";
-  }
+  const otherEl = $("sh-sec-4-val-other");
   if (otherEl) {
     otherEl.textContent = (s.other_notes && s.other_notes.trim()) ? s.other_notes.trim() : "None";
   }
@@ -358,8 +341,17 @@ function _populateShSectionEditForms(s) {
   // Section 1 Edit Form
   const editRole = $("sh-edit-role");
   const editRoleType = $("sh-edit-role-type");
-  if (editRole) editRole.value = s.role || s.role_type || "";
-  if (editRoleType) editRoleType.value = s.role_type || "custom";
+  if (editRole) editRole.value = s.role || "";
+  const catVal = (s.category || s.role_type || "other").toLowerCase();
+  if (editRoleType) {
+    const dInfo = getDomainInfo(catVal);
+    editRoleType.value = (dInfo === DOMAIN_MAP["delivery"]) ? "delivery" :
+      (dInfo === DOMAIN_MAP["leadership"]) ? "leadership" :
+      (dInfo === DOMAIN_MAP["engineering"]) ? "engineering" :
+      (dInfo === DOMAIN_MAP["quality"]) ? "quality" :
+      (dInfo === DOMAIN_MAP["product"]) ? "product" :
+      (dInfo === DOMAIN_MAP["security"]) ? "security" : "other";
+  }
 
   // Section 2 Edit Form (People)
   _sec2PeopleList = s.people ? JSON.parse(JSON.stringify(s.people)) : [];
@@ -369,7 +361,7 @@ function _populateShSectionEditForms(s) {
   _sec3ProjectsList = s.projects && s.projects.length > 0 ? [...s.projects] : [];
   _renderSec3ProjectsEditChips();
 
-  // Section 4 Edit Form (Priority Focus Areas)
+  // Section 4 Edit Form (Priority Focus Areas & Guidance)
   if (s.priority_areas && s.priority_areas.length > 0) {
     _sec4PriosList = s.priority_areas.map(p => p.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()));
   } else {
@@ -377,11 +369,8 @@ function _populateShSectionEditForms(s) {
   }
   _renderSec4PriosEditChips();
 
-  // Section 5 Edit Form (Guidance & Notes)
-  const editDesc = $("sh-edit-desc");
   const editOther = $("sh-edit-other");
   const editOtherCounter = $("sh-edit-other-counter");
-  if (editDesc) editDesc.value = s.description || "";
   if (editOther) {
     editOther.value = s.other_notes || "";
     if (editOtherCounter) {
@@ -409,9 +398,10 @@ async function _saveShSection(secNumber) {
 
     if (secNumber === 1) {
       const roleVal = $("sh-edit-role")?.value.trim();
-      const roleTypeVal = $("sh-edit-role-type")?.value || "custom";
+      const roleTypeVal = $("sh-edit-role-type")?.value || "other";
       if (!roleVal) throw new Error("Please enter a role title.");
       payload.role = roleVal;
+      payload.category = roleTypeVal;
       payload.role_type = roleTypeVal;
       payload.name = roleVal;
     } else if (secNumber === 2) {
@@ -433,9 +423,12 @@ async function _saveShSection(secNumber) {
       payload.projects = _sec3ProjectsList;
     } else if (secNumber === 4) {
       payload.priority_areas = _sec4PriosList;
-    } else if (secNumber === 5) {
-      payload.description = $("sh-edit-desc")?.value.trim() || "";
       payload.other_notes = $("sh-edit-other")?.value.trim().slice(0, 500) || "";
+      if (_sec4PriosList.length > 0) {
+        payload.description = "Focuses on " + _sec4PriosList.map(p => p.toLowerCase()).join(", ") + ".";
+      } else {
+        payload.description = "";
+      }
     }
 
     const res = await fetchWithTimeout(`${API_BASE}/stakeholders/${_currentEditingId}`, {
@@ -460,7 +453,6 @@ async function _saveShSection(secNumber) {
     _renderAllShSectionViews(updated);
     _populateShSectionEditForms(updated);
     _toggleShSectionEdit(secNumber, false);
-    updateStakeholdersStats();
   } catch (err) {
     console.error("Save section error:", err);
     alert(err.message || "Failed to save changes");
@@ -590,8 +582,7 @@ export function showStakeholderForm() {
 
   // Reset creation form inputs
   $("sh-form-role").value = "";
-  $("sh-form-role-type").value = "custom";
-  $("sh-form-desc").value = "";
+  $("sh-form-role-type").value = "other";
 
   const otherInput = $("sh-form-other");
   const otherCounter = $("sh-form-other-counter");
@@ -790,15 +781,16 @@ export function applyStakeholderFilters() {
 
   const filtered = _stakeholdersData.filter(s => {
     let matchesFilter = true;
-    const rType = (s.role_type || "custom").toLowerCase();
-    if (_activeFilter === "project_manager") {
-      matchesFilter = rType.includes("project") || rType.includes("manager");
-    } else if (_activeFilter === "executive") {
-      matchesFilter = rType.includes("exec");
-    } else if (_activeFilter === "engineering_qa") {
-      matchesFilter = rType.includes("eng") || rType.includes("qa");
-    } else if (_activeFilter === "custom") {
-      matchesFilter = !s.is_builtin || rType === "custom" || rType === "product_owner";
+    const dInfo = getDomainInfo(s.category || s.role_type);
+    const catKey = (dInfo === DOMAIN_MAP["delivery"]) ? "delivery" :
+      (dInfo === DOMAIN_MAP["leadership"]) ? "leadership" :
+      (dInfo === DOMAIN_MAP["engineering"]) ? "engineering" :
+      (dInfo === DOMAIN_MAP["quality"]) ? "quality" :
+      (dInfo === DOMAIN_MAP["product"]) ? "product" :
+      (dInfo === DOMAIN_MAP["security"]) ? "security" : "other";
+
+    if (_activeFilter !== "all") {
+      matchesFilter = (catKey === _activeFilter);
     }
 
     let matchesSearch = true;
@@ -854,8 +846,8 @@ export function applyStakeholderFilters() {
  * [ ROLE & OWNER ] [ PROJECTS ] [ DETAILS / ACTIONS ]
  */
 function renderStakeholderRow(s) {
-  const icon = ROLE_ICONS[s.role_type] || "👤";
-  const roleName = escapeHtml(s.role || s.role_type || "Stakeholder");
+  const dInfo = getDomainInfo(s.category || s.role_type);
+  const roleName = escapeHtml(s.role || "Stakeholder");
   const owner = s.owner || (s.is_builtin ? "system" : "demo");
   const isOwner = (owner === _currentUser);
 
@@ -863,7 +855,7 @@ function renderStakeholderRow(s) {
   const projectsList = s.projects && s.projects.length > 0 ? s.projects : ["HRZ"];
   const projectChipsHtml = projectsList.map(pkey => {
     const pInfo = PROJECT_MAP[pkey] || { name: pkey, color: "#4c8dff" };
-    return `<span class="sh-project-chip" title="${escapeHtml(pInfo.name)}" style="--proj-accent: ${pInfo.color}">
+    return `<span class="sh-project-chip" title="Assigned Delivery Project: ${escapeHtml(pInfo.name)} (${escapeHtml(pkey)})" style="--proj-accent: ${pInfo.color}">
       <span class="sh-project-dot"></span>${escapeHtml(pkey)}
     </span>`;
   }).join("");
@@ -871,45 +863,49 @@ function renderStakeholderRow(s) {
   // Owner badge
   let ownerBadge = "";
   if (isOwner) {
-    ownerBadge = `<span class="sh-owner-badge sh-owner-mine" title="Created by you">You</span>`;
+    ownerBadge = `<span class="sh-owner-badge sh-owner-mine" title="Ownership: Created and owned by you (${escapeHtml(_currentUser)})">You</span>`;
   } else if (owner === "system" || s.is_builtin) {
-    ownerBadge = `<span class="sh-owner-badge sh-owner-system" title="Standard System Persona">System</span>`;
+    ownerBadge = `<span class="sh-owner-badge sh-owner-system" title="Ownership: Admin default persona template">Admin</span>`;
   } else {
-    ownerBadge = `<span class="sh-owner-badge sh-owner-other" title="Created by ${escapeHtml(owner)}">${escapeHtml(owner)}</span>`;
+    ownerBadge = `<span class="sh-owner-badge sh-owner-other" title="Ownership: Created by team member ${escapeHtml(owner)}">By ${escapeHtml(owner)}</span>`;
   }
 
-  const builtinBadge = s.is_builtin 
-    ? `<span class="sh-type-tag sh-type-builtin" title="Standard Persona">Standard</span>`
-    : `<span class="sh-type-tag sh-type-custom" title="Custom Persona">Custom</span>`;
+  const domainBadge = `<span class="sh-domain-badge" title="AI Focus Area: ${escapeHtml(dInfo.label)} — ${escapeHtml(dInfo.desc)}">${dInfo.icon} ${escapeHtml(dInfo.label)}</span>`;
 
   return `
     <div class="stakeholder-row" data-id="${escapeHtml(s.id)}" role="button" tabindex="0">
-      <!-- 1. ROLE & OWNER COLUMN -->
+      <!-- 1. ROLE & FOCUS COLUMN -->
       <div class="sh-col sh-col-role">
         <div class="sh-role-badge">
           <div class="sh-role-info">
             <div class="sh-role-title-row">
               <span class="sh-role-title">${roleName}</span>
-              ${builtinBadge}
-              ${ownerBadge}
+              ${domainBadge}
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 2. PROJECTS COLUMN -->
+      <!-- 2. OWNER COLUMN -->
+      <div class="sh-col sh-col-owner">
+        <div class="sh-owner-wrapper">
+          ${ownerBadge}
+        </div>
+      </div>
+
+      <!-- 3. PROJECTS COLUMN -->
       <div class="sh-col sh-col-projects">
         <div class="sh-projects-wrapper">
           ${projectChipsHtml}
         </div>
       </div>
 
-      <!-- 3. DETAILS & ACTIONS COLUMN -->
+      <!-- 4. DETAILS & ACTIONS COLUMN -->
       <div class="sh-col sh-col-actions">
-        <button class="btn-sh-details" data-id="${escapeHtml(s.id)}" title="View stakeholder details">
+        <button class="btn-sh-details" data-id="${escapeHtml(s.id)}" title="View full stakeholder configuration and details">
           Details
         </button>
-        <button class="btn-icon-action btn-icon-delete btn-sh-delete" data-id="${escapeHtml(s.id)}" data-name="${roleName}" title="Delete role">
+        <button class="btn-icon-action btn-icon-delete btn-sh-delete" data-id="${escapeHtml(s.id)}" data-name="${roleName}" title="Delete stakeholder role">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
         </button>
       </div>
@@ -927,8 +923,10 @@ async function handleStakeholderFormSubmit(e) {
 
   const role = $("sh-form-role").value.trim();
   const roleType = $("sh-form-role-type").value;
-  const description = $("sh-form-desc").value.trim();
   const otherNotes = $("sh-form-other")?.value.trim().slice(0, 500) || "";
+  const description = _formPriosList.length > 0
+    ? "Focuses on " + _formPriosList.map(p => p.toLowerCase()).join(", ") + "."
+    : "";
 
   if (!role) {
     errorEl.textContent = "Please enter a role title.";
@@ -950,6 +948,7 @@ async function handleStakeholderFormSubmit(e) {
 
   const payload = {
     role,
+    category: roleType,
     role_type: roleType,
     name: role,
     description,
@@ -1049,31 +1048,6 @@ export function initStakeholdersEvents() {
   if (btnAdd) {
     btnAdd.addEventListener("click", () => {
       window.location.hash = "stakeholders/new";
-    });
-  }
-
-  // "Reset Defaults" button in header
-  const btnReset = $("btn-reset-stakeholders");
-  if (btnReset) {
-    btnReset.addEventListener("click", async () => {
-      if (!confirm("Are you sure you want to reset all stakeholders to default template personas? Custom stakeholder modifications will be reverted.")) {
-        return;
-      }
-      try {
-        const res = await fetchWithTimeout(`${API_BASE}/stakeholders/reset`, {
-          method: "POST",
-          credentials: "include"
-        });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || "Failed to reset stakeholders");
-        }
-        await renderStakeholdersPage();
-        showStakeholdersList();
-      } catch (err) {
-        console.error("Reset stakeholders error:", err);
-        alert("Error resetting stakeholders: " + err.message);
-      }
     });
   }
 

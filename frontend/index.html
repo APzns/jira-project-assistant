@@ -1652,34 +1652,10 @@
                     <p class="stakeholders-subtitle">Manage stakeholder personas, assigned project scopes, and AI perspective synthesis.</p>
                   </div>
                   <div class="stakeholders-header-actions">
-                    <button id="btn-reset-stakeholders" class="btn-secondary" title="Reset stakeholders to default standard personas">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
-                      Reset Defaults
-                    </button>
                     <button id="btn-add-stakeholder-main" class="btn-primary" title="Add a new stakeholder role">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                       Add Stakeholder
                     </button>
-                  </div>
-                </div>
-
-                <!-- Quick Stats Strip -->
-                <div class="stakeholders-stats-strip">
-                  <div class="sh-stat-box">
-                    <span class="sh-stat-val" id="sh-stat-total">0</span>
-                    <span class="sh-stat-lbl">Total Stakeholders</span>
-                  </div>
-                  <div class="sh-stat-box">
-                    <span class="sh-stat-val text-green" id="sh-stat-builtin">0</span>
-                    <span class="sh-stat-lbl">Standard Personas</span>
-                  </div>
-                  <div class="sh-stat-box">
-                    <span class="sh-stat-val text-accent" id="sh-stat-custom">0</span>
-                    <span class="sh-stat-lbl">Custom Personas</span>
-                  </div>
-                  <div class="sh-stat-box">
-                    <span class="sh-stat-val" id="sh-stat-projects">4</span>
-                    <span class="sh-stat-lbl">Projects Covered</span>
                   </div>
                 </div>
 
@@ -1694,16 +1670,20 @@
                   </div>
                   <div class="stakeholders-filter-pills" id="stakeholder-filter-pills">
                     <button class="filter-pill active" data-filter="all">All</button>
-                    <button class="filter-pill" data-filter="project_manager">Project Managers</button>
-                    <button class="filter-pill" data-filter="executive">Executives</button>
-                    <button class="filter-pill" data-filter="engineering_qa">Engineering & QA</button>
-                    <button class="filter-pill" data-filter="custom">Custom</button>
+                    <button class="filter-pill" data-filter="other">Other</button>
+                    <button class="filter-pill" data-filter="leadership">Leadership</button>
+                    <button class="filter-pill" data-filter="delivery">Delivery</button>
+                    <button class="filter-pill" data-filter="engineering">Engineering</button>
+                    <button class="filter-pill" data-filter="quality">Quality</button>
+                    <button class="filter-pill" data-filter="product">Product</button>
+                    <button class="filter-pill" data-filter="security">Security</button>
                   </div>
                 </div>
 
                 <!-- Stakeholder Table Headers -->
                 <div class="stakeholders-table-header">
-                  <div class="sh-th sh-th-role">Role</div>
+                  <div class="sh-th sh-th-role">Role &amp; Focus</div>
+                  <div class="sh-th sh-th-owner">Owner</div>
                   <div class="sh-th sh-th-projects">Assigned Projects</div>
                   <div class="sh-th sh-th-actions">Actions</div>
                 </div>
@@ -1750,7 +1730,7 @@
                     <div class="process-step-header">
                       <div class="process-step-info">
                         <h3 class="process-step-title">Persona &amp; Role Overview</h3>
-                        <p class="process-step-sub">Stakeholder role title, category lens, and system ownership</p>
+                        <p class="process-step-sub">Stakeholder role title, organizational domain, and system ownership</p>
                       </div>
                       <div class="process-step-actions">
                         <button type="button" class="btn-section-edit btn-sh-section-edit" id="btn-edit-sh-sec-1" data-section="1">
@@ -1768,8 +1748,8 @@
                           <div class="sec-summary-value" id="sh-sec-1-val-role">Engineering Lead</div>
                         </div>
                         <div class="sec-summary-item">
-                          <span class="sec-summary-label">Role Category &amp; AI Perspective</span>
-                          <div class="sec-summary-value" id="sh-sec-1-val-category">⚙️ Engineering Lead</div>
+                          <span class="sec-summary-label">Organizational Domain</span>
+                          <div class="sec-summary-value" id="sh-sec-1-val-category">⚙️ Engineering &amp; Architecture</div>
                         </div>
                         <div class="sec-summary-item">
                           <span class="sec-summary-label">Persona Type</span>
@@ -1790,16 +1770,15 @@
                           <input type="text" id="sh-edit-role" class="settings-input" placeholder="e.g. Engineering Lead" required maxlength="80" />
                         </div>
                         <div class="form-group">
-                          <label class="settings-label" for="sh-edit-role-type">Role Category (AI Perspective Lens)</label>
+                          <label class="settings-label" for="sh-edit-role-type">Organizational Domain</label>
                           <select id="sh-edit-role-type" class="settings-select">
-                            <option value="project_manager">Project Manager (Delivery schedules, sprint health, cross-team blockers)</option>
-                            <option value="executive">Executive Sponsor (High-level milestones, strategic ROI, executive risks)</option>
-                            <option value="engineering_lead">Engineering Lead (Tech debt ratios, architecture, engineering capacity)</option>
-                            <option value="qa_lead">QA &amp; Release Lead (Test coverage, defect escape trends, release criteria)</option>
-                            <option value="product_owner">Product Owner (Feature scope, user journey conversion, backlog priorities)</option>
-                            <option value="security_lead">Security Lead (SOC2 compliance, audit trails, vuln remediation)</option>
-                            <option value="devops_lead">DevOps Lead (CI/CD pipeline throughput, infra reliability, deployment velocity)</option>
-                            <option value="custom">Custom Persona (Pure custom directives, no predefined AI bias)</option>
+                            <option value="other">👤 Other / General (General directives, uncategorized focus)</option>
+                            <option value="leadership">👑 Leadership &amp; Strategy (High-level milestones, strategic ROI, executive risks)</option>
+                            <option value="delivery">🎯 Program &amp; Delivery (Delivery schedules, sprint health, cross-team blockers)</option>
+                            <option value="engineering">⚙️ Engineering &amp; Architecture (Tech debt ratios, architecture, engineering capacity)</option>
+                            <option value="quality">🧪 Quality &amp; Release (Test coverage, defect escape trends, release criteria)</option>
+                            <option value="product">💡 Product &amp; Commerce (Feature scope, user journey conversion, backlog priorities)</option>
+                            <option value="security">🔒 Security &amp; Compliance (SOC2 compliance, audit trails, vuln remediation)</option>
                           </select>
                         </div>
                       </div>
@@ -1901,12 +1880,12 @@
                     </div>
                   </div>
 
-                  <!-- Section 4: Priority Focus Areas -->
+                  <!-- Section 4: Priority Focus & AI Guidance -->
                   <div class="process-step-card" id="sh-sec-card-4" data-step="4">
                     <div class="process-step-header">
                       <div class="process-step-info">
-                        <h3 class="process-step-title">Priority Focus Areas</h3>
-                        <p class="process-step-sub">Key delivery metrics, risk themes, and focus pillars for this stakeholder</p>
+                        <h3 class="process-step-title">Priority Focus &amp; AI Guidance</h3>
+                        <p class="process-step-sub">Key delivery metrics, risk themes, and custom instructions used by AI assistants</p>
                       </div>
                       <div class="process-step-actions">
                         <button type="button" class="btn-section-edit btn-sh-section-edit" id="btn-edit-sh-sec-4" data-section="4">
@@ -1918,7 +1897,16 @@
 
                     <!-- Section 4 View Mode -->
                     <div class="section-view-container" id="sh-sec-4-view">
-                      <div id="sh-sec-4-val-priorities" class="sh-detail-tags-row"></div>
+                      <div class="sec-summary-grid">
+                        <div class="sec-summary-item sec-summary-span-2">
+                          <span class="sec-summary-label">Priority Focus Areas</span>
+                          <div id="sh-sec-4-val-priorities" class="sh-detail-tags-row" style="margin-top: 6px;"></div>
+                        </div>
+                        <div class="sec-summary-item sec-summary-span-2" id="sh-sec-4-val-other-container">
+                          <span class="sec-summary-label">Custom Directives &amp; Focus</span>
+                          <div class="sec-summary-value sec-summary-desc" id="sh-sec-4-val-other">None</div>
+                        </div>
+                      </div>
                     </div>
 
                     <!-- Section 4 Edit Mode -->
@@ -1947,49 +1935,7 @@
                           </div>
                         </div>
                       </div>
-                      <div class="section-edit-footer">
-                        <button type="button" class="btn-secondary btn-sh-sec-cancel" data-section="4">Cancel</button>
-                        <button type="button" class="btn-primary btn-sh-sec-save" data-section="4"><svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Save Priorities</button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Section 5: AI Persona & Synthesis Guidance -->
-                  <div class="process-step-card" id="sh-sec-card-5" data-step="5">
-                    <div class="process-step-header">
-                      <div class="process-step-info">
-                        <h3 class="process-step-title">AI Persona &amp; Synthesis Guidance</h3>
-                        <p class="process-step-sub">Guidance directives and custom instructions used by AI report generation and assistants</p>
-                      </div>
-                      <div class="process-step-actions">
-                        <button type="button" class="btn-section-edit btn-sh-section-edit" id="btn-edit-sh-sec-5" data-section="5">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                          Edit
-                        </button>
-                      </div>
-                    </div>
-
-                    <!-- Section 5 View Mode -->
-                    <div class="section-view-container" id="sh-sec-5-view">
-                      <div class="sec-summary-grid">
-                        <div class="sec-summary-item sec-summary-span-2">
-                          <span class="sec-summary-label">AI Persona Description &amp; Perspective Lens</span>
-                          <div class="sec-summary-value sec-summary-desc" id="sh-sec-5-val-desc">Focuses on technical debt, architecture, engineering capacity, and defect ratios.</div>
-                        </div>
-                        <div class="sec-summary-item sec-summary-span-2" id="sh-sec-5-val-other-container">
-                          <span class="sec-summary-label">Other Custom Directives &amp; Focus</span>
-                          <div class="sec-summary-value sec-summary-desc" id="sh-sec-5-val-other">None</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Section 5 Edit Mode -->
-                    <div class="section-edit-container" id="sh-sec-5-edit" style="display: none;">
-                      <div class="form-group">
-                        <label class="settings-label" for="sh-edit-desc">Persona Description &amp; General AI Guidance</label>
-                        <textarea id="sh-edit-desc" class="settings-textarea" rows="2" placeholder="e.g. Focuses on technical debt, architecture, engineering capacity, and defect ratios."></textarea>
-                      </div>
-                      <div class="form-group" style="margin-top: 12px;">
+                      <div class="form-group" style="margin-top: 14px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                           <label class="settings-label" for="sh-edit-other">Other Custom Directives (Max 500 characters)</label>
                           <span class="char-counter" id="sh-edit-other-counter">0 / 500 characters</span>
@@ -1997,8 +1943,8 @@
                         <textarea id="sh-edit-other" class="settings-textarea" rows="2" maxlength="500" placeholder="e.g. Highlight SOC2 compliance, API latency SLAs, third-party payment gateway failover..."></textarea>
                       </div>
                       <div class="section-edit-footer">
-                        <button type="button" class="btn-secondary btn-sh-sec-cancel" data-section="5">Cancel</button>
-                        <button type="button" class="btn-primary btn-sh-sec-save" data-section="5"><svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Save Guidance</button>
+                        <button type="button" class="btn-secondary btn-sh-sec-cancel" data-section="4">Cancel</button>
+                        <button type="button" class="btn-primary btn-sh-sec-save" data-section="4"><svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Save Guidance</button>
                       </div>
                     </div>
                   </div>
@@ -2029,18 +1975,17 @@
                         <input type="text" id="sh-form-role" class="settings-input" placeholder="e.g. Engineering Lead" required maxlength="80" />
                       </div>
                       <div class="form-group">
-                        <label class="settings-label" for="sh-form-role-type">Role Category (AI Persona &amp; Perspective Lens)</label>
+                        <label class="settings-label" for="sh-form-role-type">Organizational Domain</label>
                         <select id="sh-form-role-type" class="settings-select">
-                          <option value="project_manager">Project Manager (Delivery schedules, sprint health, cross-team blockers)</option>
-                          <option value="executive">Executive Sponsor (High-level milestones, strategic ROI, executive risks)</option>
-                          <option value="engineering_lead">Engineering Lead (Tech debt ratios, architecture, engineering capacity)</option>
-                          <option value="qa_lead">QA &amp; Release Lead (Test coverage, defect escape trends, release criteria)</option>
-                          <option value="product_owner">Product Owner (Feature scope, user journey conversion, backlog priorities)</option>
-                          <option value="security_lead">Security Lead (SOC2 compliance, audit trails, vuln remediation)</option>
-                          <option value="devops_lead">DevOps Lead (CI/CD pipeline throughput, infra reliability, deployment velocity)</option>
-                          <option value="custom">Custom Persona (Pure custom directives, no predefined AI bias)</option>
+                          <option value="other">👤 Other / General (General directives, uncategorized focus)</option>
+                          <option value="leadership">👑 Leadership &amp; Strategy (High-level milestones, strategic ROI, executive risks)</option>
+                          <option value="delivery">🎯 Program &amp; Delivery (Delivery schedules, sprint health, cross-team blockers)</option>
+                          <option value="engineering">⚙️ Engineering &amp; Architecture (Tech debt ratios, architecture, engineering capacity)</option>
+                          <option value="quality">🧪 Quality &amp; Release (Test coverage, defect escape trends, release criteria)</option>
+                          <option value="product">💡 Product &amp; Commerce (Feature scope, user journey conversion, backlog priorities)</option>
+                          <option value="security">🔒 Security &amp; Compliance (SOC2 compliance, audit trails, vuln remediation)</option>
                         </select>
-                        <span class="settings-hint">Defines the perspective lens and domain focus the AI uses when generating reports and answers.</span>
+                        <span class="settings-hint">Select the organizational domain lens used by AI report generation and assistants.</span>
                       </div>
                     </div>
 
@@ -2099,17 +2044,11 @@
                     <!-- Other Free Text Focus Area -->
                     <div class="form-group">
                       <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <label class="settings-label" for="sh-form-other">Other Focus Areas &amp; Free-Text Directives</label>
+                        <label class="settings-label" for="sh-form-other">Other Custom Directives (Max 500 characters)</label>
                         <span class="char-counter" id="sh-form-other-counter">0 / 500 characters</span>
                       </div>
                       <textarea id="sh-form-other" class="settings-textarea" rows="2" maxlength="500" placeholder="e.g. Highlight SOC2 compliance, API latency SLAs, third-party payment gateway failover..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
-                      <span class="settings-hint">Limited to 500 characters to keep AI prompts fast, concise, and cost-efficient.</span>
-                    </div>
-
-                    <!-- Persona Description / AI Notes -->
-                    <div class="form-group">
-                      <label class="settings-label" for="sh-form-desc">Persona Description &amp; General AI Guidance</label>
-                      <textarea id="sh-form-desc" class="settings-textarea" rows="2" placeholder="e.g. Focus on high-level delivery schedules, sprint health, cross-team dependencies, and team velocity weekly." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+                      <span class="settings-hint">Optional custom instructions for AI summaries and report generation.</span>
                     </div>
 
                     <div class="sh-form-actions">

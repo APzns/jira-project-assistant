@@ -3,7 +3,8 @@
     {
       "id": "pm-default",
       "role": "Project Manager",
-      "role_type": "project_manager",
+      "category": "delivery",
+      "role_type": "delivery",
       "owner": "system",
       "is_builtin": true,
       "description": "Focuses on delivery schedules, sprint health, cross-team dependencies, and team velocity.",
@@ -27,14 +28,13 @@
           "name": "Samantha Reed",
           "email": "samantha.reed@company.internal"
         }
-      ],
-      "other_notes": "",
-      "name": "Project Manager"
+      ]
     },
     {
       "id": "exec",
       "role": "Executive Sponsor",
-      "role_type": "executive",
+      "category": "leadership",
+      "role_type": "leadership",
       "owner": "system",
       "is_builtin": true,
       "description": "Focuses on high-level strategic milestones, budget, ROI, and major business risks.",
@@ -55,45 +55,41 @@
           "name": "David Sterling",
           "email": "david.sterling@company.internal"
         }
-      ],
-      "other_notes": "",
-      "name": "Executive Sponsor"
+      ]
     },
     {
       "id": "eng-lead",
-      "role": "Lead Systems Architect",
-      "role_type": "engineering_lead",
+      "role": "Engineering Lead",
+      "category": "engineering",
+      "role_type": "engineering",
       "owner": "system",
-      "name": "Lead Systems Architect",
-      "email": "",
+      "is_builtin": true,
+      "description": "Focuses on technical debt, architecture, engineering capacity, and defect ratios.",
+      "projects": [
+        "CORE",
+        "CHK"
+      ],
+      "priority_areas": [
+        "technical_debt",
+        "defect_ratios",
+        "architecture"
+      ],
       "people": [
         {
           "name": "Marcus Vance",
           "email": "marcus.vance@company.internal"
         },
         {
-          "name": "Alex Tech",
-          "email": "alex.tech@company.internal"
+          "name": "Priya Sharma",
+          "email": "priya.sharma@company.internal"
         }
-      ],
-      "is_builtin": true,
-      "description": "Focuses on technical debt and microservices scalability.",
-      "other_notes": "Quarterly architecture reviews with core platform team.",
-      "projects": [
-        "CORE",
-        "CHK"
-      ],
-      "priority_areas": [
-        "Architecture",
-        "Scalability",
-        "Tech Debt"
-      ],
-      "project_override": null
+      ]
     },
     {
       "id": "qa-lead",
       "role": "QA & Release Lead",
-      "role_type": "qa_lead",
+      "category": "quality",
+      "role_type": "quality",
       "owner": "system",
       "is_builtin": true,
       "description": "Focuses on software quality, defect trends, test automation coverage, and release criteria.",
@@ -111,14 +107,13 @@
           "name": "Dr. Aris Thorne",
           "email": "aris.thorne@company.internal"
         }
-      ],
-      "other_notes": "",
-      "name": "QA & Release Lead"
+      ]
     },
     {
       "id": "po-commerce",
       "role": "Product Owner",
-      "role_type": "product_owner",
+      "category": "product",
+      "role_type": "product",
       "owner": "system",
       "is_builtin": false,
       "description": "Drives checkout user experience, payment gateway conversion, and feature prioritization.",
@@ -126,4 +121,20 @@
         "CHK"
       ],
       "priority_areas": [
-   
+        "scope",
+        "user_experience",
+        "conversion"
+      ],
+      "people": [
+        {
+          "name": "Chloe Lin",
+          "email": "chloe.lin@company.internal"
+        },
+        {
+          "name": "Lucas Meyer",
+          "email": "lucas.meyer@company.internal"
+        }
+      ]
+    }
+  ]
+}
