@@ -8,8 +8,12 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from src.jira_ai.api.services.llm import _load_ai_settings, chat_assistant
-from src.jira_ai.ingestion.models import SessionLocal
+from src.jira_ai.database import SessionLocal
 
 
 def main():

@@ -61,6 +61,60 @@ class TestAssessmentService(unittest.TestCase):
         self.assertIn("generated_at", res)
         self.assertIn("monte_carlo", res)
 
+    def test_cache_ttl_and_date_expiration(self):
+        import json
+        from datetime import UTC, datetime, timedelta
+        from src.jira_ai.ingestion.models import AssessmentCache
+
+        from src.jira_ai.api.services.assessment.engine import _get_cache_id
+        # Seed an old cache row from yesterday
+        yesterday = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=1)
+        row = AssessmentCache(
+            id=_get_cache_id("real", "CHK"),
+            payload=json.dumps({"overall_status": "delayed", "milestones": []}),
+            generated_at=yesterday,
+        )
+        self.session.add(row)
+        self.session.commit()
+
+        # Should be expired because it is from yesterday
+        cached = assessment.get_cached_assessment(self.session, mode="real", project_key="CHK")
+        self.assertIsNone(cached)
+
+        # Fresh cache row generated just now
+        row.generated_at = datetime.now(UTC).replace(tzinfo=None)
+        self.session.commit()
+        cached_fresh = assessment.get_cached_assessment(self.session, mode="real", project_key="CHK")
+        self.assertIsNotNone(cached_fresh)
+
+    def test_fallback_milestone_date_formatting(self):
+        metrics = {
+            "milestone_completion": {
+                "v1.0.0-alpha": {
+                    "release_date": "2026-08-06",
+                    "days_to_release": -96,
+                    "percent_done": 85,
+                    "done": 17,
+                    "total": 20,
+                },
+                "v2.0.0-future": {
+                    "release_date": "2026-12-31",
+                    "days_to_release": 51,
+                    "percent_done": 10,
+                    "done": 1,
+                    "total": 10,
+                },
+            }
+        }
+        res = _build_fallback_assessment(metrics, mode="real")
+        alpha = next(m for m in res["milestones"] if m["name"] == "v1.0.0-alpha")
+        self.assertEqual(alpha["status"], "delayed")
+        self.assertIn("Missed release date of 2026-08-06 by 96 days", alpha["assessment"])
+
+        future = next(m for m in res["milestones"] if m["name"] == "v2.0.0-future")
+        self.assertIn("51 days remaining until release (2026-12-31)", future["assessment"])
+
 
 if __name__ == "__main__":
     unittest.main()
+

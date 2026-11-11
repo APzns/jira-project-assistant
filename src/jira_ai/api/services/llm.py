@@ -694,8 +694,9 @@ not the LLM's training knowledge about hypothetical projects.
 
     q_type = _classify_question(question)
     
-    sys_persona = f"<persona>\n{persona}\n</persona>"
-    sys_project = f"<project_context>\n{project_scope_directive}\n{project_ctx}\n{skill_ctx}\n{settings_block}\n</project_context>"
+    today_str = datetime.now(UTC).strftime('%Y-%m-%d')
+    sys_persona = f"<persona>\n{persona}\nToday's Date: {today_str}\n</persona>"
+    sys_project = f"<project_context>\nToday's Date: {today_str}\n{project_scope_directive}\n{project_ctx}\n{skill_ctx}\n{settings_block}\n</project_context>"
     
     if q_type == "simple_lookup":
         sys_tools = "<tools_and_data>\nYou have tools available: `get_project_charter` and `get_stakeholders`. Do not write SQL for simple lookups.\n</tools_and_data>"
@@ -1295,8 +1296,9 @@ not the LLM's training knowledge about hypothetical projects.
 
     q_type = _classify_question(question)
     
-    sys_persona = f"<persona>\n{persona}\n</persona>"
-    sys_project = f"<project_context>\n{project_scope_directive}\n{project_ctx}\n{skill_ctx}\n{settings_block}\n</project_context>"
+    today_str = datetime.now(UTC).strftime('%Y-%m-%d')
+    sys_persona = f"<persona>\n{persona}\nToday's Date: {today_str}\n</persona>"
+    sys_project = f"<project_context>\nToday's Date: {today_str}\n{project_scope_directive}\n{project_ctx}\n{skill_ctx}\n{settings_block}\n</project_context>"
     
     if q_type == "simple_lookup":
         sys_tools = "<tools_and_data>\nYou have tools available: `get_project_charter` and `get_stakeholders`. Do not write SQL for simple lookups.\n</tools_and_data>"

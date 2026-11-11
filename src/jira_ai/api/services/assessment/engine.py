@@ -48,12 +48,27 @@ def _save_to_cache(db, assessment: dict, cache_id: int = REAL_CACHE_ID) -> None:
     db.commit()
 
 
-def get_cached_assessment(db, mode: str = "real", project_key: str | None = None) -> dict | None:
-    """Return the last saved assessment for this mode & project, or None if none yet."""
+ASSESSMENT_CACHE_TTL = 14400  # 4 hours
+
+
+def get_cached_assessment(
+    db,
+    mode: str = "real",
+    project_key: str | None = None,
+    max_age_seconds: int | None = ASSESSMENT_CACHE_TTL,
+) -> dict | None:
+    """Return the last saved assessment for this mode & project, or None if none yet or expired."""
     cache_id = _get_cache_id(mode, project_key)
     row = db.get(AssessmentCache, cache_id)
     if row is None:
         return None
+
+    if max_age_seconds is not None and row.generated_at:
+        now = datetime.now(UTC).replace(tzinfo=None)
+        age = (now - row.generated_at).total_seconds()
+        if age > max_age_seconds or row.generated_at.date() < now.date():
+            return None
+
     data = json.loads(row.payload)
     if isinstance(data, dict) and "metrics" in data:
         data["monte_carlo"] = _build_monte_carlo(data["metrics"])
@@ -114,6 +129,7 @@ def assess(db, mode: str = "real", project_key: str | None = None) -> dict:
     lenses = _load_risk_lenses(project_key)
     context = load_project_context(project_key)
 
+    today_str = datetime.now(UTC).strftime('%Y-%m-%d')
     project_header = f"Project Scope: {project_key.upper()}" if project_key and project_key.upper() not in ("ALL", "GLOBAL") else "Project Scope: ALL (Global Portfolio / All Projects)"
 
     project_milestone = metrics.get('project_milestone')
@@ -123,20 +139,22 @@ def assess(db, mode: str = "real", project_key: str | None = None) -> dict:
    on time based on its completion and everything feeding it.
 
 For milestones: base each milestone's status on the MILESTONE COMPLETION data
-(completion % plus days-to-release). Use the milestone names exactly as they
-appear. Do not invent milestones absent from that data. The statuses must be 'on_track', 'at_risk', or 'delayed'."""
+(completion % plus days-to-release relative to today's date: {today_str}). Use the milestone names exactly as they
+appear. Do not invent milestones absent from that data. The statuses must be 'on_track', 'at_risk', or 'delayed'.
+CRITICAL DATE AWARENESS: Today is {today_str}. If a milestone's target date has already passed (days_to_release < 0) and unfinished items remain, it is 'delayed' (overdue by X days). NEVER say 'days remaining' for release dates that have already passed."""
     else:
-        milestone_instructions = """4. For the project-deadline lens, there are no predefined milestones. Judge whether the project will ship
-   on time based on overall completion and forecast metrics.
+        milestone_instructions = f"""4. For the project-deadline lens, there are no predefined milestones. Judge whether the project will ship
+   on time based on overall completion and forecast metrics relative to today's date: {today_str}.
 
 Note: There are no milestones defined for this project. Do not invent any milestones."""
 
     prompt = f"""You are an experienced Technical Program Manager writing a
 status assessment for stakeholders.
 
+Today's Date: {today_str}
 {project_header}
 
-All numbers below were computed by a script and are exact. Your job is to
+All numbers below were computed by a script and are exact as of {today_str}. Your job is to
 INTERPRET them and write the commentary — do not compute or invent any figures.
 
 Reason in this order:

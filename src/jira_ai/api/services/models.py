@@ -157,6 +157,12 @@ def get_client() -> genai.Client | None:
     global _client
     api_key = os.environ.get("GEMINI_API_KEY", "")
     if not api_key:
+        try:
+            from src.jira_ai.config import get_settings
+            api_key = get_settings().gemini_api_key
+        except Exception:
+            pass
+    if not api_key:
         return None
     if _client is None:
         try:

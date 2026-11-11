@@ -10,9 +10,42 @@ import { API_BASE } from "../state.js";
 import { fetchWithTimeout } from "../api.js";
 import { openReportDetail, executeReportGeneration } from "../skills.js";
 
-let _chatHistory = [];
+const ASSISTANT_STORAGE_KEY = "jira_assistant_chat_history";
+
+function loadAssistantChatHistory() {
+  try {
+    const raw = localStorage.getItem(ASSISTANT_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(item => item && typeof item === "object" && typeof item.role === "string" && typeof item.content === "string");
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to load assistant chat history from localStorage:", err);
+  }
+  return [];
+}
+
+function saveAssistantChatHistory() {
+  try {
+    const trimmed = _chatHistory.length > 50 ? _chatHistory.slice(-50) : _chatHistory;
+    localStorage.setItem(ASSISTANT_STORAGE_KEY, JSON.stringify(trimmed));
+  } catch (err) {
+    console.warn("Failed to save assistant chat history to localStorage:", err);
+  }
+}
+
+let _chatHistory = loadAssistantChatHistory();
 let _isThinking = false;
 let _lastProposedTemplate = null;
+
+if (_chatHistory && _chatHistory.length > 0) {
+  const lastWithTpl = [..._chatHistory].reverse().find(m => m.template);
+  if (lastWithTpl) {
+    _lastProposedTemplate = lastWithTpl.template;
+  }
+}
 
 const DEFAULT_WELCOME_MESSAGE = `
 Hello! I am your **Smart Project & Delivery Assistant** for **Horizon** and assigned portfolio initiatives.
@@ -273,6 +306,7 @@ function renderChatStream() {
         stks.push(stkId);
       }
       msg.template.stakeholder_ids = stks;
+      saveAssistantChatHistory();
       renderChatStream();
     };
   });
@@ -284,6 +318,7 @@ function renderChatStream() {
       const msg = _chatHistory[msgIdx];
       if (msg && msg.template) {
         msg.template.project_scope = sel.value;
+        saveAssistantChatHistory();
         const scopeValEl = $(`card-scope-val-${msgIdx}`);
         if (scopeValEl) scopeValEl.textContent = sel.value;
       }
@@ -299,6 +334,7 @@ export async function sendAssistantMessage(userText) {
   if (!text || _isThinking) return;
 
   _chatHistory.push({ role: "user", content: text });
+  saveAssistantChatHistory();
   _isThinking = true;
   renderChatStream();
 
@@ -339,12 +375,14 @@ export async function sendAssistantMessage(userText) {
       template: data.proposed_template || null,
       skill_used: data.skill_used || null
     });
+    saveAssistantChatHistory();
   } catch (err) {
     console.error("Assistant chat error:", err);
     _chatHistory.push({
       role: "assistant",
       content: `⚠️ **Error communicating with AI Assistant:** ${escapeHtml(err.message)}`
     });
+    saveAssistantChatHistory();
   } finally {
     _isThinking = false;
     renderChatStream();
@@ -435,6 +473,11 @@ export function clearAssistantSession() {
   _chatHistory = [];
   _isThinking = false;
   _lastProposedTemplate = null;
+  try {
+    localStorage.removeItem(ASSISTANT_STORAGE_KEY);
+  } catch (err) {
+    console.warn("Failed to remove assistant chat history from localStorage:", err);
+  }
   renderChatStream();
 }
 

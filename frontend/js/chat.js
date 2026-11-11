@@ -6,6 +6,70 @@ import { $, setText, show, hide, escapeHtml, renderMarkdown } from "./utils.js";
 import { API_BASE, state } from "./state.js";
 import { fetchWithTimeout } from "./api.js";
 
+const DRAWER_STORAGE_KEY = "jira_copilot_chat_history";
+
+function _getSavedDrawerHistory() {
+  try {
+    const raw = localStorage.getItem(DRAWER_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (err) {
+    console.warn("Failed to load drawer chat history from localStorage:", err);
+  }
+  return [];
+}
+
+function _saveDrawerHistory(items) {
+  try {
+    localStorage.setItem(DRAWER_STORAGE_KEY, JSON.stringify(items));
+  } catch (err) {
+    console.warn("Failed to save drawer chat history to localStorage:", err);
+  }
+}
+
+function _saveDrawerHistoryItem(item) {
+  const items = _getSavedDrawerHistory();
+  const existingIdx = items.findIndex(x => x.id === item.id);
+  if (existingIdx >= 0) {
+    items[existingIdx] = item;
+  } else {
+    items.push(item);
+  }
+  if (items.length > 30) {
+    items.splice(0, items.length - 30);
+  }
+  _saveDrawerHistory(items);
+}
+
+export function restoreDrawerHistory() {
+  const container = $("ask-history");
+  if (!container) return;
+  if (container.children.length > 0) return;
+
+  const items = _getSavedDrawerHistory();
+  if (!items || !items.length) return;
+
+  items.forEach(item => {
+    addHistoryEntry(item.id, item.question, item.answer, item.time);
+    updateHistoryEntry(item.id, item.answer, item.rows, item.skill_used);
+  });
+
+  state.askHistory = items.slice(-10).map(x => ({ question: x.question, answer: x.answer }));
+}
+
+export function clearDrawerHistory() {
+  try {
+    localStorage.removeItem(DRAWER_STORAGE_KEY);
+  } catch (err) {
+    console.warn("Failed to clear drawer chat history:", err);
+  }
+  state.askHistory = [];
+  const container = $("ask-history");
+  if (container) container.innerHTML = "";
+}
+
 export function openChatDrawer() {
   const drawer = $("chat-drawer");
   const fab = $("chat-fab-btn");
@@ -145,7 +209,8 @@ export async function askQuestion(inputId, buttonId) {
   btn.textContent = "Thinking…";
 
   const entryId = "qa-" + Date.now();
-  addHistoryEntry(entryId, q, "Thinking…");
+  const entryTime = new Date().toLocaleTimeString();
+  addHistoryEntry(entryId, q, "Thinking…", entryTime);
   input.value = "";
   input.dispatchEvent(new Event("input"));
 
@@ -224,25 +289,42 @@ export async function askQuestion(inputId, buttonId) {
     
     state.askHistory.push({ question: q, answer });
     if (state.askHistory.length > 10) state.askHistory.shift();
+
+    _saveDrawerHistoryItem({
+      id: entryId,
+      question: q,
+      answer: answer,
+      time: entryTime,
+      rows: finalData.rows || [],
+      skill_used: finalData.skill_used || null
+    });
   } catch (e) {
     const errorMsg = e.message && e.message.toLowerCase().includes("timed out")
       ? "⚠️ Request timed out. The AI model is taking longer than expected to respond. Please try again."
       : "⚠️ Could not reach the API. Is the server running?";
     updateHistoryEntry(entryId, errorMsg, []);
+    _saveDrawerHistoryItem({
+      id: entryId,
+      question: q,
+      answer: errorMsg,
+      time: entryTime,
+      rows: [],
+      skill_used: null
+    });
   } finally {
     btn.disabled = false;
     btn.textContent = original;
   }
 }
 
-export function addHistoryEntry(entryId, question, answerText) {
+export function addHistoryEntry(entryId, question, answerText, time) {
   const container = $("ask-history");
   if (!container) return;
-  const time = new Date().toLocaleTimeString();
+  const timeStr = time || new Date().toLocaleTimeString();
   const html =
     `<details class="qa" open data-entry="${entryId}">
        <summary><span class="qa-q">${escapeHtml(question)}</span>
-                <span class="qa-time">${time}</span></summary>
+                <span class="qa-time">${timeStr}</span></summary>
        <div class="qa-a">${escapeHtml(answerText)}</div>
      </details>`;
   container.insertAdjacentHTML("beforeend", html);
@@ -289,6 +371,7 @@ function _renderRowsTable(rows) {
 }
 
 export function initChatEvents(inputId = "ask-input", buttonId = "ask-button") {
+  restoreDrawerHistory();
   const btn = $(buttonId);
   const input = $(inputId);
   if (btn) btn.addEventListener("click", () => askQuestion(inputId, buttonId));

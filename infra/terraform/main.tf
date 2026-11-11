@@ -9,12 +9,12 @@ terraform {
 
 provider "google" {
   project = "jira-ai-503005"
-  region  = "europe-west3"
+  region  = "us-central1"
 }
 
 locals {
   project_id = "jira-ai-503005"
-  region     = "europe-west3"
+  region     = "us-central1"
   service    = "jira-ai"
 }
 
@@ -35,7 +35,7 @@ resource "google_cloud_run_v2_service" "jira_ai" {
       # Placeholder — the real image is built and pushed by
       # `gcloud run deploy --source .`. Terraform ignores changes to
       # this field (see lifecycle block below).
-      image = "europe-west3-docker.pkg.dev/jira-ai-503005/cloud-run-source-deploy/jira-ai:latest"
+      image = "us-central1-docker.pkg.dev/jira-ai-503005/cloud-run-source-deploy/jira-ai:latest"
 
       ports {
         container_port = 8080

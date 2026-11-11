@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -368,7 +369,9 @@ def skill_analyze_status(payload: SkillRequest, db: Session = Depends(get_db)):
 {settings_block}
 """
 
+    today_str = datetime.now(UTC).strftime('%Y-%m-%d')
     user_prompt = f"""You are performing a full Analyze Status skill run.
+Today's Date: {today_str}
 Project Scope: {payload.project_key or 'ALL (Global Portfolio)'}
 
 ## Program Metrics Snapshot
@@ -513,7 +516,9 @@ def skill_assess_risks(payload: SkillRequest, db: Session = Depends(get_db)):
 {settings_block}
 """
 
+    today_str = datetime.now(UTC).strftime('%Y-%m-%d')
     user_prompt = f"""You are performing an in-depth Assess Risks skill run.
+Today's Date: {today_str}
 Project Scope: {payload.project_key or 'ALL (Global Portfolio)'}
 
 ## Program Metrics Snapshot
@@ -672,7 +677,9 @@ def skill_forecast_delivery(payload: SkillRequest, db: Session = Depends(get_db)
 {settings_block}
 """
 
+    today_str = datetime.now(UTC).strftime('%Y-%m-%d')
     user_prompt = f"""You are performing a Forecast Delivery skill run.
+Today's Date: {today_str}
 Project Scope: {payload.project_key or 'ALL (Global Portfolio)'}
 
 ## Program Metrics Snapshot
@@ -852,7 +859,9 @@ def skill_sprint_planning(payload: SkillRequest, db: Session = Depends(get_db)):
 {settings_block}
 """
 
+    today_str = datetime.now(UTC).strftime('%Y-%m-%d')
     user_prompt = f"""You are performing a Sprint Planning skill run.
+Today's Date: {today_str}
 Project Scope: {payload.project_key or 'ALL (Global Portfolio)'}
 
 ## Program Metrics Snapshot
@@ -1051,7 +1060,9 @@ def skill_propose_next_steps(payload: SkillRequest, db: Session = Depends(get_db
     stakeholder_role = settings.get("stakeholder", "program_manager")
     verbosity = settings.get("summary_verbosity", "brief")
 
+    today_str = datetime.now(UTC).strftime('%Y-%m-%d')
     user_prompt = f"""You are performing a Propose Next Steps skill run.
+Today's Date: {today_str}
 Project Scope: {payload.project_key or 'ALL (Global Portfolio)'}
 
 ## Program Metrics Snapshot
@@ -1274,7 +1285,9 @@ def skill_generate_report(payload: SkillRequest, db: Session = Depends(get_db)):
 {settings_block}
 """
 
+    today_str = datetime.now(UTC).strftime('%Y-%m-%d')
     user_prompt = f"""You are generating a Program Status Report.
+Today's Date: {today_str}
 Project Scope: {payload.project_key or 'ALL (Global Portfolio)'}
 Active Report Configuration: {settings.get('profile_name', 'Executive Briefing')}
 Stakeholder Perspective: {settings.get('stakeholder', 'program_manager')}

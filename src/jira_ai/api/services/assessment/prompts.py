@@ -98,10 +98,22 @@ def _build_fallback_assessment(metrics: dict, mode: str) -> dict:
             status = "at_risk"
             has_at_risk = True
 
+        rel_date = info.get("release_date")
+        timing_str = ""
+        if days is not None and rel_date:
+            if days < 0:
+                timing_str = f" Missed release date of {rel_date} by {abs(days)} days."
+            elif days == 0:
+                timing_str = f" Due today ({rel_date})."
+            else:
+                timing_str = f" {days} days remaining until release ({rel_date})."
+        elif rel_date:
+            timing_str = f" Release date: {rel_date}."
+
         ms_list.append({
             "name": ms_name,
             "status": status,
-            "assessment": f"Milestone '{ms_name}' is {pct}% complete ({info.get('done', 0)}/{info.get('total', 0)} items done)."
+            "assessment": f"Milestone '{ms_name}' is {pct}% complete ({info.get('done', 0)}/{info.get('total', 0)} items done).{timing_str}"
         })
 
     overdue_pct = metrics.get("overdue_points_pct", 0)
